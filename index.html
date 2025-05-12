@@ -65,76 +65,7 @@
         border-radius: 12px;
     }
     
-    /* Pixel Animation Styles */
-    .pixel-border {
-        position: absolute;
-        top: -10px;
-        left: -10px;
-        width: calc(100% + 20px);
-        height: calc(100% + 20px);
-        pointer-events: none;
-        z-index: -10;
-        overflow: visible;
-    }
-
-    .trail {
-        width: 10px;
-        height: 10px;
-        position: absolute;
-        animation: movePixel 4s linear infinite;
-        filter: blur(1.5px);
-        z-index: -10;
-        border-radius: 50%;
-    }
-
-    #clown-card .trail {
-        background: #00f0ff;
-        box-shadow: 0 0 3px #00f0ff, 0 0 6px #00f0ff;
-    }
-
-    #joker-card .trail {
-        background: #ff0000;
-        box-shadow: 0 0 3px #ff0000, 0 0 6px #ff0000;
-    }
-    
-    #jester-card .trail {
-        background: #00ff00;
-        box-shadow: 0 0 3px #00ff00, 0 0 6px #00ff00;
-    }
-
-    /* Trail Delays */
-    .trail:nth-child(2)  { animation-delay: 0.015s; opacity: 0.95; }
-    .trail:nth-child(3)  { animation-delay: 0.030s; opacity: 0.90; }
-    .trail:nth-child(4)  { animation-delay: 0.045s; opacity: 0.85; }
-    .trail:nth-child(5)  { animation-delay: 0.060s; opacity: 0.80; }
-    .trail:nth-child(6)  { animation-delay: 0.075s; opacity: 0.75; }
-    .trail:nth-child(7)  { animation-delay: 0.090s; opacity: 0.70; }
-    .trail:nth-child(8)  { animation-delay: 0.105s; opacity: 0.65; }
-    .trail:nth-child(9)  { animation-delay: 0.120s; opacity: 0.60; }
-    .trail:nth-child(10) { animation-delay: 0.135s; opacity: 0.55; }
-    .trail:nth-child(11) { animation-delay: 0.150s; opacity: 0.50; }
-    .trail:nth-child(12) { animation-delay: 0.165s; opacity: 0.45; }
-    .trail:nth-child(13) { animation-delay: 0.180s; opacity: 0.40; }
-    .trail:nth-child(14) { animation-delay: 0.195s; opacity: 0.35; }
-    .trail:nth-child(15) { animation-delay: 0.210s; opacity: 0.30; }
-    .trail:nth-child(16) { animation-delay: 0.225s; opacity: 0.25; }
-    .trail:nth-child(17) { animation-delay: 0.240s; opacity: 0.20; }
-    .trail:nth-child(18) { animation-delay: 0.255s; opacity: 0.15; }
-    .trail:nth-child(19) { animation-delay: 0.270s; opacity: 0.10; }
-    .trail:nth-child(20) { animation-delay: 0.285s; opacity: 0.07; }
-    .trail:nth-child(21) { animation-delay: 0.300s; opacity: 0.05; }
-    .trail:nth-child(22) { animation-delay: 0.315s; opacity: 0.03; }
-    .trail:nth-child(23) { animation-delay: 0.330s; opacity: 0.02; }
-    .trail:nth-child(24) { animation-delay: 0.345s; opacity: 0.01; }
-    .trail:nth-child(25) { animation-delay: 0.360s; opacity: 0.005; }
-
-    @keyframes movePixel {
-        0%   { top: 0; left: 0; transform: translate(0, 0); }
-        25%  { top: 0; left: 100%; transform: translate(-10px, 0); }
-        50%  { top: 100%; left: 100%; transform: translate(-10px, -10px); }
-        75%  { top: 100%; left: 0; transform: translate(0, -10px); }
-        100% { top: 0; left: 0; transform: translate(0, 0); }
-    }
+  
     
     /* Card States */
     .flip-card.lifted {
@@ -295,29 +226,7 @@
         .aspect-content { font-size: 1.3rem; }
         .flip-card-back { padding: 20px; }
         
-        @keyframes movePixel {
-            0%   { top: 0; left: 0; transform: translate(0, 0); }
-            25%  { top: 0; left: 100%; transform: translate(-8px, 0); }
-            50%  { top: 100%; left: 100%; transform: translate(-8px, -8px); }
-            75%  { top: 100%; left: 0; transform: translate(0, -8px); }
-            100% { top: 0; left: 0; transform: translate(0, 0); }
-        }
-    }
-    
-    @media (max-width: 400px) {
-        .cards-container { gap: 10px; }
-        .flip-card { height: 160px; }
-        .character-title { font-size: 1.6rem; }
-        .aspect-title { font-size: 1.3rem; }
-        .aspect-content { font-size: 1.2rem; }
-        
-        @keyframes movePixel {
-            0%   { top: 0; left: 0; transform: translate(0, 0); }
-            25%  { top: 0; left: 100%; transform: translate(-6px, 0); }
-            50%  { top: 100%; left: 100%; transform: translate(-6px, -6px); }
-            75%  { top: 100%; left: 0; transform: translate(0, -6px); }
-            100% { top: 0; left: 0; transform: translate(0, 0); }
-        }
+
     }
 </style>
 </head>
@@ -328,17 +237,7 @@
     <div class="cards-container">
         <!-- Clown Card -->
         <div class="flip-card" id="clown-card" onclick="toggleCard(this)">
-            <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-            </div>
+         
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
@@ -377,17 +276,7 @@
         
         <!-- Joker Card -->
         <div class="flip-card" id="joker-card" onclick="toggleCard(this)">
-            <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-            </div>
+       
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
@@ -426,17 +315,7 @@
         
         <!-- Jester Card -->
         <div class="flip-card" id="jester-card" onclick="toggleCard(this)">
-            <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-            </div>
+       
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
@@ -613,6 +492,114 @@
 })();
 </script>
 
+<script>
+(function () {
+  const styles = document.createElement('style');
+  styles.textContent = `
+    .glow-border-wrapper {
+      position: absolute;
+      top: -6px;
+      left: -6px;
+      width: calc(100% + 12px);
+      height: calc(100% + 12px);
+      z-index: 0;
+    }
+
+    .glow-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .glow-path {
+      fill: none;
+      stroke-width: 4;
+      stroke-linecap: round;
+      stroke-dasharray: 280;
+      stroke-dashoffset: 0;
+      animation: neon-loop 2s linear infinite;
+    }
+
+    .glow-blue { stroke: url(#blue-glow); }
+    .glow-red { stroke: url(#red-glow); }
+    .glow-green { stroke: url(#green-glow); }
+
+    @keyframes neon-loop {
+      0% { stroke-dashoffset: 280; }
+      100% { stroke-dashoffset: 0; }
+    }
+
+    .flip-card-inner {
+      position: relative;
+      z-index: 1;
+    }
+  `;
+  document.head.appendChild(styles);
+
+  function createGlowDefs(svg, id, color) {
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    const linearGradient = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
+    linearGradient.setAttribute("id", id);
+    linearGradient.setAttribute("x1", "0%");
+    linearGradient.setAttribute("y1", "0%");
+    linearGradient.setAttribute("x2", "100%");
+    linearGradient.setAttribute("y2", "0%");
+    linearGradient.setAttribute("gradientUnits", "userSpaceOnUse");
+
+    const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+    stop1.setAttribute("offset", "0%");
+    stop1.setAttribute("stop-color", color);
+    stop1.setAttribute("stop-opacity", "0");
+
+    const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+    stop2.setAttribute("offset", "50%");
+    stop2.setAttribute("stop-color", color);
+    stop2.setAttribute("stop-opacity", "1");
+
+    const stop3 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+    stop3.setAttribute("offset", "100%");
+    stop3.setAttribute("stop-color", color);
+    stop3.setAttribute("stop-opacity", "0");
+
+    linearGradient.appendChild(stop1);
+    linearGradient.appendChild(stop2);
+    linearGradient.appendChild(stop3);
+    defs.appendChild(linearGradient);
+    svg.appendChild(defs);
+  }
+
+  function addNeonBorder(cardId, glowClass, gradientId, color) {
+    const card = document.getElementById(cardId);
+    if (!card) return;
+    card.style.position = 'relative';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'glow-border-wrapper';
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "glow-svg");
+    svg.setAttribute("viewBox", "0 0 100 150");
+    svg.setAttribute("preserveAspectRatio", "none");
+
+    createGlowDefs(svg, gradientId, color);
+
+    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    rect.setAttribute("x", "2");
+    rect.setAttribute("y", "2");
+    rect.setAttribute("width", "96");
+    rect.setAttribute("height", "146");
+    rect.setAttribute("rx", "12");
+    rect.setAttribute("class", `glow-path ${glowClass}`);
+
+    svg.appendChild(rect);
+    wrapper.appendChild(svg);
+    card.prepend(wrapper);
+  }
+
+  addNeonBorder('clown-card', 'glow-blue', 'blue-glow', '#00eaff');
+  addNeonBorder('joker-card', 'glow-red', 'red-glow', '#ff0055');
+  addNeonBorder('jester-card', 'glow-green', 'green-glow', '#00ff88');
+})();
+</script>
 
 
 </body>
