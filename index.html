@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Clown vs Joker vs Jester</title>
-      <style>
+    <style>
         * {
             box-sizing: border-box;
             margin: 0;
@@ -43,15 +43,20 @@
             width: 100%;
             min-height: 200px;
             margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            -webkit-overflow-scrolling: touch;
         }
         
         .flip-card {
             background-color: transparent;
             width: 30%;
+            min-width: 150px;
             height: 180px;
             perspective: 1000px;
             transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
             position: relative;
+            flex-shrink: 0;
         }
         
         .flip-card-inner {
@@ -146,9 +151,9 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) !important;
-            width: 90vw;
-            height: 80vh;
-            max-height: 600px;
+            width: 95vw;
+            height: 85vh;
+            max-height: 700px;
             z-index: 100;
             padding: 15px;
             margin: 0;
@@ -311,98 +316,88 @@
             100% { transform: translate(0%, 0%); }
         }
 
-        /* Extra Small Devices (phones, 400px and down) */
-        @media (max-width: 400px) {
-            h1 {
-                font-size: 1.5rem;
-                margin-bottom: 10px;
+        /* Mobile Optimizations */
+        @media (max-width: 600px) {
+            .cards-container {
+                justify-content: flex-start;
+                padding: 0 10px;
             }
             
-            .cards-container {
-                flex-direction: column;
-                gap: 10px;
-                height: auto;
-            }
-        
             .flip-card {
-                width: 80%;
+                min-width: 120px;
+                height: 160px;
+                margin: 0 5px;
+            }
+            
+            .flip-card.active {
+                width: 90vw;
+                height: 80vh;
+            }
+            
+            .character-title {
+                font-size: 1.5rem;
+            }
+            
+            .aspect-title {
+                font-size: 1.2rem;
+            }
+            
+            .aspect-content {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .flip-card {
+                min-width: 110px;
                 height: 150px;
             }
             
             .flip-card.active {
-                height: 70vh;
-                width: 85vw;
-            }
-            
-            .character-title {
-                font-size: 1.6rem;
-                margin-bottom: 12px;
-            }
-            
-            .aspect-item {
-                margin-bottom: 15px;
-            }
-            
-            .trail {
-                width: 6px;
-                height: 6px;
-            }
-            
-            @keyframes movePixel {
-                0%   { top: 0; left: 0; transform: translate(0, 0); }
-                25%  { top: 0; left: 100%; transform: translate(-6px, 0); }
-                50%  { top: 100%; left: 100%; transform: translate(-6px, -6px); }
-                75%  { top: 100%; left: 0; transform: translate(0, -6px); }
-                100% { top: 0; left: 0; transform: translate(0, 0); }
-            }
-        }
-
-        /* Small Devices (portrait tablets, 400px to 600px) */
-        @media (min-width: 401px) and (max-width: 600px) {
-            .cards-container {
-                flex-wrap: wrap;
-            }
-            
-            .flip-card {
-                width: 45%;
-                height: 160px;
-            }
-            
-            .flip-card.active {
-                height: 75vh;
-            }
-        }
-
-        /* Medium Devices (landscape tablets, 600px to 800px) */
-        @media (min-width: 601px) and (max-width: 800px) {
-            .flip-card {
-                height: 220px;
+                height: 85vh;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Your HTML remains exactly the same -->
+    <div id="diagonal-stripes-bg"></div>
     <h1>Clown Vs Joker Vs Jester</h1>
     
     <div class="cards-container">
         <!-- Clown Card -->
         <div class="flip-card" id="clown-card" onclick="toggleCard(this)">
             <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
+                <!-- 24 trail dots -->
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
             </div>
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Clown" alt="Clown" class="character-image">
+                        <img src="clown.jpeg" alt="Clown" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -438,20 +433,37 @@
         <!-- Joker Card -->
         <div class="flip-card" id="joker-card" onclick="toggleCard(this)">
             <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
+                <!-- 24 trail dots -->
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
             </div>
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Joker" alt="Joker" class="character-image">
+                        <img src="joker.jpeg" alt="Joker" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -487,20 +499,37 @@
         <!-- Jester Card -->
         <div class="flip-card" id="jester-card" onclick="toggleCard(this)">
             <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
+                <!-- 24 trail dots -->
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
+                <div class="trail"></div>
             </div>
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Jester" alt="Jester" class="character-image">
+                        <img src="jester.jpeg" alt="Jester" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -534,7 +563,6 @@
         </div>
     </div>
 
-    <!-- Your JavaScript remains exactly the same -->
     <script>
         let currentActiveCard = null;
         let isAnimating = false;
@@ -621,7 +649,9 @@
             document.body.insertBefore(bgElement, document.body.firstChild);
         }
 
-        window.addEventListener('load', initDiagonalStripes);
+        window.addEventListener('load', function() {
+            initDiagonalStripes();
+        });
     </script>
 </body>
 </html>
