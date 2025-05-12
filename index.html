@@ -668,5 +668,88 @@
             initDiagonalStripes();
         });
     </script>
+<script>
+(function createDiagonalStripeEffect() {
+  const style = document.createElement('style');
+  style.textContent = `
+    @import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+    :root {
+      --stripe-size: 80px;
+      --color1: #ffffff;
+      --color2: #1e1e1e;
+      --duration: 0.5s;
+    }
+    .stripe-effect-container {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .stripe-effect-layer::before,
+    .stripe-effect-text {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      background: repeating-linear-gradient(
+        45deg,
+        var(--color2),
+        var(--color2) calc(var(--stripe-size) / 2),
+        var(--color1) calc(var(--stripe-size) / 2),
+        var(--color1) var(--stripe-size)
+      );
+      background-size: var(--stripe-size) var(--stripe-size);
+      animation: moveStripes var(--duration) linear infinite;
+    }
+    .stripe-effect-layer::before {
+      content: '';
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+    .stripe-effect-overlay {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(27, 39, 53, 0) 0%, #090a0f 100%);
+      z-index: 2;
+    }
+    .stripe-effect-text {
+      font-family: 'Anton', sans-serif;
+      font-size: 8rem;
+      color: transparent;
+      -webkit-background-clip: text;
+      background-clip: text;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1;
+    }
+    @keyframes moveStripes {
+      0% { background-position: 0 0; }
+      100% { background-position: -160px 160px; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  const container = document.createElement('div');
+  container.className = 'stripe-effect-container';
+
+  const layer = document.createElement('div');
+  layer.className = 'stripe-effect-layer';
+
+  const text = document.createElement('div');
+  text.className = 'stripe-effect-text';
+  text.textContent = 'TEXT';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'stripe-effect-overlay';
+
+  container.appendChild(layer);
+  container.appendChild(text);
+  container.appendChild(overlay);
+  document.body.appendChild(container);
+})();
+</script>
+
 </body>
 </html>
