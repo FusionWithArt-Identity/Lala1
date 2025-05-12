@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clown vs Joker vs Jester</title>
+
+    <style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+    
+    body {
+        font-family: 'Courier New', monospace;
+        background-color: black;
+        color: #333;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        touch-action: manipulation;
+        overflow: hidden;
+        padding: 15px;
+        overflow-x: hidden;
+    }
+    
+    h1 {
+        color: #5e35b1;
+        margin-bottom: 20px;
+        font-size: 1.8rem;
+        text-align: center;
+        font-weight: bold;
+    }
+    
+    .cards-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 25px;
+        width: 100%;
+        height: 60%;
+    }
+    
+    .flip-card {
+        background-color: transparent;
+        width: 30%;
+        height: 200px;
+        perspective: 1000px;
+        transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+        position: relative;
+    }
+    
+    .flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        transform-style: preserve-3d;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        border-radius: 12px;
+    }
+    
+    /* Card States */
+    .flip-card.lifted {
+        transform: translateY(-30px) scale(1.05);
+    }
+    
+    .flip-card.active {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 100;
+        padding: 25px;
+        transform: none !important;
+    }
+    
+    .flip-card.active .flip-card-inner {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .flip-card.active ~ .flip-card {
+        display: none;
+    }
+    
+    .flip-card.active ~ h1 {
+        display: none;
+    }
+    
+    .flip-card.active .flip-card-inner {
+        transform: rotateY(180deg);
+    }
+    
+    /* Card Faces */
+    .flip-card-front, .flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .flip-card-front {
+        background-color: #fff;
+    }
+    
+    .flip-card-back {
+        background-color: #fff;
+        transform: rotateY(180deg);
+        overflow-y: auto;
+        padding: 25px;
+    }
+    
+    /* Solid Neon Backgrounds for Active Cards */
+    #clown-card.active .flip-card-back {
+        background: #0a1a2a !important;
+        box-shadow: 0 0 30px rgba(0, 150, 255, 0.7),
+                   inset 0 0 15px rgba(0, 200, 255, 0.4);
+        border: 2px solid #00a8ff !important;
+    }
+    
+    #joker-card.active .flip-card-back {
+        background: #2a0a0a !important;
+        box-shadow: 0 0 30px rgba(255, 50, 50, 0.7),
+                   inset 0 0 15px rgba(255, 100, 100, 0.4);
+        border: 2px solid #ff3333 !important;
+    }
+    
+    #jester-card.active .flip-card-back {
+        background: #0a2a0a !important;
+        box-shadow: 0 0 30px rgba(50, 255, 50, 0.7),
+                   inset 0 0 15px rgba(100, 255, 100, 0.4);
+        border: 2px solid #00cc66 !important;
+    }
+
+    /* Content Styling */
+    .image-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+    }
+    
+    .character-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+    }
+    
+    .character-title {
+        color: #5e35b1;
+        font-weight: bold;
+        margin-bottom: 25px;
+        font-size: 2rem;
+        text-align: center;
+    }
+    
+    /* Active Card Text Contrast */
+    .flip-card.active .flip-card-back .character-title,
+    .flip-card.active .flip-card-back .aspect-title,
+    .flip-card.active .flip-card-back .aspect-content {
+        color: #ffffff !important;
+        text-shadow: none !important;
+    }
+    
+    .aspect-item {
+        margin-bottom: 25px;
+        text-align: left;
+        width: 100%;
+        opacity: 0;
+        transform: translateX(-30px);
+        transition: all 0.6s ease;
+    }
+    
+    .aspect-item.visible {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
+    .aspect-title {
+        font-weight: bold;
+        color: #5e35b1;
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+    
+    .aspect-content {
+        font-size: 1.4rem;
+        line-height: 1.6;
+        opacity: 0;
+        transform: translateX(-30px);
+        transition: all 0.6s ease;
+        color: #222;
+        font-weight: 500;
+    }
+    
+    .aspect-content.visible {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 500px) {
+        h1 { font-size: 1.8rem; margin-bottom: 15px; }
+        .flip-card { height: 180px; }
+        .character-title { font-size: 1.8rem; margin-bottom: 20px; }
+        .aspect-title { font-size: 1.4rem; }
+        .aspect-content { font-size: 1.3rem; }
+        .flip-card-back { padding: 20px; }
+    }
+    
+    @media (max-width: 400px) {
+        .cards-container { gap: 10px; }
+        .flip-card { height: 160px; }
+        .character-title { font-size: 1.6rem; }
+        .aspect-title { font-size: 1.3rem; }
+        .aspect-content { font-size: 1.2rem; }
+    }
+
+
+</style>
+</head>
+<body>
+    <h1>Clown Vs Joker Vs Jester</h1>
+    
+    <div class="cards-container">
+        <!-- Clown Card -->
+        <div class="flip-card" id="clown-card" onclick="toggleCard(this)">
+            <div class="flip-card-inner">
+                <div class="flip-card-front">
+                    <div class="image-container">
+                        <img src="clown.jpeg" alt="Clown" class="character-image">
+                    </div>
+                </div>
+                <div class="flip-card-back">
+                    <div class="character-title">🤡 Clown</div>
+                    <div class="aspect-item" data-order="1">
+                        <div class="aspect-title">Purpose</div>
+                        <div class="aspect-content">
+                            Entertain with slapstick and physical humor
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="2">
+                        <div class="aspect-title">Appearance</div>
+                        <div class="aspect-content">
+                            Colorful costumes, wigs, big shoes, painted face
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="3">
+                        <div class="aspect-title">Symbolism</div>
+                        <div class="aspect-content">
+                            Innocence, humor, or simple foolishness
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="4">
+                        <div class="aspect-title">Setting</div>
+                        <div class="aspect-content">
+                            Circus, children's parties, comedic shows
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Joker Card -->
+        <div class="flip-card" id="joker-card" onclick="toggleCard(this)">
+            <div class="flip-card-inner">
+                <div class="flip-card-front">
+                    <div class="image-container">
+                        <img src="joker.jpeg" alt="Joker" class="character-image">
+                    </div>
+                </div>
+                <div class="flip-card-back">
+                    <div class="character-title">🃏 Joker</div>
+                    <div class="aspect-item" data-order="1">
+                        <div class="aspect-title">Purpose</div>
+                        <div class="aspect-content">
+                            Amuse or provoke using wit, sarcasm, or tricks
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="2">
+                        <div class="aspect-title">Appearance</div>
+                        <div class="aspect-content">
+                            Can look clownish or sinister (e.g., Batman's Joker)
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="3">
+                        <div class="aspect-title">Symbolism</div>
+                        <div class="aspect-content">
+                            Chaos, unpredictability, or rebellion
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="4">
+                        <div class="aspect-title">Setting</div>
+                        <div class="aspect-content">
+                            Playing cards, pop culture, dark fiction
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Jester Card -->
+        <div class="flip-card" id="jester-card" onclick="toggleCard(this)">
+            <div class="flip-card-inner">
+                <div class="flip-card-front">
+                    <div class="image-container">
+                        <img src="jester.jpeg" alt="Jester" class="character-image">
+                    </div>
+                </div>
+                <div class="flip-card-back">
+                    <div class="character-title">🎭 Jester</div>
+                    <div class="aspect-item" data-order="1">
+                        <div class="aspect-title">Purpose</div>
+                        <div class="aspect-content">
+                            Entertain royalty with jokes, music, and clever wordplay
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="2">
+                        <div class="aspect-title">Appearance</div>
+                        <div class="aspect-content">
+                            Traditional medieval outfit with bells, cap, and motley
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="3">
+                        <div class="aspect-title">Symbolism</div>
+                        <div class="aspect-content">
+                            Cleverness disguised as foolishness, truth-telling through humor
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="4">
+                        <div class="aspect-title">Setting</div>
+                        <div class="aspect-content">
+                            Medieval courts, noble households, theatrical plays
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentActiveCard = null;
+        let isAnimating = false;
+        
+        async function toggleCard(card) {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            if (currentActiveCard === card) {
+                card.classList.remove('lifted');
+                await new Promise(resolve => setTimeout(resolve, 300));
+                card.classList.remove('active');
+                currentActiveCard = null;
+                resetCardContent(card);
+            } else {
+                if (currentActiveCard) {
+                    currentActiveCard.classList.remove('lifted');
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    currentActiveCard.classList.remove('active');
+                    resetCardContent(currentActiveCard);
+                }
+                
+                card.classList.add('lifted');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                card.classList.add('active');
+                currentActiveCard = card;
+                animateCardContent(card);
+            }
+            isAnimating = false;
+        }
+        
+        function animateCardContent(card) {
+            const aspectItems = card.querySelectorAll('.aspect-item');
+            const aspectContents = card.querySelectorAll('.aspect-content');
+            
+            aspectItems.forEach(item => {
+                item.classList.remove('visible');
+            });
+            aspectContents.forEach(content => {
+                content.classList.remove('visible');
+            });
+            
+            aspectItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('visible');
+                    setTimeout(() => {
+                        const content = item.querySelector('.aspect-content');
+                        content.classList.add('visible');
+                    }, 300);
+                }, index * 600);
+            });
+        }
+        
+        function resetCardContent(card) {
+            const aspectItems = card.querySelectorAll('.aspect-item');
+            const aspectContents = card.querySelectorAll('.aspect-content');
+            
+            aspectItems.forEach(item => {
+                item.classList.remove('visible');
+            });
+            aspectContents.forEach(content => {
+                content.classList.remove('visible');
+            });
+        }
+        
+        document.body.addEventListener('click', function(e) {
+            if (currentActiveCard && !currentActiveCard.contains(e.target) && !isAnimating) {
+                isAnimating = true;
+                currentActiveCard.classList.remove('lifted');
+                setTimeout(() => {
+                    currentActiveCard.classList.remove('active');
+                    resetCardContent(currentActiveCard);
+                    currentActiveCard = null;
+                    isAnimating = false;
+                }, 300);
+            }
+        });
+    </script>
+
+
+<script>
+// Add this to your existing script
+function createLightTrailEffect() {
+    // Trail configuration for each card
+    const trailConfig = {
+        'clown-card': {
+            color: '#00a8ff',
+            width: 8,       // Broader trail
+            length: 0.4,     // Longer trail segment
+            blur: 15         // More glow spread
+        },
+        'joker-card': {
+            color: '#ff3333',
+            width: 8,
+            length: 0.4,
+            blur: 15
+        },
+        'jester-card': {
+            color: '#00cc66',
+            width: 8,
+            length: 0.4,
+            blur: 15
+        }
+    };
+
+    // Create canvas overlays for each card
+    document.querySelectorAll('.flip-card').forEach(card => {
+        const canvas = document.createElement('canvas');
+        canvas.className = 'trail-canvas';
+        Object.assign(canvas.style, {
+            position: 'absolute',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            borderRadius: '12px',
+            pointerEvents: 'none',
+            zIndex: '1'  // Ensure it's above the card
+        });
+        card.appendChild(canvas);
+    });
+
+    // Animation variables
+    let progress = 0;
+    const speed = 0.2;  // Slower movement
+
+    function animateTrail() {
+        progress = (progress + speed) % 1;
+        
+        document.querySelectorAll('.flip-card:not(.active)').forEach(card => {
+            const canvas = card.querySelector('.trail-canvas');
+            const ctx = canvas.getContext('2d');
+            const config = trailConfig[card.id];
+            
+            // Set canvas size
+            canvas.width = card.offsetWidth;
+            canvas.height = card.offsetHeight;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw the light trail
+            drawClockwiseTrail(
+                ctx,
+                config.color,
+                progress,
+                config.length,
+                config.width,
+                config.blur,
+                canvas.width,
+                canvas.height
+            );
+        });
+        
+        requestAnimationFrame(animateTrail);
+    }
+
+    function drawClockwiseTrail(ctx, color, progress, length, width, blur, cardWidth, cardHeight) {
+        const perimeter = 2 * (cardWidth + cardHeight);
+        const trailCenter = progress * perimeter;
+        const trailStart = (trailCenter - length/2 * perimeter + perimeter) % perimeter;
+        const trailEnd = (trailCenter + length/2 * perimeter) % perimeter;
+        
+        ctx.lineWidth = width;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = blur;
+        
+        // Draw each segment of the border
+        for (let pos = 0; pos < perimeter; pos += 1) {
+            const normalizedPos = pos / perimeter;
+            
+            // Calculate opacity based on position within trail
+            let opacity = 0;
+            if (trailStart < trailEnd) {
+                if (pos >= trailStart && pos <= trailEnd) {
+                    opacity = 1 - Math.abs(2*(pos - trailCenter)/(length*perimeter));
+                }
+            } else {
+                if (pos <= trailEnd || pos >= trailStart) {
+                    const dist = pos <= trailEnd 
+                        ? Math.min(trailEnd - pos, pos + perimeter - trailStart)
+                        : Math.min(pos - trailStart, trailEnd + perimeter - pos);
+                    opacity = 1 - (2*dist)/(length*perimeter);
+                }
+            }
+            
+            if (opacity <= 0) continue;
+            
+            ctx.globalAlpha = opacity;
+            
+            // Top edge
+            if (pos < cardWidth) {
+                const x = pos;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x + 1, 0); // Small segment
+                ctx.stroke();
+            }
+            // Right edge
+            else if (pos < cardWidth + cardHeight) {
+                const y = pos - cardWidth;
+                ctx.beginPath();
+                ctx.moveTo(cardWidth, y);
+                ctx.lineTo(cardWidth, y + 1);
+                ctx.stroke();
+            }
+            // Bottom edge
+            else if (pos < 2*cardWidth + cardHeight) {
+                const x = cardWidth - (pos - cardWidth - cardHeight);
+                ctx.beginPath();
+                ctx.moveTo(x, cardHeight);
+                ctx.lineTo(x - 1, cardHeight);
+                ctx.stroke();
+            }
+            // Left edge
+            else {
+                const y = cardHeight - (pos - 2*cardWidth - cardHeight);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(0, y - 1);
+                ctx.stroke();
+            }
+        }
+        
+        ctx.globalAlpha = 1;
+    }
+
+    // Initialize animation
+    animateTrail();
+}
+
+// Start the effect when ready
+if (document.readyState === 'complete') {
+    createLightTrailEffect();
+} else {
+    document.addEventListener('DOMContentLoaded', createLightTrailEffect);
+}
+</script>
+
+
+</body>
+</html>
