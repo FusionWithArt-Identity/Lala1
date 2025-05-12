@@ -561,12 +561,13 @@
   const style = document.createElement('style');
   style.textContent = `
     @keyframes blazingFlow {
-      0% { background-position: 0% 50%; filter: brightness(1); }
-      25% { background-position: 50% 100%; filter: brightness(1.2); }
-      50% { background-position: 100% 50%; filter: brightness(1.4); }
-      75% { background-position: 50% 0%; filter: brightness(1.2); }
-      100% { background-position: 0% 50%; filter: brightness(1); }
+      0% { background-position: 0% 50%; filter: brightness(1.1) saturate(0.7); }
+      25% { background-position: 50% 100%; filter: brightness(1.2) saturate(0.6); }
+      50% { background-position: 100% 50%; filter: brightness(1.3) saturate(0.5); }
+      75% { background-position: 50% 0%; filter: brightness(1.2) saturate(0.6); }
+      100% { background-position: 0% 50%; filter: brightness(1.1) saturate(0.7); }
     }
+
     .dynamic-background {
       position: fixed;
       top: 0;
@@ -574,30 +575,27 @@
       width: 100vw;
       height: 100vh;
       background: linear-gradient(135deg,
-        #ff4500,  /* OrangeRed */
-        #ff6347,  /* Tomato */
-        #ff69b4,  /* Hot Pink */
-        #ffd700,  /* Gold */
-        #00ffff,  /* Aqua */
-        #7fffd4,  /* Aquamarine */
-        #00fa9a,  /* Medium Spring Green */
-        #1e90ff,  /* Dodger Blue */
-        #9400d3,  /* Dark Violet */
-        #ff1493,  /* Deep Pink */
-        #32cd32,  /* Lime Green */
-        #ff8c00,  /* Dark Orange */
-        #ba55d3,  /* Medium Orchid */
-        #f08080,  /* Light Coral */
-        #48d1cc,  /* Medium Turquoise */
-        #8a2be2,  /* Blue Violet */
-        #ffb6c1,  /* Light Pink */
-        #b22222,  /* Firebrick */
-        #f0e68c,  /* Khaki */
-        #20b2aa,  /* Light Sea Green */
-        #ffdead   /* Navajo White */
+        #ff450066, #ff634766, #ff69b466, #ffd70066,
+        #00ffff66, #7fffd466, #00fa9a66, #1e90ff66,
+        #9400d366, #ff149366, #32cd3266, #ff8c0066,
+        #ba55d366, #f0808066, #48d1cc66, #8a2be266,
+        #ffb6c166, #b2222266, #f0e68c66, #20b2aa66, #ffdead66
       );
       background-size: 1000% 1000%;
       animation: blazingFlow 20s ease-in-out infinite;
+      z-index: -2;
+      pointer-events: none;
+    }
+
+    .glass-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      background-color: rgba(255, 255, 255, 0.12);
       z-index: -1;
       pointer-events: none;
     }
@@ -607,8 +605,13 @@
   const bgDiv = document.createElement('div');
   bgDiv.className = 'dynamic-background';
   document.body.prepend(bgDiv);
+
+  const glassDiv = document.createElement('div');
+  glassDiv.className = 'glass-overlay';
+  document.body.prepend(glassDiv);
 })();
 </script>
+
 
 </body>
 </html>
