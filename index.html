@@ -14,7 +14,7 @@
     
     body {
         font-family: 'Courier New', monospace;
-        background-color: transparent;
+        background-color: black;
         color: #333;
         height: 100vh;
         display: flex;
@@ -63,77 +63,6 @@
         transform-style: preserve-3d;
         box-shadow: 0 6px 12px rgba(0,0,0,0.15);
         border-radius: 12px;
-    }
-    
-    /* Pixel Animation Styles */
-    .pixel-border {
-        position: absolute;
-        top: -10px;
-        left: -10px;
-        width: calc(100% + 20px);
-        height: calc(100% + 20px);
-        pointer-events: none;
-        z-index: -10;
-        overflow: visible;
-    }
-
-    .trail {
-        width: 10px;
-        height: 10px;
-        position: absolute;
-        animation: movePixel 4s linear infinite;
-        filter: blur(1.5px);
-        z-index: -10;
-        border-radius: 50%;
-    }
-
-    #clown-card .trail {
-        background: #00f0ff;
-        box-shadow: 0 0 3px #00f0ff, 0 0 6px #00f0ff;
-    }
-
-    #joker-card .trail {
-        background: #ff0000;
-        box-shadow: 0 0 3px #ff0000, 0 0 6px #ff0000;
-    }
-    
-    #jester-card .trail {
-        background: #00ff00;
-        box-shadow: 0 0 3px #00ff00, 0 0 6px #00ff00;
-    }
-
-    /* Trail Delays */
-    .trail:nth-child(2)  { animation-delay: 0.015s; opacity: 0.95; }
-    .trail:nth-child(3)  { animation-delay: 0.030s; opacity: 0.90; }
-    .trail:nth-child(4)  { animation-delay: 0.045s; opacity: 0.85; }
-    .trail:nth-child(5)  { animation-delay: 0.060s; opacity: 0.80; }
-    .trail:nth-child(6)  { animation-delay: 0.075s; opacity: 0.75; }
-    .trail:nth-child(7)  { animation-delay: 0.090s; opacity: 0.70; }
-    .trail:nth-child(8)  { animation-delay: 0.105s; opacity: 0.65; }
-    .trail:nth-child(9)  { animation-delay: 0.120s; opacity: 0.60; }
-    .trail:nth-child(10) { animation-delay: 0.135s; opacity: 0.55; }
-    .trail:nth-child(11) { animation-delay: 0.150s; opacity: 0.50; }
-    .trail:nth-child(12) { animation-delay: 0.165s; opacity: 0.45; }
-    .trail:nth-child(13) { animation-delay: 0.180s; opacity: 0.40; }
-    .trail:nth-child(14) { animation-delay: 0.195s; opacity: 0.35; }
-    .trail:nth-child(15) { animation-delay: 0.210s; opacity: 0.30; }
-    .trail:nth-child(16) { animation-delay: 0.225s; opacity: 0.25; }
-    .trail:nth-child(17) { animation-delay: 0.240s; opacity: 0.20; }
-    .trail:nth-child(18) { animation-delay: 0.255s; opacity: 0.15; }
-    .trail:nth-child(19) { animation-delay: 0.270s; opacity: 0.10; }
-    .trail:nth-child(20) { animation-delay: 0.285s; opacity: 0.07; }
-    .trail:nth-child(21) { animation-delay: 0.300s; opacity: 0.05; }
-    .trail:nth-child(22) { animation-delay: 0.315s; opacity: 0.03; }
-    .trail:nth-child(23) { animation-delay: 0.330s; opacity: 0.02; }
-    .trail:nth-child(24) { animation-delay: 0.345s; opacity: 0.01; }
-    .trail:nth-child(25) { animation-delay: 0.360s; opacity: 0.005; }
-
-    @keyframes movePixel {
-        0%   { top: 0; left: 0; transform: translate(0, 0); }
-        25%  { top: 0; left: 100%; transform: translate(-10px, 0); }
-        50%  { top: 100%; left: 100%; transform: translate(-10px, -10px); }
-        75%  { top: 100%; left: 0; transform: translate(0, -10px); }
-        100% { top: 0; left: 0; transform: translate(0, 0); }
     }
     
     /* Card States */
@@ -284,8 +213,6 @@
         transform: translateX(0);
     }
     
-  
-
     /* Responsive Adjustments */
     @media (max-width: 500px) {
         h1 { font-size: 1.8rem; margin-bottom: 15px; }
@@ -294,14 +221,6 @@
         .aspect-title { font-size: 1.4rem; }
         .aspect-content { font-size: 1.3rem; }
         .flip-card-back { padding: 20px; }
-        
-        @keyframes movePixel {
-            0%   { top: 0; left: 0; transform: translate(0, 0); }
-            25%  { top: 0; left: 100%; transform: translate(-8px, 0); }
-            50%  { top: 100%; left: 100%; transform: translate(-8px, -8px); }
-            75%  { top: 100%; left: 0; transform: translate(0, -8px); }
-            100% { top: 0; left: 0; transform: translate(0, 0); }
-        }
     }
     
     @media (max-width: 400px) {
@@ -310,39 +229,21 @@
         .character-title { font-size: 1.6rem; }
         .aspect-title { font-size: 1.3rem; }
         .aspect-content { font-size: 1.2rem; }
-        
-        @keyframes movePixel {
-            0%   { top: 0; left: 0; transform: translate(0, 0); }
-            25%  { top: 0; left: 100%; transform: translate(-6px, 0); }
-            50%  { top: 100%; left: 100%; transform: translate(-6px, -6px); }
-            75%  { top: 100%; left: 0; transform: translate(0, -6px); }
-            100% { top: 0; left: 0; transform: translate(0, 0); }
-        }
     }
+
+
 </style>
 </head>
 <body>
-    <!-- Your HTML remains exactly the same -->
     <h1>Clown Vs Joker Vs Jester</h1>
     
     <div class="cards-container">
         <!-- Clown Card -->
         <div class="flip-card" id="clown-card" onclick="toggleCard(this)">
-            <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-            </div>
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Clown" alt="Clown" class="character-image">
+                        <img src="clown.jpeg" alt="Clown" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -377,21 +278,10 @@
         
         <!-- Joker Card -->
         <div class="flip-card" id="joker-card" onclick="toggleCard(this)">
-            <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-            </div>
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Joker" alt="Joker" class="character-image">
+                        <img src="joker.jpeg" alt="Joker" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -426,21 +316,10 @@
         
         <!-- Jester Card -->
         <div class="flip-card" id="jester-card" onclick="toggleCard(this)">
-            <div class="pixel-border">
-                
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-                <div class="trail"></div><div class="trail"></div><div class="trail"></div>
-            </div>
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Jester" alt="Jester" class="character-image">
+                        <img src="jester.jpeg" alt="Jester" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -474,7 +353,6 @@
         </div>
     </div>
 
-    <!-- Your JavaScript remains exactly the same -->
     <script>
         let currentActiveCard = null;
         let isAnimating = false;
@@ -553,66 +431,43 @@
                 }, 300);
             }
         });
-
-       
     </script>
+
 
 <script>
 (function () {
   const style = document.createElement('style');
   style.textContent = `
-    @keyframes blazingFlow {
-      0% { background-position: 0% 50%; filter: brightness(1.1) saturate(0.7); }
-      25% { background-position: 50% 100%; filter: brightness(1.2) saturate(0.6); }
-      50% { background-position: 100% 50%; filter: brightness(1.3) saturate(0.5); }
-      75% { background-position: 50% 0%; filter: brightness(1.2) saturate(0.6); }
-      100% { background-position: 0% 50%; filter: brightness(1.1) saturate(0.7); }
+    .flip-card {
+      position: relative;
+      z-index: 0;
     }
 
-    .dynamic-background {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: linear-gradient(135deg,
-        #ff450066, #ff634766, #ff69b466, #ffd70066,
-        #00ffff66, #7fffd466, #00fa9a66, #1e90ff66,
-        #9400d366, #ff149366, #32cd3266, #ff8c0066,
-        #ba55d366, #f0808066, #48d1cc66, #8a2be266,
-        #ffb6c166, #b2222266, #f0e68c66, #20b2aa66, #ffdead66
-      );
-      background-size: 1000% 1000%;
-      animation: blazingFlow 20s ease-in-out infinite;
-      z-index: -2;
-      pointer-events: none;
-    }
-
-    .glass-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      backdrop-filter: blur(20px) saturate(140%);
-      -webkit-backdrop-filter: blur(20px) saturate(140%);
-      background-color: rgba(255, 255, 255, 0.12);
+    .flip-card::before {
+      content: '';
+      position: absolute;
+      top: -5px;
+      left: -5px;
+      right: -5px;
+      bottom: -5px;
       z-index: -1;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #00ffff, #ff00ff, #00ff00, #ffff00, #ff0000);
+      background-size: 600% 600%;
+      animation: glowBorderAnim 8s ease infinite;
       pointer-events: none;
+      filter: blur(5px);
+    }
+
+    @keyframes glowBorderAnim {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
   `;
   document.head.appendChild(style);
-
-  const bgDiv = document.createElement('div');
-  bgDiv.className = 'dynamic-background';
-  document.body.prepend(bgDiv);
-
-  const glassDiv = document.createElement('div');
-  glassDiv.className = 'glass-overlay';
-  document.body.prepend(glassDiv);
 })();
 </script>
-
 
 
 </body>
