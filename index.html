@@ -438,35 +438,29 @@
 
 <script>
 function createNonIntrusiveGlowEffect() {
-    // Enhanced configuration for each card with more prominent glow
+    // Configuration for each card
     const glowConfig = {
         'clown-card': { 
             color: '#00a8ff',
-            innerColor: '#00f2ff', // Brighter inner glow
-            width: 12, // Slightly wider
-            blur: 20, // More blur for softer glow
-            speed: 0.20,
-            intensity: 0.8 // Higher intensity
+            width: 6,
+            blur: 15,
+            speed: 0.20
         },
         'joker-card': { 
             color: '#ff3333',
-            innerColor: '#ff6666',
-            width: 12,
-            blur: 20,
-            speed: 0.20,
-            intensity: 0.8
+            width: 6,
+            blur: 15,
+            speed: 0.20
         },
         'jester-card': { 
             color: '#00cc66',
-            innerColor: '#00ff88',
-            width: 12,
-            blur: 20,
-            speed: 0.20,
-            intensity: 0.8
+            width: 6,
+            blur: 15,
+            speed: 0.20
         }
     };
 
-    // Create container for glow effects (unchanged)
+    // Create container for glow effects
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -476,31 +470,32 @@ function createNonIntrusiveGlowEffect() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '100'
+        zIndex: '10' // Below active cards (zIndex: 100) but above normal content
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvas elements (unchanged)
+    // Create canvas elements positioned absolutely relative to the cards
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
         Object.assign(canvas.style, {
             position: 'absolute',
             pointerEvents: 'none',
-            zIndex: '100',
-            borderRadius: '22px'
+            zIndex: '1',
+            borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
+        
+        // Store reference to card
         canvas.dataset.cardId = card.id;
     });
 
-    // Animation variables (unchanged)
+    // Animation variables
     let animationId = null;
     let lastTime = 0;
     const frameRate = 60;
     const frameInterval = 1000 / frameRate;
 
-    // Position update function (unchanged)
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
@@ -523,14 +518,17 @@ function createNonIntrusiveGlowEffect() {
         if (deltaTime > frameInterval) {
             lastTime = timestamp - (deltaTime % frameInterval);
             
+            // Update glow positions first
             updateGlowPositions();
             
+            // Then animate
             document.querySelectorAll('.glow-canvas').forEach(canvas => {
                 const cardId = canvas.dataset.cardId;
                 const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
                 
                 if (!card || card.classList.contains('active')) {
+                    // Clear canvas if card is active
                     const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     return;
@@ -542,21 +540,19 @@ function createNonIntrusiveGlowEffect() {
                 canvas.height = parseInt(canvas.style.height) * dpr;
                 ctx.scale(dpr, dpr);
                 
+                // Initialize progress if not exists
                 if (!canvas.progress) canvas.progress = 0;
                 canvas.progress = (canvas.progress + config.speed * (deltaTime/1000)) % 1;
                 
-                // Draw enhanced glow effect
-                drawEnhancedGlow(
+                drawSmoothGlow(
                     ctx,
                     config.color,
-                    config.innerColor,
                     canvas.progress,
-                    0.4, // Slightly longer trail
+                    0.3, // trail length
                     config.width,
                     config.blur,
                     parseInt(canvas.style.width) - 16,
-                    parseInt(canvas.style.height) - 16,
-                    config.intensity
+                    parseInt(canvas.style.height) - 16
                 );
             });
         }
@@ -564,7 +560,7 @@ function createNonIntrusiveGlowEffect() {
         animationId = requestAnimationFrame(animate);
     }
 
-    function drawEnhancedGlow(ctx, outerColor, innerColor, progress, length, width, blur, w, h, intensity) {
+    function drawSmoothGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         
         const perimeter = 2 * (w + h);
@@ -573,90 +569,69 @@ function createNonIntrusiveGlowEffect() {
         const start = (center - halfLen + perimeter) % perimeter;
         const end = (center + halfLen) % perimeter;
         
+        ctx.lineWidth = width;
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = blur;
+        ctx.lineCap = 'round';
+        
         // Offset to center in the canvas (8px padding)
         ctx.translate(8, 8);
         
-        // Draw outer glow (softer, more spread)
-        ctx.lineWidth = width * 1.5;
-        ctx.strokeStyle = outerColor;
-        ctx.shadowColor = outerColor;
-        ctx.shadowBlur = blur * 1.5;
-        ctx.lineCap = 'round';
-        drawGlowSegment(ctx, start, end, perimeter, w, h);
-        ctx.stroke();
+        ctx.beginPath();
         
-        // Draw inner glow (brighter, tighter)
-        ctx.lineWidth = width * 0.7;
-        ctx.strokeStyle = innerColor;
-        ctx.shadowColor = innerColor;
-        ctx.shadowBlur = blur * 0.7;
-        drawGlowSegment(ctx, start, end, perimeter, w, h);
-        ctx.stroke();
+        // Function to draw segment with opacity
+        const drawSegment = (from, to) => {
+            let pos = from;
+            while (pos < to) {
+                // Top edge
+                if (pos < w) {
+                    const x = Math.min(pos, to);
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x + 1, 0);
+                } 
+                // Right edge
+                else if (pos < w + h) {
+                    const y = Math.min(pos - w, to - w);
+                    ctx.moveTo(w, y);
+                    ctx.lineTo(w, y + 1);
+                } 
+                // Bottom edge (right to left)
+                else if (pos < 2*w + h) {
+                    const x = w - Math.min(pos - w - h, to - w - h);
+                    ctx.moveTo(x, h);
+                    ctx.lineTo(x - 1, h);
+                } 
+                // Left edge (bottom to top)
+                else {
+                    const y = h - Math.min(pos - 2*w - h, to - 2*w - h);
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(0, y - 1);
+                }
+                pos += 1;
+            }
+        };
         
-        // Draw core glow (brightest line)
-        ctx.lineWidth = width * 0.3;
-        ctx.strokeStyle = 'white';
-        ctx.shadowColor = innerColor;
-        ctx.shadowBlur = blur * 0.3;
-        drawGlowSegment(ctx, start, end, perimeter, w, h);
-        ctx.stroke();
+        if (start < end) {
+            drawSegment(start, end);
+        } else {
+            drawSegment(start, perimeter);
+            drawSegment(0, end);
+        }
         
+        ctx.stroke();
         ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
     }
 
-    // Helper function to draw glow segment
-    function drawGlowSegment(ctx, start, end, perimeter, w, h) {
-        ctx.beginPath();
-        
-        if (start < end) {
-            drawSegment(ctx, start, end, w, h);
-        } else {
-            drawSegment(ctx, start, perimeter, w, h);
-            drawSegment(ctx, 0, end, w, h);
-        }
-    }
-
-    // Helper function to draw individual segment
-    function drawSegment(ctx, from, to, w, h) {
-        let pos = from;
-        while (pos < to) {
-            // Top edge
-            if (pos < w) {
-                const x = Math.min(pos, to);
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x + 1, 0);
-            } 
-            // Right edge
-            else if (pos < w + h) {
-                const y = Math.min(pos - w, to - w);
-                ctx.moveTo(w, y);
-                ctx.lineTo(w, y + 1);
-            } 
-            // Bottom edge (right to left)
-            else if (pos < 2*w + h) {
-                const x = w - Math.min(pos - w - h, to - w - h);
-                ctx.moveTo(x, h);
-                ctx.lineTo(x - 1, h);
-            } 
-            // Left edge (bottom to top)
-            else {
-                const y = h - Math.min(pos - 2*w - h, to - 2*w - h);
-                ctx.moveTo(0, y);
-                ctx.lineTo(0, y - 1);
-            }
-            pos += 1;
-        }
-    }
-
-    // Initialize (unchanged)
+    // Initialize
     animationId = requestAnimationFrame(animate);
     
-    // Handle resize (unchanged)
+    // Handle resize
     window.addEventListener('resize', () => {
         updateGlowPositions();
     });
     
-    // Cleanup when cards flip (unchanged)
+    // Cleanup when cards flip
     document.addEventListener('click', (e) => {
         if (e.target.closest('.flip-card')) {
             updateGlowPositions();
@@ -664,7 +639,7 @@ function createNonIntrusiveGlowEffect() {
     });
 }
 
-// Start the effect (unchanged)
+// Start the effect
 if (document.readyState === 'complete') {
     createNonIntrusiveGlowEffect();
 } else {
