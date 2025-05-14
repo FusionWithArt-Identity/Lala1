@@ -245,7 +245,7 @@
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Clown.jpeg" alt="Clown" class="character-image">
+                        <img src="Clown" alt="Clown" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -283,7 +283,7 @@
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Joker.jpeg" alt="Joker" class="character-image">
+                        <img src="Joker" alt="Joker" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -321,7 +321,7 @@
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="Jester.jpeg" alt="Jester" class="character-image">
+                        <img src="Jester" alt="Jester" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
@@ -438,27 +438,29 @@
 
 <script>
 function createNonIntrusiveGlowEffect() {
+    // Configuration for each card
     const glowConfig = {
-        'clown-card': {
+        'clown-card': { 
             color: '#00a8ff',
-            width: 2,
-            blur: 25,
+            width: 6,
+            blur: 15,
             speed: 0.20
         },
-        'joker-card': {
+        'joker-card': { 
             color: '#ff3333',
-            width: 2,
-            blur: 25,
+            width: 6,
+            blur: 15,
             speed: 0.20
         },
-        'jester-card': {
+        'jester-card': { 
             color: '#00cc66',
-            width: 2,
-            blur: 25,
+            width: 6,
+            blur: 15,
             speed: 0.20
         }
     };
 
+    // Create container for glow effects
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -468,23 +470,27 @@ function createNonIntrusiveGlowEffect() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '-100'
+        zIndex: '10' // Below active cards (zIndex: 100) but above normal content
     });
     document.body.appendChild(glowContainer);
 
+    // Create canvas elements positioned absolutely relative to the cards
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
         Object.assign(canvas.style, {
             position: 'absolute',
             pointerEvents: 'none',
-            zIndex: '100',
-            borderRadius: '22px'
+            zIndex: '1',
+            borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
+        
+        // Store reference to card
         canvas.dataset.cardId = card.id;
     });
 
+    // Animation variables
     let animationId = null;
     let lastTime = 0;
     const frameRate = 60;
@@ -494,12 +500,13 @@ function createNonIntrusiveGlowEffect() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
             if (!canvas) return;
+            
             const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
-                top: `${rect.top - 16}px`,
-                left: `${rect.left - 16}px`,
-                width: `${rect.width + 32}px`,
-                height: `${rect.height + 32}px`
+                top: `${rect.top - 8}px`,
+                left: `${rect.left - 8}px`,
+                width: `${rect.width + 16}px`,
+                height: `${rect.height + 16}px`
             });
         });
     }
@@ -507,109 +514,124 @@ function createNonIntrusiveGlowEffect() {
     function animate(timestamp) {
         if (!lastTime) lastTime = timestamp;
         const deltaTime = timestamp - lastTime;
-
+        
         if (deltaTime > frameInterval) {
             lastTime = timestamp - (deltaTime % frameInterval);
+            
+            // Update glow positions first
             updateGlowPositions();
-
+            
+            // Then animate
             document.querySelectorAll('.glow-canvas').forEach(canvas => {
                 const cardId = canvas.dataset.cardId;
                 const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
-                const ctx = canvas.getContext('2d');
-
+                
                 if (!card || card.classList.contains('active')) {
+                    // Clear canvas if card is active
+                    const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     return;
                 }
-
+                
+                const ctx = canvas.getContext('2d');
                 const dpr = window.devicePixelRatio || 1;
                 canvas.width = parseInt(canvas.style.width) * dpr;
                 canvas.height = parseInt(canvas.style.height) * dpr;
                 ctx.scale(dpr, dpr);
-
+                
+                // Initialize progress if not exists
                 if (!canvas.progress) canvas.progress = 0;
-                canvas.progress = (canvas.progress + config.speed * (deltaTime / 1000)) % 1;
-
-                drawSmoothNeonGlow(
+                canvas.progress = (canvas.progress + config.speed * (deltaTime/1000)) % 1;
+                
+                drawSmoothGlow(
                     ctx,
                     config.color,
                     canvas.progress,
-                    0.3,
+                    0.3, // trail length
                     config.width,
                     config.blur,
-                    parseInt(canvas.style.width) - 32,
-                    parseInt(canvas.style.height) - 32
+                    parseInt(canvas.style.width) - 16,
+                    parseInt(canvas.style.height) - 16
                 );
             });
         }
-
+        
         animationId = requestAnimationFrame(animate);
     }
 
-    function drawSmoothNeonGlow(ctx, baseColor, progress, length, width, blur, w, h) {
+    function drawSmoothGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
+        
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
         const halfLen = (length * perimeter) / 2;
         const start = (center - halfLen + perimeter) % perimeter;
         const end = (center + halfLen) % perimeter;
-
+        
         ctx.lineWidth = width;
-        ctx.shadowColor = baseColor;
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
         ctx.shadowBlur = blur;
         ctx.lineCap = 'round';
-        ctx.translate(16, 16);
-
-        const gradientStroke = ctx.createLinearGradient(0, 0, w, h);
-        gradientStroke.addColorStop(0, 'white');
-        gradientStroke.addColorStop(0.5, baseColor);
-        gradientStroke.addColorStop(1, 'white');
-
-        ctx.strokeStyle = gradientStroke;
-
+        
+        // Offset to center in the canvas (8px padding)
+        ctx.translate(8, 8);
+        
         ctx.beginPath();
-
+        
+        // Function to draw segment with opacity
         const drawSegment = (from, to) => {
             let pos = from;
             while (pos < to) {
+                // Top edge
                 if (pos < w) {
                     const x = Math.min(pos, to);
                     ctx.moveTo(x, 0);
                     ctx.lineTo(x + 1, 0);
-                } else if (pos < w + h) {
+                } 
+                // Right edge
+                else if (pos < w + h) {
                     const y = Math.min(pos - w, to - w);
                     ctx.moveTo(w, y);
                     ctx.lineTo(w, y + 1);
-                } else if (pos < 2 * w + h) {
+                } 
+                // Bottom edge (right to left)
+                else if (pos < 2*w + h) {
                     const x = w - Math.min(pos - w - h, to - w - h);
                     ctx.moveTo(x, h);
                     ctx.lineTo(x - 1, h);
-                } else {
-                    const y = h - Math.min(pos - 2 * w - h, to - 2 * w - h);
+                } 
+                // Left edge (bottom to top)
+                else {
+                    const y = h - Math.min(pos - 2*w - h, to - 2*w - h);
                     ctx.moveTo(0, y);
                     ctx.lineTo(0, y - 1);
                 }
                 pos += 1;
             }
         };
-
+        
         if (start < end) {
             drawSegment(start, end);
         } else {
             drawSegment(start, perimeter);
             drawSegment(0, end);
         }
-
+        
         ctx.stroke();
-
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
     }
 
+    // Initialize
     animationId = requestAnimationFrame(animate);
-
-    window.addEventListener('resize', updateGlowPositions);
+    
+    // Handle resize
+    window.addEventListener('resize', () => {
+        updateGlowPositions();
+    });
+    
+    // Cleanup when cards flip
     document.addEventListener('click', (e) => {
         if (e.target.closest('.flip-card')) {
             updateGlowPositions();
@@ -617,6 +639,7 @@ function createNonIntrusiveGlowEffect() {
     });
 }
 
+// Start the effect
 if (document.readyState === 'complete') {
     createNonIntrusiveGlowEffect();
 } else {
