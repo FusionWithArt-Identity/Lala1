@@ -437,43 +437,43 @@
 
 
 <script>
-function createCleanOrbitingGlow() {
-    // Configuration with offsets
+function createMobileOptimizedGlow() {
+    // Configuration with pixel-perfect mobile adjustments
     const glowConfig = {
         'clown-card': {
             color: '#00ffff',
-            width: 12,
-            blur: 25,
+            width: 4,       // Reduced for mobile
+            blur: 15,        // Adjusted for mobile
             opacity: 0.85,
-            offsetX: 2,
-            offsetY: -1
+            offsetX: 1,      // Smaller offset for mobile
+            offsetY: -0.5
         },
         'joker-card': {
             color: '#ff3b3b',
-            width: 14,
-            blur: 30,
+            width: 4,        // Matched to others
+            blur: 15,
             opacity: 0.9,
-            offsetX: -2,
-            offsetY: 1
+            offsetX: -1,
+            offsetY: 0.5
         },
         'jester-card': {
             color: '#00ff88',
-            width: 10,
-            blur: 22,
+            width: 4,       // Matched to others
+            blur: 15,
             opacity: 0.8,
             offsetX: 0,
-            offsetY: 2
+            offsetY: 1
         }
     };
 
-    // Single animation control
+    // Shared animation control
     const animation = {
-        speed: 0.3, // Revolutions per second
+        speed: 0.25, // Slightly slower for mobile
         progress: 0,
         lastTime: 0
     };
 
-    // Create container
+    // Create container with mobile optimizations
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -483,11 +483,13 @@ function createCleanOrbitingGlow() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '-100'
+        zIndex: '0',
+        overflow: 'hidden',
+        '-webkit-backface-visibility': 'hidden' // Mobile performance boost
     });
     document.body.appendChild(glowContainer);
 
-    // Create optimized canvases
+    // Create canvases with mobile optimizations
     document.querySelectorAll('.flip-card').forEach(card => {
         if (!glowConfig[card.id]) return;
 
@@ -497,42 +499,47 @@ function createCleanOrbitingGlow() {
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '0',
-            borderRadius: '22px'
+            borderRadius: '22px',
+            '-webkit-transform': 'translateZ(0)' // GPU acceleration
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
     });
 
-    // Handle resize
+    // Mobile-optimized resize handler
+    let resizeTimeout;
     function updateSizes() {
-        document.querySelectorAll('.flip-card').forEach(card => {
-            const canvas = document.querySelector(`.${card.id}-glow`);
-            if (!canvas || !glowConfig[card.id]) return;
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            document.querySelectorAll('.flip-card').forEach(card => {
+                const canvas = document.querySelector(`.${card.id}-glow`);
+                if (!canvas || !glowConfig[card.id]) return;
 
-            const rect = card.getBoundingClientRect();
-            const config = glowConfig[card.id];
-            const padding = 25;
+                const rect = card.getBoundingClientRect();
+                const config = glowConfig[card.id];
+                // Smaller padding for mobile
+                const padding = Math.min(20, rect.width * 0.1); 
 
-            Object.assign(canvas.style, {
-                top: `${rect.top - padding + config.offsetY}px`,
-                left: `${rect.left - padding + config.offsetX}px`,
-                width: `${rect.width + padding * 2}px`,
-                height: `${rect.height + padding * 2}px`
+                Object.assign(canvas.style, {
+                    top: `${rect.top - padding + config.offsetY}px`,
+                    left: `${rect.left - padding + config.offsetX}px`,
+                    width: `${rect.width + padding * 2}px`,
+                    height: `${rect.height + padding * 2}px`
+                });
+
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = (rect.width + padding * 2) * dpr;
+                canvas.height = (rect.height + padding * 2) * dpr;
             });
-
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = (rect.width + padding * 2) * dpr;
-            canvas.height = (rect.height + padding * 2) * dpr;
-        });
+        }, 50);
     }
 
-    // Animation loop
+    // Mobile-optimized animation
     function animate(timestamp) {
         if (!animation.lastTime) animation.lastTime = timestamp;
-        const deltaTime = timestamp - animation.lastTime;
+        const deltaTime = Math.min(timestamp - animation.lastTime, 1000/30); // Cap at 30fps for mobile
         animation.lastTime = timestamp;
 
-        // Time-based progression
         animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
 
         document.querySelectorAll('.glow-canvas').forEach(canvas => {
@@ -551,15 +558,15 @@ function createCleanOrbitingGlow() {
             ctx.resetTransform();
             ctx.scale(dpr, dpr);
 
-            const padding = 25;
+            const padding = parseFloat(canvas.style.width) - (parseFloat(canvas.style.width) / 1.1);
             const cardWidth = parseInt(canvas.style.width) - padding * 2;
             const cardHeight = parseInt(canvas.style.height) - padding * 2;
 
-            drawUniformTrail(
+            drawMobileGlow(
                 ctx,
                 config.color,
                 animation.progress,
-                0.25, // Trail length (percentage of perimeter)
+                0.3, // Slightly longer trail for visibility
                 config.width,
                 config.blur,
                 cardWidth,
@@ -572,7 +579,7 @@ function createCleanOrbitingGlow() {
         requestAnimationFrame(animate);
     }
 
-    function drawUniformTrail(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
+    function drawMobileGlow(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
         const perimeter = 2 * (cardWidth + cardHeight);
@@ -581,6 +588,7 @@ function createCleanOrbitingGlow() {
         const trailStart = (trailCenter - halfTrail + perimeter) % perimeter;
         const trailEnd = (trailCenter + halfTrail) % perimeter;
 
+        // Mobile-optimized drawing
         ctx.strokeStyle = color;
         ctx.globalAlpha = opacity;
         ctx.shadowColor = color;
@@ -590,46 +598,49 @@ function createCleanOrbitingGlow() {
         ctx.translate(padding, padding);
         ctx.beginPath();
 
+        // Unified drawing logic for perfect consistency
+        const drawSegment = (from, to) => {
+            let pos = from;
+            while (pos < to) {
+                if (pos < cardWidth) {
+                    ctx.moveTo(pos, 0);
+                    ctx.lineTo(pos + 1, 0);
+                } else if (pos < cardWidth + cardHeight) {
+                    ctx.moveTo(cardWidth, pos - cardWidth);
+                    ctx.lineTo(cardWidth, pos - cardWidth + 1);
+                } else if (pos < 2 * cardWidth + cardHeight) {
+                    ctx.moveTo(2 * cardWidth - pos + cardHeight, cardHeight);
+                    ctx.lineTo(2 * cardWidth - pos + cardHeight - 1, cardHeight);
+                } else {
+                    ctx.moveTo(0, 2 * (cardWidth + cardHeight) - pos);
+                    ctx.lineTo(0, 2 * (cardWidth + cardHeight) - pos - 1);
+                }
+                pos += 1;
+            }
+        };
+
         if (trailStart < trailEnd) {
-            drawPathSegment(ctx, trailStart, trailEnd, cardWidth, cardHeight);
+            drawSegment(trailStart, trailEnd);
         } else {
-            drawPathSegment(ctx, trailStart, perimeter, cardWidth, cardHeight);
-            drawPathSegment(ctx, 0, trailEnd, cardWidth, cardHeight);
+            drawSegment(trailStart, perimeter);
+            drawSegment(0, trailEnd);
         }
 
         ctx.stroke();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    function drawPathSegment(ctx, from, to, cardWidth, cardHeight) {
-        let pos = from;
-        while (pos < to) {
-            if (pos < cardWidth) {
-                const x = Math.min(pos, to);
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x + 1, 0);
-            } else if (pos < cardWidth + cardHeight) {
-                const y = Math.min(pos - cardWidth, to - cardWidth);
-                ctx.moveTo(cardWidth, y);
-                ctx.lineTo(cardWidth, y + 1);
-            } else if (pos < 2 * cardWidth + cardHeight) {
-                const x = cardWidth - Math.min(pos - cardWidth - cardHeight, to - cardWidth - cardHeight);
-                ctx.moveTo(x, cardHeight);
-                ctx.lineTo(x - 1, cardHeight);
-            } else {
-                const y = cardHeight - Math.min(pos - 2 * cardWidth - cardHeight, to - 2 * cardWidth - cardHeight);
-                ctx.moveTo(0, y);
-                ctx.lineTo(0, y - 1);
-            }
-            pos += 1;
-        }
-    }
-
-    // Initialize
+    // Mobile-specific initialization
     function init() {
         updateSizes();
         window.addEventListener('resize', updateSizes);
-        requestAnimationFrame(animate);
+        window.addEventListener('orientationchange', updateSizes);
+        
+        // Start animation after brief delay for mobile stability
+        setTimeout(() => {
+            animation.lastTime = performance.now();
+            requestAnimationFrame(animate);
+        }, 100);
     }
 
     if (document.readyState === 'complete') {
@@ -639,8 +650,8 @@ function createCleanOrbitingGlow() {
     }
 }
 
-// Start the clean effect
-createCleanOrbitingGlow();
+// Start mobile-optimized effect
+createMobileOptimizedGlow();
 </script>
 
 
