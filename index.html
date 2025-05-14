@@ -436,7 +436,249 @@
     </script>
 
 
+<script>
+function createVisibleOrbitingGlow() {
+    // Enhanced configuration for better visibility
+    const glowConfig = {
+        'clown-card': {
+            color: '#00ffff',
+            width: 6,
+            blur: 40,
+            opacity: 0.9,
+            offsetX: 0,
+            offsetY: 0
+        },
+        'joker-card': {
+            color: '#ff3b3b',
+            width: 6,
+            blur: 40,
+            opacity: 0.9,
+            offsetX: 0,
+            offsetY: 0
+        },
+        'jester-card': {
+            color: '#00ff88',
+            width: 6,
+            blur: 40,
+            opacity: 0.9,
+            offsetX: 0,
+            offsetY: 0
+        }
+    };
 
+    // Animation control with pause state
+    const animation = {
+        speed: 0.25, // Slightly slower for better visibility
+        progress: 0,
+        lastTime: 0,
+        isPaused: false
+    };
+
+    // Create container with proper z-index
+    const glowContainer = document.createElement('div');
+    glowContainer.id = 'glow-container';
+    Object.assign(glowContainer.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '1', // Above background but below cards
+        overflow: 'hidden'
+    });
+    document.body.appendChild(glowContainer);
+
+    // Create canvases with enhanced visibility
+    document.querySelectorAll('.flip-card').forEach(card => {
+        if (!glowConfig[card.id]) return;
+
+        const canvas = document.createElement('canvas');
+        canvas.className = `glow-canvas ${card.id}-glow`;
+        Object.assign(canvas.style, {
+            position: 'absolute',
+            pointerEvents: 'none',
+            zIndex: '1',
+            borderRadius: '12px',
+            mixBlendMode: 'screen' // Enhanced glow effect
+        });
+        glowContainer.appendChild(canvas);
+        canvas.dataset.cardId = card.id;
+    });
+
+    // Handle resize with mobile optimization
+    function updateSizes() {
+        document.querySelectorAll('.flip-card').forEach(card => {
+            const canvas = document.querySelector(`.${card.id}-glow`);
+            if (!canvas || !glowConfig[card.id]) return;
+
+            const rect = card.getBoundingClientRect();
+            const padding = 30; // Increased padding for better glow visibility
+
+            Object.assign(canvas.style, {
+                top: `${rect.top - padding}px`,
+                left: `${rect.left - padding}px`,
+                width: `${rect.width + padding * 2}px`,
+                height: `${rect.height + padding * 2}px`
+            });
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = (rect.width + padding * 2) * dpr;
+            canvas.height = (rect.height + padding * 2) * dpr;
+        });
+    }
+
+    // Optimized animation loop
+    function animate(timestamp) {
+        if (animation.isPaused || document.querySelector('.flip-card.active')) {
+            // Clear all glows if paused or any card is active
+            document.querySelectorAll('.glow-canvas').forEach(canvas => {
+                const ctx = canvas.getContext('2d');
+                ctx?.clearRect(0, 0, canvas.width, canvas.height);
+            });
+            requestAnimationFrame(animate);
+            return;
+        }
+
+        if (!animation.lastTime) animation.lastTime = timestamp;
+        const deltaTime = Math.min(timestamp - animation.lastTime, 1000/30); // Cap at 30fps
+        animation.lastTime = timestamp;
+
+        animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
+
+        document.querySelectorAll('.glow-canvas').forEach(canvas => {
+            const cardId = canvas.dataset.cardId;
+            const card = document.getElementById(cardId);
+            const config = glowConfig[cardId];
+
+            if (!card || !config) {
+                const ctx = canvas.getContext('2d');
+                ctx?.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+            const dpr = window.devicePixelRatio || 1;
+            ctx.resetTransform();
+            ctx.scale(dpr, dpr);
+
+            const padding = 30;
+            const cardWidth = parseInt(card.clientWidth);
+            const cardHeight = parseInt(card.clientHeight);
+
+            drawGlowTrail(
+                ctx,
+                config.color,
+                animation.progress,
+                0.3, // Longer trail for better visibility
+                config.width,
+                config.blur,
+                cardWidth,
+                cardHeight,
+                padding,
+                config.opacity
+            );
+        });
+
+        requestAnimationFrame(animate);
+    }
+
+    function drawGlowTrail(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        const perimeter = 2 * (cardWidth + cardHeight);
+        const trailCenter = progress * perimeter;
+        const halfTrail = trailLength * perimeter / 2;
+        const trailStart = (trailCenter - halfTrail + perimeter) % perimeter;
+        const trailEnd = (trailCenter + halfTrail) % perimeter;
+
+        // Create gradient for smoother glow
+        const gradient = ctx.createLinearGradient(0, 0, cardWidth, cardHeight);
+        gradient.addColorStop(0, color);
+        gradient.addColorStop(1, lightenColor(color, 30));
+
+        ctx.strokeStyle = gradient;
+        ctx.globalAlpha = opacity;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = blur;
+        ctx.lineWidth = width;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.translate(padding, padding);
+        ctx.beginPath();
+
+        const drawSegment = (from, to) => {
+            let pos = from;
+            while (pos < to) {
+                if (pos < cardWidth) {
+                    ctx.moveTo(pos, 0);
+                    ctx.lineTo(pos + 1, 0);
+                } else if (pos < cardWidth + cardHeight) {
+                    ctx.moveTo(cardWidth, pos - cardWidth);
+                    ctx.lineTo(cardWidth, pos - cardWidth + 1);
+                } else if (pos < 2 * cardWidth + cardHeight) {
+                    ctx.moveTo(2 * cardWidth - pos + cardHeight, cardHeight);
+                    ctx.lineTo(2 * cardWidth - pos + cardHeight - 1, cardHeight);
+                } else {
+                    ctx.moveTo(0, 2 * (cardWidth + cardHeight) - pos);
+                    ctx.lineTo(0, 2 * (cardWidth + cardHeight) - pos - 1);
+                }
+                pos += 1;
+            }
+        };
+
+        if (trailStart < trailEnd) {
+            drawSegment(trailStart, trailEnd);
+        } else {
+            drawSegment(trailStart, perimeter);
+            drawSegment(0, trailEnd);
+        }
+
+        ctx.stroke();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function lightenColor(color, percent) {
+        const num = parseInt(color.replace('#', ''), 16);
+        const amt = Math.round(2.55 * percent);
+        const r = Math.min(255, (num >> 16) + amt);
+        const g = Math.min(255, (num >> 8 & 0x00FF) + amt);
+        const b = Math.min(255, (num & 0x0000FF) + amt);
+        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    }
+
+    // Initialize with proper timing
+    function init() {
+        updateSizes();
+        window.addEventListener('resize', updateSizes);
+        window.addEventListener('orientationchange', updateSizes);
+        
+        // Start animation after brief delay to ensure elements are ready
+        setTimeout(() => {
+            animation.lastTime = performance.now();
+            requestAnimationFrame(animate);
+        }, 300);
+    }
+
+    // Handle card flip interactions
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.flip-card')) {
+            animation.isPaused = true;
+        } else if (document.querySelector('.flip-card.active')) {
+            animation.isPaused = false;
+        }
+    });
+
+    if (document.readyState === 'complete') {
+        init();
+    } else {
+        document.addEventListener('DOMContentLoaded', init);
+    }
+}
+
+// Start the effect
+createVisibleOrbitingGlow();
+</script>
 
 
 </body>
