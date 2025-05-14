@@ -438,7 +438,7 @@
 
 <script>
 function createCleanOrbitingGlow() {
-    // Configuration with enhanced visibility
+    // Configuration with offsets
     const glowConfig = {
         'clown-card': {
             color: '#00ffff',
@@ -446,35 +446,34 @@ function createCleanOrbitingGlow() {
             blur: 50,
             opacity: 1,
             offsetX: 0,
-            offsetY: 0
+            offsetY: -0
         },
         'joker-card': {
             color: '#ff3b3b',
-            width: 5,
+           width: 5,
             blur: 50,
             opacity: 1,
             offsetX: 0,
-            offsetY: 0
+            offsetY: -0
         },
         'jester-card': {
             color: '#00ff88',
-            width: 5,
+           width: 5,
             blur: 50,
             opacity: 1,
             offsetX: 0,
-            offsetY: 0
+            offsetY: -0
         }
     };
 
-    // Animation control with pause state
+    // Single animation control
     const animation = {
-        speed: 0.3,
+        speed: 0.3, // Revolutions per second
         progress: 0,
-        lastTime: 0,
-        isPaused: false
+        lastTime: 0
     };
 
-    // Create container with proper z-index
+    // Create container
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -484,12 +483,11 @@ function createCleanOrbitingGlow() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '1', // Changed from -100 to 1 to appear above body but below cards
-        overflow: 'hidden'
+        zIndex: '1'
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvases
+    // Create optimized canvases
     document.querySelectorAll('.flip-card').forEach(card => {
         if (!glowConfig[card.id]) return;
 
@@ -498,33 +496,26 @@ function createCleanOrbitingGlow() {
         Object.assign(canvas.style, {
             position: 'absolute',
             pointerEvents: 'none',
-            zIndex: '1',
+            zIndex: '0',
             borderRadius: '22px'
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
-        
-        // Pause glow when card is clicked
-        card.addEventListener('click', () => {
-            animation.isPaused = true;
-            document.querySelectorAll('.glow-canvas').forEach(c => {
-                c.getContext('2d').clearRect(0, 0, c.width, c.height);
-            });
-        });
     });
 
     // Handle resize
     function updateSizes() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
-            if (!canvas || !glowConfig[card.id] || card.classList.contains('active')) return;
+            if (!canvas || !glowConfig[card.id]) return;
 
             const rect = card.getBoundingClientRect();
+            const config = glowConfig[card.id];
             const padding = 25;
 
             Object.assign(canvas.style, {
-                top: `${rect.top - padding}px`,
-                left: `${rect.left - padding}px`,
+                top: `${rect.top - padding + config.offsetY}px`,
+                left: `${rect.left - padding + config.offsetX}px`,
                 width: `${rect.width + padding * 2}px`,
                 height: `${rect.height + padding * 2}px`
             });
@@ -537,19 +528,11 @@ function createCleanOrbitingGlow() {
 
     // Animation loop
     function animate(timestamp) {
-        if (animation.isPaused) {
-            // Check if any card is still active
-            if (!document.querySelector('.flip-card.active')) {
-                animation.isPaused = false;
-            }
-            requestAnimationFrame(animate);
-            return;
-        }
-
         if (!animation.lastTime) animation.lastTime = timestamp;
         const deltaTime = timestamp - animation.lastTime;
         animation.lastTime = timestamp;
 
+        // Time-based progression
         animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
 
         document.querySelectorAll('.glow-canvas').forEach(canvas => {
@@ -576,7 +559,7 @@ function createCleanOrbitingGlow() {
                 ctx,
                 config.color,
                 animation.progress,
-                0.25,
+                0.25, // Trail length (percentage of perimeter)
                 config.width,
                 config.blur,
                 cardWidth,
@@ -642,18 +625,10 @@ function createCleanOrbitingGlow() {
         }
     }
 
-    // Initialize with proper event listeners
+    // Initialize
     function init() {
         updateSizes();
         window.addEventListener('resize', updateSizes);
-        
-        // Resume glow when card is closed
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.flip-card') && document.querySelector('.flip-card.active')) {
-                animation.isPaused = false;
-            }
-        });
-        
         requestAnimationFrame(animate);
     }
 
@@ -664,9 +639,11 @@ function createCleanOrbitingGlow() {
     }
 }
 
-// Start the effect
+// Start the clean effect
 createCleanOrbitingGlow();
 </script>
+
+
 
 
 </body>
