@@ -437,16 +437,17 @@
 
 
 <script>
-function createMobileOptimizedGlow() {
-    // Configuration optimized for mobile
+function createPerfectFitOrbitingGlow() {
+    // Configuration with precise fitting
     const glowConfig = {
         'clown-card': {
             color: '#00ffff',
             width: 5,
-            blur: 40,  // Reduced for mobile performance
+            blur: 40,
             opacity: 0.9,
             offsetX: 0,
-            offsetY: 0
+            offsetY: 0,
+            borderWidth: 2 // Matches your card's border
         },
         'joker-card': {
             color: '#ff3b3b',
@@ -454,7 +455,8 @@ function createMobileOptimizedGlow() {
             blur: 40,
             opacity: 0.9,
             offsetX: 0,
-            offsetY: 0
+            offsetY: 0,
+            borderWidth: 2
         },
         'jester-card': {
             color: '#00ff88',
@@ -462,20 +464,20 @@ function createMobileOptimizedGlow() {
             blur: 40,
             opacity: 0.9,
             offsetX: 0,
-            offsetY: 0
+            offsetY: 0,
+            borderWidth: 2
         }
     };
 
-    // Mobile-optimized animation control
+    // Animation control
     const animation = {
-        speed: 0.25,  // Slower for mobile
+        speed: 0.25,
         progress: 0,
         lastTime: 0,
-        frameInterval: 1000/30,  // Target 30fps for mobile
-        accumulatedTime: 0
+        frameInterval: 1000/30
     };
 
-    // Create container with mobile optimizations
+    // Create container
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -485,13 +487,11 @@ function createMobileOptimizedGlow() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '1',
-        overflow: 'hidden',
-        '-webkit-backface-visibility': 'hidden'  // Mobile performance boost
+        zIndex: '1'
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvases with mobile optimizations
+    // Create perfectly aligned canvases
     const canvases = {};
     document.querySelectorAll('.flip-card').forEach(card => {
         if (!glowConfig[card.id]) return;
@@ -502,55 +502,48 @@ function createMobileOptimizedGlow() {
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '1',
-            borderRadius: '22px',
-            '-webkit-transform': 'translateZ(0)'  // Force GPU acceleration
+            borderRadius: '22px' // Matches your card's border-radius
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
         canvases[card.id] = canvas;
     });
 
-    // Mobile-friendly resize handler
-    let resizeTimeout;
+    // Precise size updating
     function updateSizes() {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            document.querySelectorAll('.flip-card').forEach(card => {
-                const canvas = canvases[card.id];
-                if (!canvas || card.classList.contains('active')) return;
+        document.querySelectorAll('.flip-card').forEach(card => {
+            const canvas = canvases[card.id];
+            if (!canvas || card.classList.contains('active')) return;
 
-                const rect = card.getBoundingClientRect();
-                const padding = Math.min(25, rect.width * 0.15);  // Dynamic padding for mobile
+            const rect = card.getBoundingClientRect();
+            const style = window.getComputedStyle(card);
+            const borderWidth = parseFloat(style.borderWidth) || 0;
+            const padding = 25 + borderWidth; // Account for card border
 
-                Object.assign(canvas.style, {
-                    top: `${rect.top - padding}px`,
-                    left: `${rect.left - padding}px`,
-                    width: `${rect.width + padding * 2}px`,
-                    height: `${rect.height + padding * 2}px`
-                });
-
-                const dpr = window.devicePixelRatio || 1;
-                canvas.width = (rect.width + padding * 2) * dpr;
-                canvas.height = (rect.height + padding * 2) * dpr;
+            Object.assign(canvas.style, {
+                top: `${rect.top - padding}px`,
+                left: `${rect.left - padding}px`,
+                width: `${rect.width + padding * 2}px`,
+                height: `${rect.height + padding * 2}px`,
+                borderRadius: style.borderRadius // Match card exactly
             });
-        }, 150);
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = (rect.width + padding * 2) * dpr;
+            canvas.height = (rect.height + padding * 2) * dpr;
+        });
     }
 
-    // Mobile-optimized animation loop
+    // Animation loop with perfect alignment
     function animate(timestamp) {
         if (!animation.lastTime) animation.lastTime = timestamp;
         
         const deltaTime = timestamp - animation.lastTime;
         animation.lastTime = timestamp;
-        animation.accumulatedTime += deltaTime;
+        
+        // Fixed timestep movement
+        animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
 
-        // Fixed timestep update for mobile stability
-        while (animation.accumulatedTime >= animation.frameInterval) {
-            animation.progress = (animation.progress + animation.speed * (animation.frameInterval/1000)) % 1;
-            animation.accumulatedTime -= animation.frameInterval;
-        }
-
-        // Render all cards
         Object.entries(canvases).forEach(([cardId, canvas]) => {
             const card = document.getElementById(cardId);
             const config = glowConfig[cardId];
@@ -563,39 +556,32 @@ function createMobileOptimizedGlow() {
 
             const ctx = canvas.getContext('2d');
             const dpr = window.devicePixelRatio || 1;
-            
-            // Only resize canvas if dimensions changed
-            const expectedWidth = (parseInt(card.clientWidth) + 50) * dpr;
-            const expectedHeight = (parseInt(card.clientHeight) + 50) * dpr;
-            
-            if (canvas.width !== expectedWidth || canvas.height !== expectedHeight) {
-                canvas.width = expectedWidth;
-                canvas.height = expectedHeight;
-            }
-            
             ctx.resetTransform();
             ctx.scale(dpr, dpr);
 
-            drawMobileGlow(
+            const style = window.getComputedStyle(card);
+            const borderWidth = parseFloat(style.borderWidth) || 0;
+            const padding = 25 + borderWidth;
+            const cardWidth = parseInt(card.clientWidth);
+            const cardHeight = parseInt(card.clientHeight);
+
+            drawPerfectGlow(
                 ctx,
-                config.color,
+                config,
                 animation.progress,
-                0.25,
-                config.width,
-                config.blur,
-                parseInt(card.clientWidth),
-                parseInt(card.clientHeight),
-                25,
-                config.opacity
+                cardWidth,
+                cardHeight,
+                padding,
+                style.borderRadius
             );
         });
 
         requestAnimationFrame(animate);
     }
 
-    function drawMobileGlow(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
-        // Clear only the necessary area
-        const clearPadding = Math.ceil(blur + width);
+    function drawPerfectGlow(ctx, config, progress, cardWidth, cardHeight, padding, borderRadius) {
+        // Clear only what's needed
+        const clearPadding = Math.ceil(config.blur + config.width);
         ctx.clearRect(
             padding - clearPadding,
             padding - clearPadding,
@@ -603,41 +589,93 @@ function createMobileOptimizedGlow() {
             cardHeight + clearPadding * 2
         );
 
-        const perimeter = 2 * (cardWidth + cardHeight);
+        // Convert border-radius to pixels
+        const radius = parseFloat(borderRadius);
+        const radiusPx = radius.endsWith('px') ? parseFloat(radius) : 
+                        radius.endsWith('%') ? parseFloat(radius)/100 * Math.min(cardWidth, cardHeight)/2 : 0;
+
+        // Calculate perimeter (adjusted for rounded corners)
+        const straightSides = 2 * (cardWidth + cardHeight - 4 * radiusPx);
+        const curvedSides = 2 * Math.PI * radiusPx;
+        const perimeter = straightSides + curvedSides;
+
         const trailCenter = progress * perimeter;
-        const halfTrail = trailLength * perimeter / 2;
+        const trailLength = 0.25 * perimeter;
+        const halfTrail = trailLength / 2;
         const trailStart = (trailCenter - halfTrail + perimeter) % perimeter;
         const trailEnd = (trailCenter + halfTrail) % perimeter;
 
-        // Mobile-optimized drawing
-        ctx.strokeStyle = color;
-        ctx.globalAlpha = opacity;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = blur;
-        ctx.lineWidth = width;
+        // Set styles
+        ctx.strokeStyle = config.color;
+        ctx.globalAlpha = config.opacity;
+        ctx.shadowColor = config.color;
+        ctx.shadowBlur = config.blur;
+        ctx.lineWidth = config.width;
         ctx.lineCap = 'round';
         ctx.translate(padding, padding);
         ctx.beginPath();
 
-        // Simplified segment drawing for mobile
+        // Draw the trail with perfect border alignment
         const drawSegment = (from, to) => {
             let pos = from;
-            const step = 2; // Larger step for mobile performance
             while (pos < to) {
-                if (pos < cardWidth) {
-                    ctx.moveTo(pos, 0);
-                    ctx.lineTo(pos + step, 0);
-                } else if (pos < cardWidth + cardHeight) {
-                    ctx.moveTo(cardWidth, pos - cardWidth);
-                    ctx.lineTo(cardWidth, pos - cardWidth + step);
-                } else if (pos < 2 * cardWidth + cardHeight) {
-                    ctx.moveTo(2 * cardWidth - pos + cardHeight, cardHeight);
-                    ctx.lineTo(2 * cardWidth - pos + cardHeight - step, cardHeight);
-                } else {
-                    ctx.moveTo(0, 2 * (cardWidth + cardHeight) - pos);
-                    ctx.lineTo(0, 2 * (cardWidth + cardHeight) - pos - step);
+                // Top edge (left to right)
+                if (pos < cardWidth - 2 * radiusPx) {
+                    const x = pos + radiusPx;
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x + 1, 0);
                 }
-                pos += step;
+                // Top-right corner
+                else if (pos < cardWidth - 2 * radiusPx + Math.PI * radiusPx / 2) {
+                    const angle = (pos - (cardWidth - 2 * radiusPx)) / radiusPx;
+                    const x = cardWidth - radiusPx + radiusPx * Math.sin(angle);
+                    const y = radiusPx - radiusPx * Math.cos(angle);
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + 0.1, y + 0.1);
+                }
+                // Right edge (top to bottom)
+                else if (pos < cardWidth + cardHeight - 4 * radiusPx + Math.PI * radiusPx / 2) {
+                    const y = pos - (cardWidth - 2 * radiusPx + Math.PI * radiusPx / 2) + radiusPx;
+                    ctx.moveTo(cardWidth, y);
+                    ctx.lineTo(cardWidth, y + 1);
+                }
+                // Bottom-right corner
+                else if (pos < cardWidth + cardHeight - 4 * radiusPx + Math.PI * radiusPx) {
+                    const angle = (pos - (cardWidth + cardHeight - 4 * radiusPx + Math.PI * radiusPx / 2)) / radiusPx;
+                    const x = cardWidth - radiusPx * Math.cos(angle);
+                    const y = cardHeight - radiusPx + radiusPx * Math.sin(angle);
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x - 0.1, y + 0.1);
+                }
+                // Bottom edge (right to left)
+                else if (pos < 2 * cardWidth + cardHeight - 6 * radiusPx + Math.PI * radiusPx) {
+                    const x = cardWidth - (pos - (cardWidth + cardHeight - 4 * radiusPx + Math.PI * radiusPx)) - radiusPx;
+                    ctx.moveTo(x, cardHeight);
+                    ctx.lineTo(x - 1, cardHeight);
+                }
+                // Bottom-left corner
+                else if (pos < 2 * cardWidth + cardHeight - 6 * radiusPx + 3 * Math.PI * radiusPx / 2) {
+                    const angle = (pos - (2 * cardWidth + cardHeight - 6 * radiusPx + Math.PI * radiusPx)) / radiusPx;
+                    const x = radiusPx - radiusPx * Math.sin(angle);
+                    const y = cardHeight - radiusPx + radiusPx * Math.cos(angle);
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x - 0.1, y - 0.1);
+                }
+                // Left edge (bottom to top)
+                else if (pos < 2 * cardWidth + 2 * cardHeight - 8 * radiusPx + 3 * Math.PI * radiusPx / 2) {
+                    const y = cardHeight - (pos - (2 * cardWidth + cardHeight - 6 * radiusPx + 3 * Math.PI * radiusPx / 2)) - radiusPx;
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(0, y - 1);
+                }
+                // Top-left corner
+                else {
+                    const angle = (pos - (2 * cardWidth + 2 * cardHeight - 8 * radiusPx + 3 * Math.PI * radiusPx / 2)) / radiusPx;
+                    const x = radiusPx - radiusPx * Math.cos(angle);
+                    const y = radiusPx - radiusPx * Math.sin(angle);
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x + 0.1, y - 0.1);
+                }
+                pos += 1;
             }
         };
 
@@ -648,18 +686,17 @@ function createMobileOptimizedGlow() {
             drawSegment(0, trailEnd);
         }
 
-        // Single stroke for mobile performance
         ctx.stroke();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    // Initialize with mobile considerations
+    // Initialize
     function init() {
         updateSizes();
         window.addEventListener('resize', updateSizes);
         window.addEventListener('orientationchange', updateSizes);
         
-        // Start animation after delay for mobile stability
+        // Start animation after delay
         setTimeout(() => {
             animation.lastTime = performance.now();
             requestAnimationFrame(animate);
@@ -684,8 +721,8 @@ function createMobileOptimizedGlow() {
     }
 }
 
-// Start the mobile-optimized effect
-createMobileOptimizedGlow();
+// Start the perfectly fitted effect
+createPerfectFitOrbitingGlow();
 </script>
 
 
