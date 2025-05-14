@@ -437,44 +437,45 @@
 
 
 <script>
-function createPerfectOrbitingGlow() {
-    // Configuration with stabilized glow settings
+function createMobileOptimizedGlow() {
+    // Configuration optimized for mobile
     const glowConfig = {
         'clown-card': {
             color: '#00ffff',
             width: 5,
-            blur: 50,
-            opacity: 1,
+            blur: 40,  // Reduced for mobile performance
+            opacity: 0.9,
             offsetX: 0,
             offsetY: 0
         },
         'joker-card': {
             color: '#ff3b3b',
             width: 5,
-            blur: 50,
-            opacity: 1,
+            blur: 40,
+            opacity: 0.9,
             offsetX: 0,
             offsetY: 0
         },
         'jester-card': {
             color: '#00ff88',
             width: 5,
-            blur: 50,
-            opacity: 1,
+            blur: 40,
+            opacity: 0.9,
             offsetX: 0,
             offsetY: 0
         }
     };
 
-    // Animation control with fixed timestep
+    // Mobile-optimized animation control
     const animation = {
-        speed: 0.9,
+        speed: 0.25,  // Slower for mobile
         progress: 0,
-        lastTime: performance.now(),
-        frameTime: 1000/60 // 60fps
+        lastTime: 0,
+        frameInterval: 1000/30,  // Target 30fps for mobile
+        accumulatedTime: 0
     };
 
-    // Create container with proper stacking
+    // Create container with mobile optimizations
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -484,12 +485,13 @@ function createPerfectOrbitingGlow() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '1', // Above background but below cards
-        overflow: 'hidden'
+        zIndex: '1',
+        overflow: 'hidden',
+        '-webkit-backface-visibility': 'hidden'  // Mobile performance boost
     });
     document.body.appendChild(glowContainer);
 
-    // Create optimized canvases
+    // Create canvases with mobile optimizations
     const canvases = {};
     document.querySelectorAll('.flip-card').forEach(card => {
         if (!glowConfig[card.id]) return;
@@ -501,14 +503,14 @@ function createPerfectOrbitingGlow() {
             pointerEvents: 'none',
             zIndex: '1',
             borderRadius: '22px',
-            willChange: 'transform' // Optimize for animation
+            '-webkit-transform': 'translateZ(0)'  // Force GPU acceleration
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
         canvases[card.id] = canvas;
     });
 
-    // Size management with debouncing
+    // Mobile-friendly resize handler
     let resizeTimeout;
     function updateSizes() {
         clearTimeout(resizeTimeout);
@@ -518,7 +520,7 @@ function createPerfectOrbitingGlow() {
                 if (!canvas || card.classList.contains('active')) return;
 
                 const rect = card.getBoundingClientRect();
-                const padding = 30; // Increased for better glow visibility
+                const padding = Math.min(25, rect.width * 0.15);  // Dynamic padding for mobile
 
                 Object.assign(canvas.style, {
                     top: `${rect.top - padding}px`,
@@ -531,21 +533,21 @@ function createPerfectOrbitingGlow() {
                 canvas.width = (rect.width + padding * 2) * dpr;
                 canvas.height = (rect.height + padding * 2) * dpr;
             });
-        }, 100);
+        }, 150);
     }
 
-    // Fixed timestep animation loop
+    // Mobile-optimized animation loop
     function animate(timestamp) {
-        // Fixed timestep implementation
+        if (!animation.lastTime) animation.lastTime = timestamp;
+        
         const deltaTime = timestamp - animation.lastTime;
         animation.lastTime = timestamp;
-        
-        // Accumulate time and update in fixed steps
-        let updateSteps = Math.floor(deltaTime / animation.frameTime);
-        if (updateSteps > 0) {
-            for (let i = 0; i < updateSteps; i++) {
-                animation.progress = (animation.progress + animation.speed * (animation.frameTime/1000)) % 1;
-            }
+        animation.accumulatedTime += deltaTime;
+
+        // Fixed timestep update for mobile stability
+        while (animation.accumulatedTime >= animation.frameInterval) {
+            animation.progress = (animation.progress + animation.speed * (animation.frameInterval/1000)) % 1;
+            animation.accumulatedTime -= animation.frameInterval;
         }
 
         // Render all cards
@@ -555,29 +557,35 @@ function createPerfectOrbitingGlow() {
 
             if (!card || card.classList.contains('active')) {
                 const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx?.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
 
             const ctx = canvas.getContext('2d');
             const dpr = window.devicePixelRatio || 1;
+            
+            // Only resize canvas if dimensions changed
+            const expectedWidth = (parseInt(card.clientWidth) + 50) * dpr;
+            const expectedHeight = (parseInt(card.clientHeight) + 50) * dpr;
+            
+            if (canvas.width !== expectedWidth || canvas.height !== expectedHeight) {
+                canvas.width = expectedWidth;
+                canvas.height = expectedHeight;
+            }
+            
             ctx.resetTransform();
             ctx.scale(dpr, dpr);
 
-            const padding = 30;
-            const cardWidth = parseInt(card.clientWidth);
-            const cardHeight = parseInt(card.clientHeight);
-
-            drawSteadyGlowTrail(
+            drawMobileGlow(
                 ctx,
                 config.color,
                 animation.progress,
                 0.25,
                 config.width,
                 config.blur,
-                cardWidth,
-                cardHeight,
-                padding,
+                parseInt(card.clientWidth),
+                parseInt(card.clientHeight),
+                25,
                 config.opacity
             );
         });
@@ -585,8 +593,8 @@ function createPerfectOrbitingGlow() {
         requestAnimationFrame(animate);
     }
 
-    function drawSteadyGlowTrail(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
-        // Clear only the needed area
+    function drawMobileGlow(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
+        // Clear only the necessary area
         const clearPadding = Math.ceil(blur + width);
         ctx.clearRect(
             padding - clearPadding,
@@ -595,42 +603,41 @@ function createPerfectOrbitingGlow() {
             cardHeight + clearPadding * 2
         );
 
-        // Calculate trail positions
         const perimeter = 2 * (cardWidth + cardHeight);
         const trailCenter = progress * perimeter;
         const halfTrail = trailLength * perimeter / 2;
         const trailStart = (trailCenter - halfTrail + perimeter) % perimeter;
         const trailEnd = (trailCenter + halfTrail) % perimeter;
 
-        // Set styles with consistent glow
+        // Mobile-optimized drawing
         ctx.strokeStyle = color;
         ctx.globalAlpha = opacity;
         ctx.shadowColor = color;
         ctx.shadowBlur = blur;
         ctx.lineWidth = width;
         ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
         ctx.translate(padding, padding);
         ctx.beginPath();
 
-        // Draw the trail segments
+        // Simplified segment drawing for mobile
         const drawSegment = (from, to) => {
             let pos = from;
+            const step = 2; // Larger step for mobile performance
             while (pos < to) {
                 if (pos < cardWidth) {
                     ctx.moveTo(pos, 0);
-                    ctx.lineTo(pos + 1, 0);
+                    ctx.lineTo(pos + step, 0);
                 } else if (pos < cardWidth + cardHeight) {
                     ctx.moveTo(cardWidth, pos - cardWidth);
-                    ctx.lineTo(cardWidth, pos - cardWidth + 1);
+                    ctx.lineTo(cardWidth, pos - cardWidth + step);
                 } else if (pos < 2 * cardWidth + cardHeight) {
                     ctx.moveTo(2 * cardWidth - pos + cardHeight, cardHeight);
-                    ctx.lineTo(2 * cardWidth - pos + cardHeight - 1, cardHeight);
+                    ctx.lineTo(2 * cardWidth - pos + cardHeight - step, cardHeight);
                 } else {
                     ctx.moveTo(0, 2 * (cardWidth + cardHeight) - pos);
-                    ctx.lineTo(0, 2 * (cardWidth + cardHeight) - pos - 1);
+                    ctx.lineTo(0, 2 * (cardWidth + cardHeight) - pos - step);
                 }
-                pos += 1;
+                pos += step;
             }
         };
 
@@ -641,24 +648,22 @@ function createPerfectOrbitingGlow() {
             drawSegment(0, trailEnd);
         }
 
-        // Draw twice for consistent glow without flicker
+        // Single stroke for mobile performance
         ctx.stroke();
-        ctx.stroke();
-        
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    // Initialize with proper sequencing
+    // Initialize with mobile considerations
     function init() {
         updateSizes();
         window.addEventListener('resize', updateSizes);
         window.addEventListener('orientationchange', updateSizes);
         
-        // Start animation after ensuring all elements are ready
+        // Start animation after delay for mobile stability
         setTimeout(() => {
             animation.lastTime = performance.now();
             requestAnimationFrame(animate);
-        }, 200);
+        }, 300);
     }
 
     // Handle card interactions
@@ -667,7 +672,7 @@ function createPerfectOrbitingGlow() {
             // Clear all glows when any card is clicked
             Object.values(canvases).forEach(canvas => {
                 const ctx = canvas.getContext('2d');
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx?.clearRect(0, 0, canvas.width, canvas.height);
             });
         }
     });
@@ -679,8 +684,8 @@ function createPerfectOrbitingGlow() {
     }
 }
 
-// Start the perfected effect
-createPerfectOrbitingGlow();
+// Start the mobile-optimized effect
+createMobileOptimizedGlow();
 </script>
 
 
