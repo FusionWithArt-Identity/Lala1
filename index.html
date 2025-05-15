@@ -28,12 +28,45 @@
         overflow-x: hidden;
     }
     
-    h1 {
-        color: #5e35b1;
-        margin-bottom: 20px;
-        font-size: 1.8rem;
+      h1 {
+        color: #fff;
+        font-size: 2.5rem;
         text-align: center;
         font-weight: bold;
+        font-family: cursive;
+        animation: glow 1s ease-in-out infinite alternate;
+        margin-bottom: 20px;
+    }
+
+    @-webkit-keyframes glow {
+        from {
+            text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 
+                         0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+        }
+        to {
+            text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 
+                         0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
+        }
+    }
+
+    @keyframes glow {
+        from {
+            text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 
+                         0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
+        }
+        to {
+            text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 
+                         0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
+        }
+    }
+
+    /* Keep your existing responsive adjustments but update the font-size */
+    @media (max-width: 500px) {
+        h1 { font-size: 2rem; }
+    }
+    
+    @media (max-width: 400px) {
+        h1 { font-size: 1.8rem; }
     }
     
     .cards-container {
