@@ -471,11 +471,13 @@ function createNonIntrusiveGlowEffect() {
     });
     document.body.appendChild(glowContainer);
 
-    // For each card, create TWO canvas elements: clockwise and counter-clockwise
+    // Two clockwise glows per card, spaced apart
+    const trailOffsets = [0, 0.5]; // 0° and 180° apart
+
     document.querySelectorAll('.flip-card').forEach(card => {
-        ['cw', 'ccw'].forEach(dir => {
+        trailOffsets.forEach((offset, i) => {
             const canvas = document.createElement('canvas');
-            canvas.className = `glow-canvas ${card.id}-glow-${dir}`;
+            canvas.className = `glow-canvas ${card.id}-glow-${i}`;
             Object.assign(canvas.style, {
                 position: 'absolute',
                 pointerEvents: 'none',
@@ -483,8 +485,8 @@ function createNonIntrusiveGlowEffect() {
             });
             glowContainer.appendChild(canvas);
             canvas.dataset.cardId = card.id;
-            canvas.dataset.direction = dir;
-            canvas.progress = 0;  // Initialize progress
+            canvas.dataset.offset = offset;
+            canvas.progress = 0;
         });
     });
 
@@ -495,8 +497,8 @@ function createNonIntrusiveGlowEffect() {
 
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
-            ['cw', 'ccw'].forEach(dir => {
-                const canvas = document.querySelector(`.${card.id}-glow-${dir}`);
+            trailOffsets.forEach((_, i) => {
+                const canvas = document.querySelector(`.${card.id}-glow-${i}`);
                 if (!canvas) return;
 
                 const rect = card.getBoundingClientRect();
@@ -523,9 +525,9 @@ function createNonIntrusiveGlowEffect() {
 
             document.querySelectorAll('.glow-canvas').forEach(canvas => {
                 const cardId = canvas.dataset.cardId;
-                const direction = canvas.dataset.direction; // 'cw' or 'ccw'
                 const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
+                const offset = parseFloat(canvas.dataset.offset || 0);
 
                 const ctx = canvas.getContext('2d');
                 const dpr = window.devicePixelRatio || 1;
@@ -538,15 +540,8 @@ function createNonIntrusiveGlowEffect() {
                     return;
                 }
 
-                if (canvas.progress === undefined) canvas.progress = 0;
-
-                if (direction === 'cw') {
-                    // Clockwise movement (original)
-                    canvas.progress = (canvas.progress + config.speed * (deltaTime / 1000)) % 1;
-                } else {
-                    // Counter-clockwise movement (reversed)
-                    canvas.progress = (canvas.progress - config.speed * (deltaTime / 1000) + 1) % 1;
-                }
+                canvas.progress = (canvas.progress + config.speed * (deltaTime / 1000)) % 1;
+                const totalProgress = (canvas.progress + offset) % 1;
 
                 const actualWidth = parseInt(canvas.style.width) - (config.blur + config.width) * 2;
                 const actualHeight = parseInt(canvas.style.height) - (config.blur + config.width) * 2;
@@ -554,7 +549,7 @@ function createNonIntrusiveGlowEffect() {
                 drawSmoothGlow(
                     ctx,
                     config.color,
-                    canvas.progress,
+                    totalProgress,
                     0.3,
                     config.width,
                     config.blur,
@@ -587,7 +582,6 @@ function createNonIntrusiveGlowEffect() {
         ctx.translate(offset, offset);
 
         const points = [];
-
         const addPoint = (x, y) => points.push({ x, y });
 
         const tracePath = (from, to) => {
@@ -649,6 +643,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
