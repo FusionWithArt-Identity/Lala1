@@ -28,16 +28,18 @@
         overflow-x: hidden;
     }
     
+
+        /* Absolute minimal styles for mobile */
 h1 {
-    color: #fff !important;
-    font-size: clamp(1.8rem, 6vw, 2.5rem) !important;
-    text-align: center !important;
-    font-weight: bold !important;
-    font-family: cursive !important;
-    margin-bottom: 20px !important;
-    will-change: text-shadow;
-    /* Force these styles to override any existing ones */
+    color: #fff;
+    font-size: clamp(1.8rem, 6vw, 2.5rem); /* Better mobile scaling */
+    text-align: center;
+    font-weight: bold;
+    font-family: cursive;
+    margin-bottom: 20px;
+    text-shadow: 0 0 5px #fff; /* Fallback */
 }
+
     
     .cards-container {
         display: flex;
@@ -857,67 +859,103 @@ if (document.readyState === 'complete') {
 
 
 <script>
-// Perfect Glow Effect - Guaranteed to Work
+// Ultra-optimized Glowing Text Animation for Mobile
 document.addEventListener('DOMContentLoaded', function() {
+    // Mobile detection and performance tuning
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const header = document.querySelector('h1');
     
-    // Exact shadow configurations from your CSS
-    const shadowStates = [
-        // "from" state
-        [
-            '0 0 10px #fff',
-            '0 0 20px #fff',
-            '0 0 30px #e60073',
-            '0 0 40px #e60073',
-            '0 0 50px #e60073',
-            '0 0 60px #e60073',
-            '0 0 70px #e60073'
-        ],
-        // "to" state
-        [
-            '0 0 20px #fff',
-            '0 0 30px #ff4da6',
-            '0 0 40px #ff4da6',
-            '0 0 50px #ff4da6',
-            '0 0 60px #ff4da6',
-            '0 0 70px #ff4da6',
-            '0 0 80px #ff4da6'
-        ]
-    ];
+    // Mobile-optimized settings
+    const config = {
+        minGlow: isMobile ? 5 : 10,
+        maxGlow: isMobile ? 15 : 20,
+        glowSpeed: isMobile ? 0.05 : 0.1,
+        frameThrottle: isMobile ? 2 : 1, // Skip frames on mobile
+        colors: ['#e60073', '#ff4da6']
+    };
 
-    // Animation timing
-    const duration = 1000; // 1 second
-    let startTime = null;
+    // State variables
+    let glowIntensity = 0;
+    let increasing = true;
+    let frameCount = 0;
+    let lastTimestamp = 0;
+    
+    // Pre-calculate static parts
+    const baseShadow = '0 0 5px #fff';
+    const shadowCache = {};
+    
+    // Build cached shadow values
+    for (let i = 0; i <= 100; i++) {
+        const intensity = i / 100;
+        const size = config.minGlow + (config.maxGlow - config.minGlow) * intensity;
+        const color = intensity < 0.5 ? config.colors[0] : config.colors[1];
+        shadowCache[i] = `${baseShadow}, 0 0 ${size}px ${color}`;
+    }
     
     function animateGlow(timestamp) {
-        if (!startTime) startTime = timestamp;
-        const elapsed = timestamp - startTime;
-        const progress = Math.sin((elapsed % duration) / duration * Math.PI); // Smooth back-and-forth
+        // Throttle frames on mobile
+        frameCount++;
+        if (isMobile && frameCount % config.frameThrottle !== 0) {
+            requestAnimationFrame(animateGlow);
+            return;
+        }
         
-        // Blend between the two shadow states
-        const currentShadows = shadowStates[0].map((shadow, i) => {
-            const fromParts = shadow.match(/(\d+)(px)/g);
-            const toParts = shadowStates[1][i].match(/(\d+)(px)/g);
-            
-            return shadow.replace(/(\d+)(px)/g, (match, p1, p2) => {
-                const fromVal = parseInt(fromParts.shift());
-                const toVal = parseInt(toParts.shift());
-                const current = fromVal + (toVal - fromVal) * progress;
-                return Math.round(current) + p2;
-            });
-        });
+        // Calculate time-based animation for consistency
+        const deltaTime = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
         
-        header.style.textShadow = currentShadows.join(', ');
+        // Update glow intensity (time-based for consistent speed)
+        const intensityDelta = (deltaTime / 16) * config.glowSpeed; // Normalize to 60fps
+        glowIntensity = increasing ? 
+            Math.min(1, glowIntensity + intensityDelta) : 
+            Math.max(0, glowIntensity - intensityDelta);
+        
+        if (glowIntensity >= 1) increasing = false;
+        if (glowIntensity <= 0) increasing = true;
+        
+        // Get cached shadow value
+        const cacheIndex = Math.floor(glowIntensity * 100);
+        header.style.textShadow = shadowCache[cacheIndex];
+        
+        // Continue animation
         requestAnimationFrame(animateGlow);
     }
     
-    // Start with initial glow
-    header.style.textShadow = shadowStates[0].join(', ');
+    // Start with minimal shadow to avoid initial lag
+    header.style.textShadow = baseShadow;
     
-    // Start animation after brief delay
+    // Delay animation start to allow other elements to load
     setTimeout(() => {
         requestAnimationFrame(animateGlow);
-    }, 100);
+    }, isMobile ? 1000 : 500); // Longer delay on mobile
+    
+    // Heavy optimization for background tabs
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            header.style.textShadow = baseShadow; // Minimal shadow when inactive
+        } else {
+            lastTimestamp = performance.now(); // Reset timing
+            requestAnimationFrame(animateGlow);
+        }
+    });
+    
+    // Mobile-specific optimizations
+    if (isMobile) {
+        // Reduce layout thrashing
+        header.style.willChange = 'text-shadow';
+        header.style.backfaceVisibility = 'hidden';
+        
+        // Cleaner animation stop when scrolling
+        let scrollTimeout;
+        window.addEventListener('scroll', function() {
+            header.style.textShadow = baseShadow;
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                lastTimestamp = performance.now();
+                requestAnimationFrame(animateGlow);
+            }, 300);
+        }, { passive: true });
+    }
 });
 </script>  
 </body>
