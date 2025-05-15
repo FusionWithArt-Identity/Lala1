@@ -646,6 +646,7 @@ if (document.readyState === 'complete') {
     'jester-card': { color: '#00cc66', width: 6, blur: 25, speed: 0.20 }
   };
 
+  // Create and setup canvas
   const bgCanvas = document.createElement('canvas');
   bgCanvas.id = 'bg-glow-canvas';
   Object.assign(bgCanvas.style, {
@@ -655,23 +656,15 @@ if (document.readyState === 'complete') {
     width: '100%',
     height: '100%',
     pointerEvents: 'none',
-    zIndex: '0',
+    zIndex: '0'
   });
   document.body.appendChild(bgCanvas);
   const bgCtx = bgCanvas.getContext('2d');
 
-  function getDocumentHeight() {
-    return Math.max(
-      document.body.scrollHeight, document.documentElement.scrollHeight,
-      document.body.offsetHeight, document.documentElement.offsetHeight,
-      document.body.clientHeight, document.documentElement.clientHeight
-    );
-  }
-
   function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
     const width = window.innerWidth;
-    const height = getDocumentHeight();
+    const height = document.documentElement.clientHeight; // mobile friendly viewport height
     bgCanvas.width = width * dpr;
     bgCanvas.height = height * dpr;
     Object.assign(bgCanvas.style, {
@@ -705,9 +698,10 @@ if (document.readyState === 'complete') {
       resizeCanvas();
 
       const width = window.innerWidth;
-      const height = getDocumentHeight();
+      const height = document.documentElement.clientHeight;
       const color = getActiveCardColor();
 
+      // Update progress, speed fixed to default for smoothness
       progress = (progress + glowConfig.default.speed * (deltaTime / 1000)) % 1;
 
       drawGlow(bgCtx, color, progress, 0.3, glowConfig.default.width, glowConfig.default.blur, width, height);
@@ -785,9 +779,9 @@ if (document.readyState === 'complete') {
   animationId = requestAnimationFrame(animate);
 
   window.addEventListener('resize', resizeCanvas);
-  window.addEventListener('scroll', resizeCanvas); // update canvas size on scroll too
   document.addEventListener('click', (e) => {
     if (e.target.closest('.flip-card')) {
+      // redraw immediately on active change
       resizeCanvas();
     }
   });
