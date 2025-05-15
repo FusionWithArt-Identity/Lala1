@@ -28,23 +28,15 @@
         overflow-x: hidden;
     }
     
-/* Basic header styles - animation handled by JS */
+/* Absolute minimal styles for mobile */
 h1 {
     color: #fff;
-    font-size: 2.5rem;
+    font-size: clamp(1.8rem, 6vw, 2.5rem); /* Better mobile scaling */
     text-align: center;
     font-weight: bold;
     font-family: cursive;
     margin-bottom: 20px;
-    will-change: text-shadow; /* Optimize for animation */
-}
-
-@media (max-width: 500px) {
-    h1 { font-size: 2rem; }
-}
-    
-@media (max-width: 400px) {
-    h1 { font-size: 1.8rem; }
+    text-shadow: 0 0 5px #fff; /* Fallback */
 }
     
     .cards-container {
@@ -863,63 +855,104 @@ if (document.readyState === 'complete') {
 </script>
 
 
-  <script>
-// Glowing Text Animation - Performance Optimized
+<script>
+// Ultra-optimized Glowing Text Animation for Mobile
 document.addEventListener('DOMContentLoaded', function() {
+    // Mobile detection and performance tuning
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     const header = document.querySelector('h1');
+    
+    // Mobile-optimized settings
+    const config = {
+        minGlow: isMobile ? 5 : 10,
+        maxGlow: isMobile ? 15 : 20,
+        glowSpeed: isMobile ? 0.05 : 0.1,
+        frameThrottle: isMobile ? 2 : 1, // Skip frames on mobile
+        colors: ['#e60073', '#ff4da6']
+    };
+
+    // State variables
     let glowIntensity = 0;
     let increasing = true;
-    const minGlow = 10;
-    const maxGlow = 20;
-    const glowSpeed = 0.1; // Lower is slower
+    let frameCount = 0;
+    let lastTimestamp = 0;
     
-    // Pre-calculate shadow values for performance
-    const baseShadow = '0 0 10px #fff, 0 0 20px #fff';
-    const glowColors = ['#e60073', '#ff4da6'];
+    // Pre-calculate static parts
+    const baseShadow = '0 0 5px #fff';
+    const shadowCache = {};
+    
+    // Build cached shadow values
+    for (let i = 0; i <= 100; i++) {
+        const intensity = i / 100;
+        const size = config.minGlow + (config.maxGlow - config.minGlow) * intensity;
+        const color = intensity < 0.5 ? config.colors[0] : config.colors[1];
+        shadowCache[i] = `${baseShadow}, 0 0 ${size}px ${color}`;
+    }
     
     function animateGlow(timestamp) {
-        // Update glow intensity
-        if (increasing) {
-            glowIntensity += glowSpeed;
-            if (glowIntensity >= 1) {
-                glowIntensity = 1;
-                increasing = false;
-            }
-        } else {
-            glowIntensity -= glowSpeed;
-            if (glowIntensity <= 0) {
-                glowIntensity = 0;
-                increasing = true;
-            }
+        // Throttle frames on mobile
+        frameCount++;
+        if (isMobile && frameCount % config.frameThrottle !== 0) {
+            requestAnimationFrame(animateGlow);
+            return;
         }
         
-        // Calculate current glow
-        const currentSize = minGlow + (maxGlow - minGlow) * glowIntensity;
-        const currentColor = glowIntensity < 0.5 ? glowColors[0] : glowColors[1];
+        // Calculate time-based animation for consistency
+        const deltaTime = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
         
-        // Build text shadow
-        const glowShadow = `0 0 ${currentSize}px ${currentColor}, ` +
-                          `0 0 ${currentSize * 1.5}px ${currentColor}, ` +
-                          `0 0 ${currentSize * 2}px ${currentColor}`;
+        // Update glow intensity (time-based for consistent speed)
+        const intensityDelta = (deltaTime / 16) * config.glowSpeed; // Normalize to 60fps
+        glowIntensity = increasing ? 
+            Math.min(1, glowIntensity + intensityDelta) : 
+            Math.max(0, glowIntensity - intensityDelta);
         
-        // Apply styles
-        header.style.textShadow = `${baseShadow}, ${glowShadow}`;
+        if (glowIntensity >= 1) increasing = false;
+        if (glowIntensity <= 0) increasing = true;
+        
+        // Get cached shadow value
+        const cacheIndex = Math.floor(glowIntensity * 100);
+        header.style.textShadow = shadowCache[cacheIndex];
         
         // Continue animation
         requestAnimationFrame(animateGlow);
     }
     
-    // Start animation
-    requestAnimationFrame(animateGlow);
+    // Start with minimal shadow to avoid initial lag
+    header.style.textShadow = baseShadow;
     
-    // Optimize performance when tab is not visible
+    // Delay animation start to allow other elements to load
+    setTimeout(() => {
+        requestAnimationFrame(animateGlow);
+    }, isMobile ? 1000 : 500); // Longer delay on mobile
+    
+    // Heavy optimization for background tabs
     document.addEventListener('visibilitychange', function() {
         if (document.hidden) {
-            header.style.textShadow = ''; // Remove animation when tab is inactive
+            header.style.textShadow = baseShadow; // Minimal shadow when inactive
         } else {
-            requestAnimationFrame(animateGlow); // Restart when visible
+            lastTimestamp = performance.now(); // Reset timing
+            requestAnimationFrame(animateGlow);
         }
     });
+    
+    // Mobile-specific optimizations
+    if (isMobile) {
+        // Reduce layout thrashing
+        header.style.willChange = 'text-shadow';
+        header.style.backfaceVisibility = 'hidden';
+        
+        // Cleaner animation stop when scrolling
+        let scrollTimeout;
+        window.addEventListener('scroll', function() {
+            header.style.textShadow = baseShadow;
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                lastTimestamp = performance.now();
+                requestAnimationFrame(animateGlow);
+            }, 300);
+        }, { passive: true });
+    }
 });
 </script>  
 </body>
