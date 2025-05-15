@@ -35,11 +35,13 @@ h1 {
     font-size: clamp(1.8rem, 6vw, 2.5rem); /* Better mobile scaling */
     text-align: center;
     font-weight: bold;
-    font-family: cursive;
+       font-family: 'Poppins', 'Roboto', 'Open Sans', -apple-system, sans-serif;
     margin-bottom: 20px;
-    text-shadow: 0 0 5px #fff; /* Fallback */
+    text-shadow: 0 0 5px #fff;
+    /* Improve text rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
 }
-
     
     .cards-container {
         display: flex;
