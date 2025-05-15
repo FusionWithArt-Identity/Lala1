@@ -486,8 +486,8 @@ function createNonIntrusiveGlowEffect() {
 
     let animationId = null;
     let lastTime = 0;
-    const frameRate = 600;
-    const frameInterval = 10000 / frameRate;
+    const frameRate = 60;
+    const frameInterval = 1000 / frameRate;
 
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
@@ -574,36 +574,36 @@ function createNonIntrusiveGlowEffect() {
 
         const points = [];
 
-        const addPoint = (x, y) => points.push({ x, y });
+        const addInterpolatedPoint = (pos) => {
+            if (pos < w) {
+                points.push({ x: pos, y: 0 });
+            } else if (pos < w + h) {
+                points.push({ x: w, y: pos - w });
+            } else if (pos < 2 * w + h) {
+                points.push({ x: w - (pos - w - h), y: h });
+            } else {
+                points.push({ x: 0, y: h - (pos - 2 * w - h) });
+            }
+        };
 
-        const tracePath = (from, to) => {
+        const step = 0.75; // smaller step for smoother glow
+
+        const traceSegment = (from, to) => {
             let pos = from;
             while (pos < to) {
-                if (pos < w) {
-                    const x = Math.min(pos, to);
-                    addPoint(x, 0);
-                } else if (pos < w + h) {
-                    const y = Math.min(pos - w, to - w);
-                    addPoint(w, y);
-                } else if (pos < 2 * w + h) {
-                    const x = w - Math.min(pos - w - h, to - w - h);
-                    addPoint(x, h);
-                } else {
-                    const y = h - Math.min(pos - 2 * w - h, to - 2 * w - h);
-                    addPoint(0, y);
-                }
-                pos += 1;
+                addInterpolatedPoint(pos);
+                pos += step;
             }
         };
 
         if (start < end) {
-            tracePath(start, end);
+            traceSegment(start, end);
         } else {
-            tracePath(start, perimeter);
-            tracePath(0, end);
+            traceSegment(start, perimeter);
+            traceSegment(0, end);
         }
 
-        if (points.length > 0) {
+        if (points.length > 1) {
             ctx.beginPath();
             ctx.moveTo(points[0].x, points[0].y);
             for (let i = 1; i < points.length; i++) {
@@ -635,6 +635,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
