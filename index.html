@@ -470,7 +470,7 @@ function createNonIntrusiveGlowEffect() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '-10'
+        zIndex: '10'
     });
     document.body.appendChild(glowContainer);
 
@@ -633,97 +633,6 @@ if (document.readyState === 'complete') {
     createNonIntrusiveGlowEffect();
 } else {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
-}
-</script>
-
-<script>
-function createNeonGradientGlowEffect() {
-    const glowConfig = {
-        'clown-card': {
-            gradient: 'conic-gradient(from 0deg, #00a8ff, #005eff, #00a8ff)',
-            blur: '5px',
-            sizeOffset: 8
-        },
-        'joker-card': {
-            gradient: 'conic-gradient(from 0deg, #ff3333, #ff0000, #ff3333)',
-            blur: '5px',
-            sizeOffset: 8
-        },
-        'jester-card': {
-            gradient: 'conic-gradient(from 0deg, #00cc66, #009944, #00cc66)',
-            blur: '5px',
-            sizeOffset: 8
-        }
-    };
-
-    const glowLayers = {};
-    const rotateSpeeds = {}; // degrees per frame
-    let angle = {};
-
-    Object.keys(glowConfig).forEach(id => {
-        const card = document.getElementById(id);
-        if (!card) return;
-
-        const glowDiv = document.createElement('div');
-        glowDiv.className = 'js-glow-border';
-        glowDiv.style.position = 'absolute';
-        glowDiv.style.borderRadius = '16px';
-        glowDiv.style.pointerEvents = 'none';
-        glowDiv.style.zIndex = '-1';
-        glowDiv.style.filter = `blur(${glowConfig[id].blur})`;
-        glowDiv.style.opacity = '0.9';
-
-        glowLayers[id] = glowDiv;
-        angle[id] = 0;
-        rotateSpeeds[id] = 5; // deg per frame
-
-        document.body.appendChild(glowDiv);
-    });
-
-    function updatePositions() {
-        Object.keys(glowLayers).forEach(id => {
-            const card = document.getElementById(id);
-            const glow = glowLayers[id];
-            const config = glowConfig[id];
-            if (!card || !glow) return;
-
-            const rect = card.getBoundingClientRect();
-            const offset = config.sizeOffset;
-
-            Object.assign(glow.style, {
-                top: `${rect.top - offset}px`,
-                left: `${rect.left - offset}px`,
-                width: `${rect.width + offset * 2}px`,
-                height: `${rect.height + offset * 2}px`,
-                position: 'fixed'
-            });
-        });
-    }
-
-    function animate() {
-        Object.keys(glowLayers).forEach(id => {
-            angle[id] = (angle[id] + rotateSpeeds[id]) % 360;
-            const rotatedGradient = glowConfig[id].gradient.replace(
-                /from \d+deg/,
-                `from ${angle[id]}deg`
-            );
-            glowLayers[id].style.background = rotatedGradient;
-        });
-
-        requestAnimationFrame(animate);
-    }
-
-    window.addEventListener('resize', updatePositions);
-    document.addEventListener('scroll', updatePositions);
-    updatePositions();
-    animate();
-}
-
-// Start the effect
-if (document.readyState === 'complete') {
-    createNeonGradientGlowEffect();
-} else {
-    document.addEventListener('DOMContentLoaded', createNeonGradientGlowEffect);
 }
 </script>
 
