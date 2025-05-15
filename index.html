@@ -435,25 +435,26 @@
         });
     </script>
 
+
 <script>
 function createNonIntrusiveGlowEffect() {
     const glowConfig = {
         'clown-card': {
             color: '#00a8ff',
             width: 6,
-            blur: 15,
+            blur: 25,
             speed: 0.20
         },
         'joker-card': {
             color: '#ff3333',
             width: 6,
-            blur: 15,
+            blur: 25,
             speed: 0.20
         },
         'jester-card': {
             color: '#00cc66',
             width: 6,
-            blur: 15,
+            blur: 25,
             speed: 0.20
         }
     };
@@ -471,22 +472,16 @@ function createNonIntrusiveGlowEffect() {
     });
     document.body.appendChild(glowContainer);
 
-    const trailOffsets = [0, 0.5]; // Two clockwise trails spaced evenly
-
     document.querySelectorAll('.flip-card').forEach(card => {
-        trailOffsets.forEach((offset, i) => {
-            const canvas = document.createElement('canvas');
-            canvas.className = `glow-canvas ${card.id}-glow-${i}`;
-            Object.assign(canvas.style, {
-                position: 'absolute',
-                pointerEvents: 'none',
-                zIndex: '1'
-            });
-            glowContainer.appendChild(canvas);
-            canvas.dataset.cardId = card.id;
-            canvas.dataset.offset = offset;
-            canvas.progress = 0;
+        const canvas = document.createElement('canvas');
+        canvas.className = `glow-canvas ${card.id}-glow`;
+        Object.assign(canvas.style, {
+            position: 'absolute',
+            pointerEvents: 'none',
+            zIndex: '1'
         });
+        glowContainer.appendChild(canvas);
+        canvas.dataset.cardId = card.id;
     });
 
     let animationId = null;
@@ -496,20 +491,18 @@ function createNonIntrusiveGlowEffect() {
 
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
-            trailOffsets.forEach((_, i) => {
-                const canvas = document.querySelector(`.${card.id}-glow-${i}`);
-                if (!canvas) return;
+            const canvas = document.querySelector(`.${card.id}-glow`);
+            if (!canvas) return;
 
-                const rect = card.getBoundingClientRect();
-                const config = glowConfig[card.id];
-                const padding = config.blur + config.width;
+            const rect = card.getBoundingClientRect();
+            const config = glowConfig[card.id];
+            const padding = config.blur + config.width;
 
-                Object.assign(canvas.style, {
-                    top: `${rect.top - padding}px`,
-                    left: `${rect.left - padding}px`,
-                    width: `${rect.width + padding * 2}px`,
-                    height: `${rect.height + padding * 2}px`
-                });
+            Object.assign(canvas.style, {
+                top: `${rect.top - padding}px`,
+                left: `${rect.left - padding}px`,
+                width: `${rect.width + padding * 2}px`,
+                height: `${rect.height + padding * 2}px`
             });
         });
     }
@@ -526,7 +519,6 @@ function createNonIntrusiveGlowEffect() {
                 const cardId = canvas.dataset.cardId;
                 const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
-                const offset = parseFloat(canvas.dataset.offset || 0);
 
                 const ctx = canvas.getContext('2d');
                 const dpr = window.devicePixelRatio || 1;
@@ -539,8 +531,8 @@ function createNonIntrusiveGlowEffect() {
                     return;
                 }
 
+                if (!canvas.progress) canvas.progress = 0;
                 canvas.progress = (canvas.progress + config.speed * (deltaTime / 1000)) % 1;
-                const totalProgress = (canvas.progress + offset) % 1;
 
                 const actualWidth = parseInt(canvas.style.width) - (config.blur + config.width) * 2;
                 const actualHeight = parseInt(canvas.style.height) - (config.blur + config.width) * 2;
@@ -548,8 +540,8 @@ function createNonIntrusiveGlowEffect() {
                 drawSmoothGlow(
                     ctx,
                     config.color,
-                    totalProgress,
-                    0.25, // Trail length
+                    canvas.progress,
+                    0.3,
                     config.width,
                     config.blur,
                     actualWidth,
@@ -580,22 +572,38 @@ function createNonIntrusiveGlowEffect() {
         const offset = blur + width;
         ctx.translate(offset, offset);
 
-        const getPointAt = (pos) => {
-            if (pos < w) return { x: pos, y: 0 };
-            if (pos < w + h) return { x: w, y: pos - w };
-            if (pos < 2 * w + h) return { x: 2 * w + h - pos, y: h };
-            return { x: 0, y: perimeter - pos };
+        const points = [];
+
+        const addPoint = (x, y) => points.push({ x, y });
+
+        const tracePath = (from, to) => {
+            let pos = from;
+            while (pos < to) {
+                if (pos < w) {
+                    const x = Math.min(pos, to);
+                    addPoint(x, 0);
+                } else if (pos < w + h) {
+                    const y = Math.min(pos - w, to - w);
+                    addPoint(w, y);
+                } else if (pos < 2 * w + h) {
+                    const x = w - Math.min(pos - w - h, to - w - h);
+                    addPoint(x, h);
+                } else {
+                    const y = h - Math.min(pos - 2 * w - h, to - 2 * w - h);
+                    addPoint(0, y);
+                }
+                pos += 1;
+            }
         };
 
-        const drawSegment = (start, end, step = 1.5) => {
-            const points = [];
-            let pos = start;
-            while (true) {
-                points.push(getPointAt(pos % perimeter));
-                if ((end > start && pos >= end) || (start > end && pos >= end + perimeter)) break;
-                pos += step;
-            }
+        if (start < end) {
+            tracePath(start, end);
+        } else {
+            tracePath(start, perimeter);
+            tracePath(0, end);
+        }
 
+        if (points.length > 0) {
             ctx.beginPath();
             ctx.moveTo(points[0].x, points[0].y);
             for (let i = 1; i < points.length; i++) {
@@ -606,13 +614,6 @@ function createNonIntrusiveGlowEffect() {
                 ctx.quadraticCurveTo(prev.x, prev.y, cx, cy);
             }
             ctx.stroke();
-        };
-
-        if (start < end) {
-            drawSegment(start, end);
-        } else {
-            drawSegment(start, perimeter);
-            drawSegment(0, end);
         }
 
         ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -634,13 +635,6 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
-
-
-
-
-
-
-
 
 
 
