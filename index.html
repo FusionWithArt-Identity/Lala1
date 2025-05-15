@@ -31,23 +31,26 @@
 
 h1 {
     color: #fff;
-    font-size: clamp(3rem, 8vw, 4rem); /* Even larger scaling */
+    font-size: clamp(2.5rem, 9vw, 3.5rem); /* Dominant but not cramped */
     text-align: center;
-    font-weight: bold;
-    font-family: 'Montserrat', 'Impact', 'Arial Black', sans-serif; /* Bold alternatives */
-    margin-bottom: 25px;
-    text-shadow: 0 0 25px #fff;
-    letter-spacing: 1px; /* Improves readability at large sizes */
-    line-height: 1.2; /* Better spacing for tall fonts */
+    font-weight: 800;
+    font-family: 'Poppins', 'Montserrat', -apple-system, sans-serif; /* Modern stack */
+    margin-bottom: 20px;
+    text-shadow: 0 0 15px rgba(255, 255, 255, 0.7);
+    letter-spacing: -0.5px; /* Tighter for mobile */
+    line-height: 1.1; /* Compact but readable */
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
-    /* Text outline for better contrast */
-    text-stroke: 1px rgba(255,255,255,0.3);
-    -webkit-text-stroke: 1px rgba(255,255,255,0.3);
+    /* Subtle gradient for depth */
+    background: linear-gradient(90deg, #fff 10%, #ff4da6 50%, #fff 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    padding: 0 10px; /* Prevents text cropping */
 }
 
-/* Load Montserrat in the heaviest weight */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
+/* Load Poppins (most stylish mobile font) */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap');
     
     .cards-container {
         display: flex;
