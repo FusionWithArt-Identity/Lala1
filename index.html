@@ -29,19 +29,25 @@
     }
     
 
-        /* Absolute minimal styles for mobile */
 h1 {
     color: #fff;
-    font-size: clamp(2.8rem, 7vw, 3.5rem); /* Better mobile scaling */
+    font-size: clamp(3rem, 8vw, 4rem); /* Even larger scaling */
     text-align: center;
     font-weight: bold;
-       font-family: cursive;
-    margin-bottom: 20px;
+    font-family: 'Montserrat', 'Impact', 'Arial Black', sans-serif; /* Bold alternatives */
+    margin-bottom: 25px;
     text-shadow: 0 0 25px #fff;
-    /* Improve text rendering on mobile */
+    letter-spacing: 1px; /* Improves readability at large sizes */
+    line-height: 1.2; /* Better spacing for tall fonts */
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* Text outline for better contrast */
+    text-stroke: 1px rgba(255,255,255,0.3);
+    -webkit-text-stroke: 1px rgba(255,255,255,0.3);
 }
+
+/* Load Montserrat in the heaviest weight */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap');
     
     .cards-container {
         display: flex;
