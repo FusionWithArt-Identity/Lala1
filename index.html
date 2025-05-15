@@ -29,22 +29,14 @@
     }
     
 
-/* Base style (already good for most devices) */
 h1 {
     color: #fff;
-    font-size: clamp(4.8rem, 8vw, 4.5rem);
+    font-size: clamp(1.8rem, 6vw, 2.5rem); /* Better mobile scaling */
     text-align: center;
-    font-weight: 5000;
+    font-weight: bold;
     font-family: cursive;
     margin-bottom: 20px;
-    text-shadow: 0 0 5px #fff;
-}
-
-/* Larger font size for small screens (e.g. mobile) */
-@media (max-width: 480px) {
-    h1 {
-        font-size: clamp(2.2rem, 8vw, 3rem);
-    }
+    text-shadow: 0 0 5px #fff; /* Fallback */
 }
 
     
