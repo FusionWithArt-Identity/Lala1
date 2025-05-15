@@ -28,46 +28,24 @@
         overflow-x: hidden;
     }
     
-      h1 {
-        color: #fff;
-        font-size: 2.5rem;
-        text-align: center;
-        font-weight: bold;
-        font-family: cursive;
-        animation: glow 1s ease-in-out infinite alternate;
-        margin-bottom: 20px;
-    }
+/* Basic header styles - animation handled by JS */
+h1 {
+    color: #fff;
+    font-size: 2.5rem;
+    text-align: center;
+    font-weight: bold;
+    font-family: cursive;
+    margin-bottom: 20px;
+    will-change: text-shadow; /* Optimize for animation */
+}
 
-    @-webkit-keyframes glow {
-        from {
-            text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 
-                         0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
-        }
-        to {
-            text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 
-                         0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
-        }
-    }
-
-    @keyframes glow {
-        from {
-            text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #e60073, 0 0 40px #e60073, 
-                         0 0 50px #e60073, 0 0 60px #e60073, 0 0 70px #e60073;
-        }
-        to {
-            text-shadow: 0 0 20px #fff, 0 0 30px #ff4da6, 0 0 40px #ff4da6, 0 0 50px #ff4da6, 
-                         0 0 60px #ff4da6, 0 0 70px #ff4da6, 0 0 80px #ff4da6;
-        }
-    }
-
-    /* Keep your existing responsive adjustments but update the font-size */
-    @media (max-width: 500px) {
-        h1 { font-size: 2rem; }
-    }
+@media (max-width: 500px) {
+    h1 { font-size: 2rem; }
+}
     
-    @media (max-width: 400px) {
-        h1 { font-size: 1.8rem; }
-    }
+@media (max-width: 400px) {
+    h1 { font-size: 1.8rem; }
+}
     
     .cards-container {
         display: flex;
@@ -885,5 +863,64 @@ if (document.readyState === 'complete') {
 </script>
 
 
+  <script>
+// Glowing Text Animation - Performance Optimized
+document.addEventListener('DOMContentLoaded', function() {
+    const header = document.querySelector('h1');
+    let glowIntensity = 0;
+    let increasing = true;
+    const minGlow = 10;
+    const maxGlow = 20;
+    const glowSpeed = 0.1; // Lower is slower
+    
+    // Pre-calculate shadow values for performance
+    const baseShadow = '0 0 10px #fff, 0 0 20px #fff';
+    const glowColors = ['#e60073', '#ff4da6'];
+    
+    function animateGlow(timestamp) {
+        // Update glow intensity
+        if (increasing) {
+            glowIntensity += glowSpeed;
+            if (glowIntensity >= 1) {
+                glowIntensity = 1;
+                increasing = false;
+            }
+        } else {
+            glowIntensity -= glowSpeed;
+            if (glowIntensity <= 0) {
+                glowIntensity = 0;
+                increasing = true;
+            }
+        }
+        
+        // Calculate current glow
+        const currentSize = minGlow + (maxGlow - minGlow) * glowIntensity;
+        const currentColor = glowIntensity < 0.5 ? glowColors[0] : glowColors[1];
+        
+        // Build text shadow
+        const glowShadow = `0 0 ${currentSize}px ${currentColor}, ` +
+                          `0 0 ${currentSize * 1.5}px ${currentColor}, ` +
+                          `0 0 ${currentSize * 2}px ${currentColor}`;
+        
+        // Apply styles
+        header.style.textShadow = `${baseShadow}, ${glowShadow}`;
+        
+        // Continue animation
+        requestAnimationFrame(animateGlow);
+    }
+    
+    // Start animation
+    requestAnimationFrame(animateGlow);
+    
+    // Optimize performance when tab is not visible
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            header.style.textShadow = ''; // Remove animation when tab is inactive
+        } else {
+            requestAnimationFrame(animateGlow); // Restart when visible
+        }
+    });
+});
+</script>  
 </body>
 </html>
