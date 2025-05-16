@@ -477,7 +477,7 @@ function createNonIntrusiveGlowEffect() {
     // Create canvas elements positioned absolutely relative to the cards
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
-        canvas.className = glow-canvas ${card.id}-glow;
+        canvas.className = `glow-canvas ${card.id}-glow`;
         Object.assign(canvas.style, {
             position: 'absolute',
             pointerEvents: 'none',
@@ -498,15 +498,15 @@ function createNonIntrusiveGlowEffect() {
 
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
-            const canvas = document.querySelector(.${card.id}-glow);
+            const canvas = document.querySelector(`.${card.id}-glow`);
             if (!canvas) return;
             
             const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
-                top: ${rect.top - 8}px,
-                left: ${rect.left - 8}px,
-                width: ${rect.width + 16}px,
-                height: ${rect.height + 16}px
+                top: `${rect.top - 8}px`,
+                left: `${rect.left - 8}px`,
+                width: `${rect.width + 16}px`,
+                height: `${rect.height + 16}px`
             });
         });
     }
@@ -646,8 +646,6 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
-
-
 
 
 
