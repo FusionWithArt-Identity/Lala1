@@ -375,35 +375,42 @@
         if (isAnimating) return;
         isAnimating = true;
 
-        if (card.classList.contains('active')) {
-            // Flip the same card back
+        if (currentActiveCard === card) {
+            // Flip back the currently active card
             card.classList.remove('lifted');
             await new Promise(resolve => setTimeout(resolve, 300));
             card.classList.remove('active');
             currentActiveCard = null;
             resetCardContent(card);
-            // Delay the glow update slightly to ensure card is fully hidden
-            setTimeout(updateSizes, 50);
-        } else {
-            // Flip a new card
-            if (currentActiveCard) {
-                currentActiveCard.classList.remove('lifted');
-                await new Promise(resolve => setTimeout(resolve, 300));
-                currentActiveCard.classList.remove('active');
-                resetCardContent(currentActiveCard);
-                // Update glow for the previously active card
+
+            // Ensure glow realigns after DOM settles
+            requestAnimationFrame(() => {
                 updateSizes();
-            }
+            });
 
-            card.classList.add('lifted');
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            card.classList.add('active');
-            currentActiveCard = card;
-            animateCardContent(card);
-            // Update glow for the newly active card
-            updateSizes();
+            isAnimating = false;
+            return;
         }
+
+        // Flip down any other active card
+        if (currentActiveCard) {
+            currentActiveCard.classList.remove('lifted');
+            await new Promise(resolve => setTimeout(resolve, 300));
+            currentActiveCard.classList.remove('active');
+            resetCardContent(currentActiveCard);
+        }
+
+        // Flip up the new card
+        card.classList.add('lifted');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        card.classList.add('active');
+        currentActiveCard = card;
+        animateCardContent(card);
+
+        // Hide glow until flipped back
+        requestAnimationFrame(() => {
+            updateSizes();
+        });
 
         isAnimating = false;
     }
@@ -412,12 +419,8 @@
         const aspectItems = card.querySelectorAll('.aspect-item');
         const aspectContents = card.querySelectorAll('.aspect-content');
 
-        aspectItems.forEach(item => {
-            item.classList.remove('visible');
-        });
-        aspectContents.forEach(content => {
-            content.classList.remove('visible');
-        });
+        aspectItems.forEach(item => item.classList.remove('visible'));
+        aspectContents.forEach(content => content.classList.remove('visible'));
 
         aspectItems.forEach((item, index) => {
             setTimeout(() => {
@@ -433,16 +436,11 @@
     function resetCardContent(card) {
         const aspectItems = card.querySelectorAll('.aspect-item');
         const aspectContents = card.querySelectorAll('.aspect-content');
-
-        aspectItems.forEach(item => {
-            item.classList.remove('visible');
-        });
-        aspectContents.forEach(content => {
-            content.classList.remove('visible');
-        });
+        aspectItems.forEach(item => item.classList.remove('visible'));
+        aspectContents.forEach(content => content.classList.remove('visible'));
     }
 
-    document.body.addEventListener('click', function (e) {
+    document.body.addEventListener('click', function(e) {
         if (currentActiveCard && !currentActiveCard.contains(e.target) && !isAnimating) {
             isAnimating = true;
             currentActiveCard.classList.remove('lifted');
@@ -450,8 +448,12 @@
                 currentActiveCard.classList.remove('active');
                 resetCardContent(currentActiveCard);
                 currentActiveCard = null;
-                // Delay the glow update slightly
-                setTimeout(updateSizes, 50);
+
+                // Delay glow update after layout
+                requestAnimationFrame(() => {
+                    updateSizes();
+                });
+
                 isAnimating = false;
             }, 300);
         }
@@ -530,7 +532,7 @@
             }
         }
 
-        function updateSizes() {
+        window.updateSizes = function updateSizes() {
             document.querySelectorAll('.flip-card').forEach(card => {
                 const canvas = document.querySelector(`.${card.id}-glow`);
                 if (!canvas || !glowConfig[card.id]) return;
@@ -541,17 +543,16 @@
 
                 Object.assign(canvas.style, {
                     top: `${rect.top + window.scrollY - padding + config.offsetY}px`,
-                    left: `${rect.left - padding + config.offsetX}px`,
+                    left: `${rect.left + window.scrollX - padding + config.offsetX}px`,
                     width: `${rect.width + padding * 2}px`,
-                    height: `${rect.height + padding * 2}px`,
-                    display: card.classList.contains('active') ? 'none' : 'block'
+                    height: `${rect.height + padding * 2}px`
                 });
 
                 const dpr = window.devicePixelRatio || 1;
                 canvas.width = (rect.width + padding * 2) * dpr;
                 canvas.height = (rect.height + padding * 2) * dpr;
             });
-        }
+        };
 
         function animate(timestamp) {
             if (!animation.lastTime) animation.lastTime = timestamp;
@@ -566,8 +567,8 @@
                 const config = glowConfig[cardId];
 
                 const ctx = canvas.getContext('2d');
-                if (!card || !config || canvas.style.display === 'none') {
-                    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (!ctx || !card || !config || card.classList.contains('active')) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                     return;
                 }
 
@@ -598,7 +599,6 @@
 
         function drawUniformTrail(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
             const perimeter = 2 * (cardWidth + cardHeight);
             const trailCenter = progress * perimeter;
             const halfTrail = trailLength * perimeter / 2;
@@ -661,13 +661,11 @@
         } else {
             document.addEventListener('DOMContentLoaded', init);
         }
-
-        window.updateSizes = updateSizes;
     }
 
-    // Start the clean orbit glow animation
     createCleanOrbitingGlow();
 </script>
+
 
 
 </body>
