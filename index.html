@@ -367,7 +367,7 @@
         </div>
     </div>
 
-    <script>
+ <script>
     let currentActiveCard = null;
     let isAnimating = false;
 
@@ -375,7 +375,8 @@
         if (isAnimating) return;
         isAnimating = true;
 
-        if (currentActiveCard === card) {
+        if (card.classList.contains('active')) {
+            // Flip the same card back
             card.classList.remove('lifted');
             await new Promise(resolve => setTimeout(resolve, 300));
             card.classList.remove('active');
@@ -383,6 +384,7 @@
             resetCardContent(card);
             updateSizes(); // Resume glow instantly
         } else {
+            // Flip a new card
             if (currentActiveCard) {
                 currentActiveCard.classList.remove('lifted');
                 await new Promise(resolve => setTimeout(resolve, 300));
@@ -406,15 +408,19 @@
         const aspectItems = card.querySelectorAll('.aspect-item');
         const aspectContents = card.querySelectorAll('.aspect-content');
 
-        aspectItems.forEach(item => item.classList.remove('visible'));
-        aspectContents.forEach(content => content.classList.remove('visible'));
+        aspectItems.forEach(item => {
+            item.classList.remove('visible');
+        });
+        aspectContents.forEach(content => {
+            content.classList.remove('visible');
+        });
 
         aspectItems.forEach((item, index) => {
             setTimeout(() => {
                 item.classList.add('visible');
                 setTimeout(() => {
                     const content = item.querySelector('.aspect-content');
-                    if (content) content.classList.add('visible');
+                    content.classList.add('visible');
                 }, 300);
             }, index * 600);
         });
@@ -424,8 +430,12 @@
         const aspectItems = card.querySelectorAll('.aspect-item');
         const aspectContents = card.querySelectorAll('.aspect-content');
 
-        aspectItems.forEach(item => item.classList.remove('visible'));
-        aspectContents.forEach(content => content.classList.remove('visible'));
+        aspectItems.forEach(item => {
+            item.classList.remove('visible');
+        });
+        aspectContents.forEach(content => {
+            content.classList.remove('visible');
+        });
     }
 
     document.body.addEventListener('click', function (e) {
@@ -444,9 +454,30 @@
 
     function createCleanOrbitingGlow() {
         const glowConfig = {
-            'clown-card': { color: '#00ffff', width: 5, blur: 50, opacity: 1, offsetX: 0, offsetY: 0 },
-            'joker-card': { color: '#ff3b3b', width: 5, blur: 50, opacity: 1, offsetX: 0, offsetY: 0 },
-            'jester-card': { color: '#00ff88', width: 5, blur: 50, opacity: 1, offsetX: 0, offsetY: 0 }
+            'clown-card': {
+                color: '#00ffff',
+                width: 5,
+                blur: 50,
+                opacity: 1,
+                offsetX: 0,
+                offsetY: 0
+            },
+            'joker-card': {
+                color: '#ff3b3b',
+                width: 5,
+                blur: 50,
+                opacity: 1,
+                offsetX: 0,
+                offsetY: 0
+            },
+            'jester-card': {
+                color: '#00ff88',
+                width: 5,
+                blur: 50,
+                opacity: 1,
+                offsetX: 0,
+                offsetY: 0
+            }
         };
 
         const animation = {
@@ -483,6 +514,17 @@
             canvas.dataset.cardId = card.id;
         });
 
+        let scrollUpdateRequest = null;
+
+        function handleScroll() {
+            if (!scrollUpdateRequest) {
+                scrollUpdateRequest = requestAnimationFrame(() => {
+                    updateSizes();
+                    scrollUpdateRequest = null;
+                });
+            }
+        }
+
         function updateSizes() {
             document.querySelectorAll('.flip-card').forEach(card => {
                 const canvas = document.querySelector(`.${card.id}-glow`);
@@ -496,8 +538,7 @@
                     top: `${rect.top + window.scrollY - padding + config.offsetY}px`,
                     left: `${rect.left - padding + config.offsetX}px`,
                     width: `${rect.width + padding * 2}px`,
-                    height: `${rect.height + padding * 2}px`,
-                    display: card.classList.contains('active') ? 'none' : 'block'
+                    height: `${rect.height + padding * 2}px`
                 });
 
                 const dpr = window.devicePixelRatio || 1;
@@ -513,18 +554,14 @@
 
             animation.progress = (animation.progress + animation.speed * (deltaTime / 1000)) % 1;
 
-            updateSizes(); // Reposition canvases every frame
-
             document.querySelectorAll('.glow-canvas').forEach(canvas => {
                 const cardId = canvas.dataset.cardId;
                 const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
 
                 const ctx = canvas.getContext('2d');
-                if (!ctx) return;
-
                 if (!card || !config || card.classList.contains('active')) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
                     return;
                 }
 
@@ -609,7 +646,7 @@
         function init() {
             updateSizes();
             window.addEventListener('resize', updateSizes);
-            window.addEventListener('scroll', () => requestAnimationFrame(updateSizes));
+            window.addEventListener('scroll', handleScroll);
             requestAnimationFrame(animate);
         }
 
@@ -618,11 +655,14 @@
         } else {
             document.addEventListener('DOMContentLoaded', init);
         }
+
+        window.updateSizes = updateSizes; // Expose for external use
     }
 
-    // Start animation
+    // Start the clean orbit glow animation
     createCleanOrbitingGlow();
 </script>
+
 
 </body>
 </html>
