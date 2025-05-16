@@ -447,7 +447,7 @@
         });
 
 
-        function createCleanOrbitingGlow() {
+function createCleanOrbitingGlow() {
     // Configuration with offsets
     const glowConfig = {
         'clown-card': {
@@ -456,7 +456,7 @@
             blur: 50,
             opacity: 1,
             offsetX: 0,
-            offsetY: -0
+            offsetY: 0
         },
         'joker-card': {
             color: '#ff3b3b',
@@ -464,7 +464,7 @@
             blur: 50,
             opacity: 1,
             offsetX: 0,
-            offsetY: -0
+            offsetY: 0
         },
         'jester-card': {
             color: '#00ff88',
@@ -472,15 +472,16 @@
             blur: 50,
             opacity: 1,
             offsetX: 0,
-            offsetY: -0
+            offsetY: 0
         }
     };
 
-    // Single animation control
+    // Animation control
     const animation = {
-        speed: 0.3, // Revolutions per second
+        speed: 0.3,
         progress: 0,
-        lastTime: 0
+        lastTime: 0,
+        running: true
     };
 
     // Create container
@@ -497,7 +498,8 @@
     });
     document.body.appendChild(glowContainer);
 
-    // Create optimized canvases
+    // Create canvases
+    const canvases = {};
     document.querySelectorAll('.flip-card').forEach(card => {
         if (!glowConfig[card.id]) return;
 
@@ -507,10 +509,12 @@
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '0',
-            borderRadius: '22px'
+            borderRadius: '22px',
+            transition: 'opacity 0.5s ease' // Smooth transition
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
+        canvases[card.id] = canvas;
     });
 
     // Handle resize and scroll
@@ -519,27 +523,26 @@
     function handleScroll() {
         if (!scrollUpdateRequest) {
             scrollUpdateRequest = requestAnimationFrame(() => {
-                updateSizes();
+                updateCanvasPositions();
                 scrollUpdateRequest = null;
             });
         }
     }
 
-    function updateSizes() {
-        document.querySelectorAll('.flip-card').forEach(card => {
-            const canvas = document.querySelector(`.${card.id}-glow`);
-            if (!canvas || !glowConfig[card.id]) return;
+    function updateCanvasPositions() {
+        Object.entries(canvases).forEach(([cardId, canvas]) => {
+            const card = document.getElementById(cardId);
+            if (!card) return;
 
             const rect = card.getBoundingClientRect();
-            const config = glowConfig[card.id];
+            const config = glowConfig[cardId];
             const padding = 25;
 
             Object.assign(canvas.style, {
                 top: `${rect.top + window.scrollY - padding + config.offsetY}px`,
                 left: `${rect.left - padding + config.offsetX}px`,
                 width: `${rect.width + padding * 2}px`,
-                height: `${rect.height + padding * 2}px`,
-                visibility: card.classList.contains('active') ? 'hidden' : 'visible'
+                height: `${rect.height + padding * 2}px`
             });
 
             const dpr = window.devicePixelRatio || 1;
@@ -548,50 +551,65 @@
         });
     }
 
+    // Handle card state changes
+    function handleCardState(card) {
+        const canvas = canvases[card.id];
+        if (!canvas) return;
+
+        if (card.classList.contains('active')) {
+            canvas.style.opacity = '0';
+        } else {
+            // Only show if not in the middle of a flip animation
+            if (!card.classList.contains('lifted')) {
+                canvas.style.opacity = '1';
+            }
+        }
+    }
+
     // Animation loop
-    function animate(timestamp) {
+    function animateGlow(timestamp) {
         if (!animation.lastTime) animation.lastTime = timestamp;
         const deltaTime = timestamp - animation.lastTime;
         animation.lastTime = timestamp;
 
-        // Time-based progression
-        animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
+        if (animation.running) {
+            animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
 
-        document.querySelectorAll('.glow-canvas').forEach(canvas => {
-            const cardId = canvas.dataset.cardId;
-            const card = document.getElementById(cardId);
-            const config = glowConfig[cardId];
+            Object.entries(canvases).forEach(([cardId, canvas]) => {
+                const card = document.getElementById(cardId);
+                const config = glowConfig[cardId];
 
-            if (!card || !config || card.classList.contains('active')) {
+                if (!card || !config || card.classList.contains('active')) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    return;
+                }
+
                 const ctx = canvas.getContext('2d');
-                if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-                return;
-            }
+                const dpr = window.devicePixelRatio || 1;
+                ctx.resetTransform();
+                ctx.scale(dpr, dpr);
 
-            const ctx = canvas.getContext('2d');
-            const dpr = window.devicePixelRatio || 1;
-            ctx.resetTransform();
-            ctx.scale(dpr, dpr);
+                const padding = 25;
+                const cardWidth = parseInt(canvas.style.width) - padding * 2;
+                const cardHeight = parseInt(canvas.style.height) - padding * 2;
 
-            const padding = 25;
-            const cardWidth = parseInt(canvas.style.width) - padding * 2;
-            const cardHeight = parseInt(canvas.style.height) - padding * 2;
+                drawUniformTrail(
+                    ctx,
+                    config.color,
+                    animation.progress,
+                    0.25,
+                    config.width,
+                    config.blur,
+                    cardWidth,
+                    cardHeight,
+                    padding,
+                    config.opacity
+                );
+            });
+        }
 
-            drawUniformTrail(
-                ctx,
-                config.color,
-                animation.progress,
-                0.25, // Trail length (percentage of perimeter)
-                config.width,
-                config.blur,
-                cardWidth,
-                cardHeight,
-                padding,
-                config.opacity
-            );
-        });
-
-        requestAnimationFrame(animate);
+        requestAnimationFrame(animateGlow);
     }
 
     function drawUniformTrail(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
@@ -649,24 +667,34 @@
 
     // Initialize
     function init() {
-        updateSizes();
-        window.addEventListener('resize', updateSizes);
+        updateCanvasPositions();
+        
+        // Set up observers and event listeners
+        window.addEventListener('resize', updateCanvasPositions);
         window.addEventListener('scroll', handleScroll);
         
         // Observe card state changes
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
                 if (mutation.attributeName === 'class') {
-                    updateSizes();
+                    handleCardState(mutation.target);
                 }
             });
         });
-        
+
         document.querySelectorAll('.flip-card').forEach(card => {
+            // Initial state
+            handleCardState(card);
+            // Observe future changes
             observer.observe(card, { attributes: true });
+            
+            // Additional check when flip animation completes
+            card.addEventListener('transitionend', () => {
+                handleCardState(card);
+            });
         });
-        
-        requestAnimationFrame(animate);
+
+        requestAnimationFrame(animateGlow);
     }
 
     if (document.readyState === 'complete') {
@@ -676,7 +704,7 @@
     }
 }
 
-// Start the clean effect
+// Start the effect
 createCleanOrbitingGlow();
     </script>
 </body>
