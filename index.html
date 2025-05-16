@@ -483,7 +483,8 @@ function createCleanOrbitingGlow() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '1'
+        zIndex: '1',
+        overflow: 'hidden'
     });
     document.body.appendChild(glowContainer);
 
@@ -497,13 +498,24 @@ function createCleanOrbitingGlow() {
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '0',
-            borderRadius: '22px'
+            borderRadius: '22px',
+            willChange: 'transform' // Optimize for performance
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
     });
 
-    // Handle resize
+    // Track scroll position
+    let scrollY = window.scrollY || window.pageYOffset;
+    
+    // Handle scroll and resize with debouncing
+    let resizeTimeout;
+    function handleScrollResize() {
+        scrollY = window.scrollY || window.pageYOffset;
+        updateSizes();
+    }
+    
+    // More efficient updateSizes function
     function updateSizes() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
@@ -514,7 +526,7 @@ function createCleanOrbitingGlow() {
             const padding = 25;
 
             Object.assign(canvas.style, {
-                top: `${rect.top - padding + config.offsetY}px`,
+                top: `${rect.top + scrollY - padding + config.offsetY}px`,
                 left: `${rect.left - padding + config.offsetX}px`,
                 width: `${rect.width + padding * 2}px`,
                 height: `${rect.height + padding * 2}px`
@@ -625,10 +637,38 @@ function createCleanOrbitingGlow() {
         }
     }
 
-    // Initialize
+    // Initialize with proper event listeners
     function init() {
         updateSizes();
-        window.addEventListener('resize', updateSizes);
+        
+        // Add event listeners with passive where appropriate
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(handleScrollResize, 100);
+        }, { passive: true });
+        
+        window.addEventListener('scroll', handleScrollResize, { passive: true });
+        
+        // MutationObserver to watch for card flips
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const card = mutation.target;
+                    const canvas = document.querySelector(`.${card.id}-glow`);
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        if (card.classList.contains('active')) {
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        }
+                    }
+                }
+            });
+        });
+        
+        document.querySelectorAll('.flip-card').forEach(card => {
+            observer.observe(card, { attributes: true });
+        });
+        
         requestAnimationFrame(animate);
     }
 
