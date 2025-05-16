@@ -488,8 +488,8 @@ function createNonIntrusiveGlowEffect() {
 
     let animationId = null;
     let lastTime = 0;
-    const frameRate = 60;
-    const frameInterval = 1000 / frameRate;
+    const frameRate = 600;
+    const frameInterval = 10000 / frameRate;
 
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
@@ -543,7 +543,7 @@ function createNonIntrusiveGlowEffect() {
                     ctx,
                     config.color,
                     canvas.progress,
-                    0.3,
+                    0.6,
                     config.width,
                     config.blur,
                     actualWidth,
