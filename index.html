@@ -492,7 +492,7 @@ function createNonIntrusiveGlowEffect() {
     const frameRate = 60;
     const frameInterval = 1000 / frameRate;
 
-    function updateGlowPositions(force = false) {
+    function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
             if (!canvas) return;
@@ -501,27 +501,12 @@ function createNonIntrusiveGlowEffect() {
             const config = glowConfig[card.id];
             const padding = config.blur + config.width;
 
-            const newTop = rect.top - padding;
-            const newLeft = rect.left - padding;
-            const newWidth = rect.width + padding * 2;
-            const newHeight = rect.height + padding * 2;
-
-            if (
-                force ||
-                canvas.style.top !== `${newTop}px` ||
-                canvas.style.left !== `${newLeft}px` ||
-                canvas.style.width !== `${newWidth}px` ||
-                canvas.style.height !== `${newHeight}px`
-            ) {
-                Object.assign(canvas.style, {
-                    top: `${newTop}px`,
-                    left: `${newLeft}px`,
-                    width: `${newWidth}px`,
-                    height: `${newHeight}px`
-                });
-
-                canvas._needsResize = true;
-            }
+            Object.assign(canvas.style, {
+                top: `${rect.top - padding}px`,
+                left: `${rect.left - padding}px`,
+                width: `${rect.width + padding * 2}px`,
+                height: `${rect.height + padding * 2}px`
+            });
         });
     }
 
@@ -531,27 +516,21 @@ function createNonIntrusiveGlowEffect() {
 
         if (deltaTime > frameInterval) {
             lastTime = timestamp - (deltaTime % frameInterval);
-
-            if (Math.random() < 0.25) updateGlowPositions(); // Throttle updates
+            updateGlowPositions();
 
             document.querySelectorAll('.glow-canvas').forEach(canvas => {
                 const cardId = canvas.dataset.cardId;
                 const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
+
                 const ctx = canvas.getContext('2d');
                 const dpr = window.devicePixelRatio || 1;
-
-                if (canvas._needsResize) {
-                    canvas.width = parseInt(canvas.style.width) * dpr;
-                    canvas.height = parseInt(canvas.style.height) * dpr;
-                    canvas._needsResize = false;
-                    ctx.setTransform(1, 0, 0, 1, 0, 0);
-                    ctx.scale(dpr, dpr);
-                } else {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                }
+                canvas.width = parseInt(canvas.style.width) * dpr;
+                canvas.height = parseInt(canvas.style.height) * dpr;
+                ctx.scale(dpr, dpr);
 
                 if (!card || card.classList.contains('active')) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                     return;
                 }
 
@@ -610,7 +589,7 @@ function createNonIntrusiveGlowEffect() {
             }
         };
 
-        const step = 0.75;
+        const step = 0.75; // smaller step for smoother glow
 
         const traceSegment = (from, to) => {
             let pos = from;
@@ -645,10 +624,10 @@ function createNonIntrusiveGlowEffect() {
 
     animationId = requestAnimationFrame(animate);
 
-    window.addEventListener('resize', () => updateGlowPositions(true));
+    window.addEventListener('resize', updateGlowPositions);
     document.addEventListener('click', (e) => {
         if (e.target.closest('.flip-card')) {
-            updateGlowPositions(true);
+            updateGlowPositions();
         }
     });
 }
