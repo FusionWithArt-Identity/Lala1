@@ -497,8 +497,8 @@ function createCleanOrbitingGlow() {
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvases
-    const canvases = {};
+    // Create canvases and track card states
+    const cardStates = {};
     document.querySelectorAll('.flip-card').forEach(card => {
         if (!glowConfig[card.id]) return;
 
@@ -508,16 +508,18 @@ function createCleanOrbitingGlow() {
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '0',
-            borderRadius: '22px',
-            transition: 'opacity 0.3s ease'
+            borderRadius: '22px'
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
-        canvases[card.id] = canvas;
+        
+        // Initialize card state tracking
+        cardStates[card.id] = {
+            canvas: canvas,
+            isActive: false,
+            isAnimating: false
+        };
     });
-
-    // Track active state
-    let anyCardActive = false;
 
     // Handle resize and scroll
     let scrollUpdateRequest = null;
@@ -532,7 +534,7 @@ function createCleanOrbitingGlow() {
     }
 
     function updateCanvasPositions() {
-        Object.entries(canvases).forEach(([cardId, canvas]) => {
+        Object.entries(cardStates).forEach(([cardId, state]) => {
             const card = document.getElementById(cardId);
             if (!card) return;
 
@@ -540,29 +542,33 @@ function createCleanOrbitingGlow() {
             const config = glowConfig[cardId];
             const padding = 25;
 
-            Object.assign(canvas.style, {
+            Object.assign(state.canvas.style, {
                 top: `${rect.top + window.scrollY - padding + config.offsetY}px`,
                 left: `${rect.left - padding + config.offsetX}px`,
                 width: `${rect.width + padding * 2}px`,
                 height: `${rect.height + padding * 2}px`,
-                opacity: anyCardActive ? '0' : '1'
+                opacity: state.isActive ? '0' : '1'
             });
 
             const dpr = window.devicePixelRatio || 1;
-            canvas.width = (rect.width + padding * 2) * dpr;
-            canvas.height = (rect.height + padding * 2) * dpr;
+            state.canvas.width = (rect.width + padding * 2) * dpr;
+            state.canvas.height = (rect.height + padding * 2) * dpr;
         });
     }
 
-    // Check card states
-    function checkCardStates() {
-        anyCardActive = false;
-        document.querySelectorAll('.flip-card').forEach(card => {
-            if (card.classList.contains('active')) {
-                anyCardActive = true;
-            }
-        });
-        updateCanvasPositions();
+    // Handle card state changes
+    function updateCardState(card) {
+        const state = cardStates[card.id];
+        if (!state) return;
+
+        const wasActive = state.isActive;
+        state.isActive = card.classList.contains('active');
+        state.isAnimating = card.classList.contains('lifted');
+
+        // Only update if active state changed
+        if (wasActive !== state.isActive) {
+            updateCanvasPositions();
+        }
     }
 
     // Animation loop
@@ -573,34 +579,39 @@ function createCleanOrbitingGlow() {
 
         animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
 
-        if (!anyCardActive) {
-            Object.entries(canvases).forEach(([cardId, canvas]) => {
-                const config = glowConfig[cardId];
-                const ctx = canvas.getContext('2d');
-                const dpr = window.devicePixelRatio || 1;
-                
-                ctx.resetTransform();
-                ctx.scale(dpr, dpr);
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+        Object.entries(cardStates).forEach(([cardId, state]) => {
+            const card = document.getElementById(cardId);
+            const config = glowConfig[cardId];
+            const ctx = state.canvas.getContext('2d');
+            
+            // Clear canvas if card is active
+            if (state.isActive) {
+                ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+                return;
+            }
 
-                const padding = 25;
-                const cardWidth = parseInt(canvas.style.width) - padding * 2;
-                const cardHeight = parseInt(canvas.style.height) - padding * 2;
+            const dpr = window.devicePixelRatio || 1;
+            ctx.resetTransform();
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
 
-                drawUniformTrail(
-                    ctx,
-                    config.color,
-                    animation.progress,
-                    0.25,
-                    config.width,
-                    config.blur,
-                    cardWidth,
-                    cardHeight,
-                    padding,
-                    config.opacity
-                );
-            });
-        }
+            const padding = 25;
+            const cardWidth = parseInt(state.canvas.style.width) - padding * 2;
+            const cardHeight = parseInt(state.canvas.style.height) - padding * 2;
+
+            drawUniformTrail(
+                ctx,
+                config.color,
+                animation.progress,
+                0.25,
+                config.width,
+                config.blur,
+                cardWidth,
+                cardHeight,
+                padding,
+                config.opacity
+            );
+        });
 
         requestAnimationFrame(animateGlow);
     }
@@ -658,17 +669,22 @@ function createCleanOrbitingGlow() {
 
     // Initialize
     function init() {
+        // Set up initial states
+        document.querySelectorAll('.flip-card').forEach(card => {
+            updateCardState(card);
+        });
+        
         updateCanvasPositions();
         
         // Set up observers and event listeners
         window.addEventListener('resize', updateCanvasPositions);
         window.addEventListener('scroll', handleScroll);
         
-        // Observe all card state changes
+        // Observe card state changes
         const observer = new MutationObserver(mutations => {
             mutations.forEach(mutation => {
                 if (mutation.attributeName === 'class') {
-                    checkCardStates();
+                    updateCardState(mutation.target);
                 }
             });
         });
@@ -676,12 +692,12 @@ function createCleanOrbitingGlow() {
         document.querySelectorAll('.flip-card').forEach(card => {
             observer.observe(card, { attributes: true });
             
-            // Additional check for flip animations
-            card.addEventListener('transitionend', checkCardStates);
+            // Additional check when flip animation completes
+            card.addEventListener('transitionend', () => {
+                updateCardState(card);
+            });
         });
 
-        // Initial state check
-        checkCardStates();
         requestAnimationFrame(animateGlow);
     }
 
