@@ -480,8 +480,7 @@ function createCleanOrbitingGlow() {
     const animation = {
         speed: 0.3,
         progress: 0,
-        lastTime: 0,
-        running: true
+        lastTime: 0
     };
 
     // Create container
@@ -510,12 +509,15 @@ function createCleanOrbitingGlow() {
             pointerEvents: 'none',
             zIndex: '0',
             borderRadius: '22px',
-            transition: 'opacity 0.5s ease' // Smooth transition
+            transition: 'opacity 0.3s ease'
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
         canvases[card.id] = canvas;
     });
+
+    // Track active state
+    let anyCardActive = false;
 
     // Handle resize and scroll
     let scrollUpdateRequest = null;
@@ -542,7 +544,8 @@ function createCleanOrbitingGlow() {
                 top: `${rect.top + window.scrollY - padding + config.offsetY}px`,
                 left: `${rect.left - padding + config.offsetX}px`,
                 width: `${rect.width + padding * 2}px`,
-                height: `${rect.height + padding * 2}px`
+                height: `${rect.height + padding * 2}px`,
+                opacity: anyCardActive ? '0' : '1'
             });
 
             const dpr = window.devicePixelRatio || 1;
@@ -551,19 +554,15 @@ function createCleanOrbitingGlow() {
         });
     }
 
-    // Handle card state changes
-    function handleCardState(card) {
-        const canvas = canvases[card.id];
-        if (!canvas) return;
-
-        if (card.classList.contains('active')) {
-            canvas.style.opacity = '0';
-        } else {
-            // Only show if not in the middle of a flip animation
-            if (!card.classList.contains('lifted')) {
-                canvas.style.opacity = '1';
+    // Check card states
+    function checkCardStates() {
+        anyCardActive = false;
+        document.querySelectorAll('.flip-card').forEach(card => {
+            if (card.classList.contains('active')) {
+                anyCardActive = true;
             }
-        }
+        });
+        updateCanvasPositions();
     }
 
     // Animation loop
@@ -572,23 +571,17 @@ function createCleanOrbitingGlow() {
         const deltaTime = timestamp - animation.lastTime;
         animation.lastTime = timestamp;
 
-        if (animation.running) {
-            animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
+        animation.progress = (animation.progress + animation.speed * (deltaTime/1000)) % 1;
 
+        if (!anyCardActive) {
             Object.entries(canvases).forEach(([cardId, canvas]) => {
-                const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
-
-                if (!card || !config || card.classList.contains('active')) {
-                    const ctx = canvas.getContext('2d');
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    return;
-                }
-
                 const ctx = canvas.getContext('2d');
                 const dpr = window.devicePixelRatio || 1;
+                
                 ctx.resetTransform();
                 ctx.scale(dpr, dpr);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 const padding = 25;
                 const cardWidth = parseInt(canvas.style.width) - padding * 2;
@@ -613,14 +606,6 @@ function createCleanOrbitingGlow() {
     }
 
     function drawUniformTrail(ctx, color, progress, trailLength, width, blur, cardWidth, cardHeight, padding, opacity) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-        const perimeter = 2 * (cardWidth + cardHeight);
-        const trailCenter = progress * perimeter;
-        const halfTrail = trailLength * perimeter / 2;
-        const trailStart = (trailCenter - halfTrail + perimeter) % perimeter;
-        const trailEnd = (trailCenter + halfTrail) % perimeter;
-
         ctx.strokeStyle = color;
         ctx.globalAlpha = opacity;
         ctx.shadowColor = color;
@@ -629,6 +614,12 @@ function createCleanOrbitingGlow() {
         ctx.lineCap = 'round';
         ctx.translate(padding, padding);
         ctx.beginPath();
+
+        const perimeter = 2 * (cardWidth + cardHeight);
+        const trailCenter = progress * perimeter;
+        const halfTrail = trailLength * perimeter / 2;
+        const trailStart = (trailCenter - halfTrail + perimeter) % perimeter;
+        const trailEnd = (trailCenter + halfTrail) % perimeter;
 
         if (trailStart < trailEnd) {
             drawPathSegment(ctx, trailStart, trailEnd, cardWidth, cardHeight);
@@ -673,27 +664,24 @@ function createCleanOrbitingGlow() {
         window.addEventListener('resize', updateCanvasPositions);
         window.addEventListener('scroll', handleScroll);
         
-        // Observe card state changes
+        // Observe all card state changes
         const observer = new MutationObserver(mutations => {
             mutations.forEach(mutation => {
                 if (mutation.attributeName === 'class') {
-                    handleCardState(mutation.target);
+                    checkCardStates();
                 }
             });
         });
 
         document.querySelectorAll('.flip-card').forEach(card => {
-            // Initial state
-            handleCardState(card);
-            // Observe future changes
             observer.observe(card, { attributes: true });
             
-            // Additional check when flip animation completes
-            card.addEventListener('transitionend', () => {
-                handleCardState(card);
-            });
+            // Additional check for flip animations
+            card.addEventListener('transitionend', checkCardStates);
         });
 
+        // Initial state check
+        checkCardStates();
         requestAnimationFrame(animateGlow);
     }
 
