@@ -488,7 +488,7 @@ function createNonIntrusiveGlowEffect() {
     });
 
     let animationId = null;
-    let lastTime = 0;
+    let lastTimestamp = 0;
     const frameRate = 60;
     const frameInterval = 1000 / frameRate;
 
@@ -511,34 +511,34 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function animate(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const deltaTime = timestamp - lastTime;
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const deltaTime = timestamp - lastTimestamp;
 
-        if (deltaTime > frameInterval) {
-            lastTime = timestamp - (deltaTime % frameInterval);
+        if (deltaTime >= frameInterval) {
+            lastTimestamp = timestamp - (deltaTime % frameInterval);
             updateGlowPositions();
 
             document.querySelectorAll('.glow-canvas').forEach(canvas => {
                 const cardId = canvas.dataset.cardId;
                 const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
+                if (!card || card.classList.contains('active')) return;
 
                 const ctx = canvas.getContext('2d');
                 const dpr = window.devicePixelRatio || 1;
-                canvas.width = parseInt(canvas.style.width) * dpr;
-                canvas.height = parseInt(canvas.style.height) * dpr;
-                ctx.scale(dpr, dpr);
 
-                if (!card || card.classList.contains('active')) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    return;
-                }
+                const width = parseInt(canvas.style.width);
+                const height = parseInt(canvas.style.height);
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                ctx.setTransform(1, 0, 0, 1, 0, 0); // reset transform before scale
+                ctx.scale(dpr, dpr);
 
                 if (!canvas.progress) canvas.progress = 0;
                 canvas.progress = (canvas.progress + config.speed * (deltaTime / 1000)) % 1;
 
-                const actualWidth = parseInt(canvas.style.width) - (config.blur + config.width) * 2;
-                const actualHeight = parseInt(canvas.style.height) - (config.blur + config.width) * 2;
+                const actualWidth = width - (config.blur + config.width) * 2;
+                const actualHeight = height - (config.blur + config.width) * 2;
 
                 drawSmoothGlow(
                     ctx,
@@ -589,7 +589,7 @@ function createNonIntrusiveGlowEffect() {
             }
         };
 
-        const step = 0.75; // smaller step for smoother glow
+        const step = 0.5; // finer step = smoother curves
 
         const traceSegment = (from, to) => {
             let pos = from;
@@ -638,6 +638,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
   
 </body>
