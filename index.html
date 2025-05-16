@@ -79,7 +79,7 @@
         left: 0;
         width: 100vw;
         height: 90vh;
-        z-index: 100;
+        z-index: 900;
         padding: 25px;
         transform: none !important;
  overflow-y: auto;
@@ -124,7 +124,7 @@
         transform: rotateY(180deg);
         overflow-y: auto;
         padding: 25px;
-        z-index: 100;
+        z-index: 900;
     }
     
     /* Solid Neon Backgrounds for Active Cards */
@@ -133,7 +133,7 @@
         box-shadow: 0 0 30px rgba(0, 150, 255, 0.7),
                    inset 0 0 15px rgba(0, 200, 255, 0.4);
         border: 2px solid #00a8ff !important;
-        z-index: 100;
+        z-index: 900;
     }
     
     #joker-card.active .flip-card-back {
@@ -141,7 +141,7 @@
         box-shadow: 0 0 30px rgba(255, 50, 50, 0.7),
                    inset 0 0 15px rgba(255, 100, 100, 0.4);
         border: 2px solid #ff3333 !important;
-        z-index: 100;
+        z-index: 900;
     }
     
     #jester-card.active .flip-card-back {
@@ -149,7 +149,7 @@
         box-shadow: 0 0 30px rgba(50, 255, 50, 0.7),
                    inset 0 0 15px rgba(100, 255, 100, 0.4);
         border: 2px solid #00cc66 !important;
-        z-index: 100;
+        z-index: 900;
     }
 
     /* Content Styling */
@@ -183,6 +183,7 @@
     .flip-card.active .flip-card-back .aspect-content {
         color: #ffffff !important;
         text-shadow: none !important;
+        z-index: 900;
     }
     
     .aspect-item {
@@ -192,11 +193,13 @@
         opacity: 0;
         transform: translateX(-30px);
         transition: all 0.6s ease;
+        z-index: 900;
     }
     
     .aspect-item.visible {
         opacity: 1;
         transform: translateX(0);
+        z-index: 900;
     }
     
     .aspect-title {
@@ -204,6 +207,7 @@
         color: #5e35b1;
         font-size: 1.5rem;
         margin-bottom: 10px;
+        z-index: 900;
     }
     
     .aspect-content {
@@ -214,6 +218,7 @@
         transition: all 0.6s ease;
         color: #222;
         font-weight: 500;
+        z-index: 900;
     }
     
     .aspect-content.visible {
