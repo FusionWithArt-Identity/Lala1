@@ -704,6 +704,219 @@ if (document.readyState === 'complete') {
 }
 </script>
 
+<script>
+(function createDynamicBackgroundGlow() {
+    // Configuration with mobile-friendly adjustments
+    const colors = {
+        default: '#666666',   // glowing grey when no active card
+        'clown-card': '#00a8ff', // neon blue
+        'joker-card': '#ff3333', // neon red
+        'jester-card': '#00cc66' // neon green
+    };
+
+    // Dynamic settings based on screen size
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    const glowWidth = isMobile ? 4 : 6;
+    const glowBlur = isMobile ? 25 : 40;
+    const glowSpeed = 0.2;
+    const glowLength = isMobile ? 0.2 : 0.25;
+    const frameRate = 60;
+    const frameInterval = 1000 / frameRate;
+
+    let progress = 0;
+    let lastTime = 0;
+    let timeAccumulator = 0;
+
+    // Create canvas with mobile-optimized settings
+    const bgCanvas = document.createElement('canvas');
+    const bgCtx = bgCanvas.getContext('2d', { alpha: true });
+    Object.assign(bgCanvas.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100vw',
+        height: '100vh',
+        pointerEvents: 'none',
+        zIndex: '0',
+        // Mobile optimization
+        willChange: 'transform', // Improve performance on mobile
+        backfaceVisibility: 'hidden' // Prevent flickering on mobile
+    });
+    document.body.appendChild(bgCanvas);
+
+    // Mobile-friendly resize handler with debounce
+    let resizeTimeout;
+    function resizeCanvas() {
+        // Clear pending resize
+        if (resizeTimeout) clearTimeout(resizeTimeout);
+        
+        // Debounce to prevent performance issues
+        resizeTimeout = setTimeout(() => {
+            const dpr = window.devicePixelRatio || 1;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            
+            // Set display size
+            bgCanvas.style.width = `${w}px`;
+            bgCanvas.style.height = `${h}px`;
+            
+            // Set actual size accounting for DPI
+            bgCanvas.width = w * dpr;
+            bgCanvas.height = h * dpr;
+            
+            // Scale context to prevent blurriness
+            bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+            bgCtx.scale(dpr, dpr);
+            
+            // Clear and redraw
+            bgCtx.clearRect(0, 0, w, h);
+        }, 100);
+    }
+
+    function getActiveCardColor() {
+        const activeCard = document.querySelector('.flip-card.active');
+        if (!activeCard) return colors.default;
+        return colors[activeCard.id] || colors.default;
+    }
+
+    // Optimized drawing function for mobile
+    function draw(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const deltaTime = timestamp - lastTime;
+        lastTime = timestamp;
+        timeAccumulator += deltaTime;
+
+        // Fixed timestep animation for consistent speed
+        while (timeAccumulator >= frameInterval) {
+            timeAccumulator -= frameInterval;
+            
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const perimeter = 2 * (w + h);
+
+            progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
+
+            const center = progress * perimeter;
+            const halfLen = (glowLength * perimeter) / 2;
+            const start = (center - halfLen + perimeter) % perimeter;
+            const end = (center + halfLen) % perimeter;
+
+            const color = getActiveCardColor();
+
+            // Clear only the necessary area for performance
+            bgCtx.clearRect(0, 0, w, h);
+            
+            // Skip drawing if not visible (mobile optimization)
+            if (document.visibilityState === 'hidden') {
+                requestAnimationFrame(draw);
+                return;
+            }
+
+            bgCtx.lineWidth = glowWidth;
+            bgCtx.strokeStyle = color;
+            bgCtx.shadowColor = color;
+            bgCtx.shadowBlur = glowBlur;
+            bgCtx.lineCap = 'round';
+
+            // Optimized path calculation with fewer points on mobile
+            const step = isMobile ? 2 : 1.2;
+            const points = [];
+
+            // Pre-calculate path segments for smoother animation
+            const addPoint = (pos) => {
+                if (pos < w) {
+                    points.push({ x: pos, y: 0 });
+                } else if (pos < w + h) {
+                    points.push({ x: w, y: pos - w });
+                } else if (pos < 2 * w + h) {
+                    points.push({ x: w - (pos - w - h), y: h });
+                } else {
+                    points.push({ x: 0, y: h - (pos - 2 * w - h) });
+                }
+            };
+
+            const trace = (from, to) => {
+                let pos = from;
+                while (pos < to) {
+                    addPoint(pos);
+                    pos += step;
+                }
+            };
+
+            if (start < end) {
+                trace(start, end);
+            } else {
+                trace(start, perimeter);
+                trace(0, end);
+            }
+
+            // Draw with optimization for mobile
+            if (points.length > 1) {
+                bgCtx.beginPath();
+                bgCtx.moveTo(points[0].x, points[0].y);
+                
+                // Use simpler path for mobile
+                if (isMobile) {
+                    for (let i = 1; i < points.length; i++) {
+                        bgCtx.lineTo(points[i].x, points[i].y);
+                    }
+                } else {
+                    // Smoother curves for desktop
+                    for (let i = 1; i < points.length; i++) {
+                        const prev = points[i - 1];
+                        const curr = points[i];
+                        const cx = (prev.x + curr.x) / 2;
+                        const cy = (prev.y + curr.y) / 2;
+                        bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
+                    }
+                }
+                bgCtx.stroke();
+            }
+        }
+
+        requestAnimationFrame(draw);
+    }
+
+    // Initial setup with mobile considerations
+    resizeCanvas();
+    
+    // Optimized resize handler for mobile
+    window.addEventListener('resize', () => {
+        // Use passive listener for better mobile performance
+        resizeCanvas();
+    }, { passive: true });
+
+    // Mobile-friendly mutation observer
+    const observer = new MutationObserver(() => {
+        // No action needed, color is fetched dynamically
+    });
+    
+    // Observe card changes with optimized settings
+    document.querySelectorAll('.flip-card').forEach(card => {
+        observer.observe(card, { 
+            attributes: true, 
+            attributeFilter: ['class'],
+            // Mobile optimization
+            subtree: false,
+            childList: false,
+            characterData: false
+        });
+    });
+
+    // Start animation with mobile visibility consideration
+    if (document.visibilityState === 'visible') {
+        requestAnimationFrame(draw);
+    } else {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                requestAnimationFrame(draw);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+})();
+</script>
 
 </body>
 </html>
