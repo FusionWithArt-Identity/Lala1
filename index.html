@@ -435,6 +435,7 @@
     </script>
 
 
+    <script>
 function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         
@@ -450,6 +451,9 @@ function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.shadowBlur = blur;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+    ctx.shadowOffsetX = 0;  // Keeps glow centered
+ctx.shadowOffsetY = 0;
+ctx.globalCompositeOperation = 'lighter'; // Makes glow more vibrant
         
         // Offset to account for glow padding
         const offset = blur + width;
@@ -510,8 +514,7 @@ function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
         
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-
-
+</script>
 
 </body>
 </html>
