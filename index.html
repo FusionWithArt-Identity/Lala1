@@ -470,7 +470,7 @@ function createNonIntrusiveGlowEffect() {
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
-        zIndex: '10' // Below active cards (zIndex: 100) but above normal content
+        zIndex: '10'
     });
     document.body.appendChild(glowContainer);
 
@@ -490,11 +490,18 @@ function createNonIntrusiveGlowEffect() {
         canvas.dataset.cardId = card.id;
     });
 
-    // Animation variables
+    // Animation optimization
+    let lastTime = performance.now();
     let animationId = null;
-    let lastTime = 0;
     const frameRate = 60;
     const frameInterval = 1000 / frameRate;
+    let deltaTime = 0;
+
+    // Store canvas contexts to avoid repeated lookups
+    const canvasContexts = new Map();
+    document.querySelectorAll('.glow-canvas').forEach(canvas => {
+        canvasContexts.set(canvas, canvas.getContext('2d'));
+    });
 
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
@@ -511,12 +518,11 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    function animate(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const deltaTime = timestamp - lastTime;
+    function animate(currentTime) {
+        deltaTime = currentTime - lastTime;
         
         if (deltaTime > frameInterval) {
-            lastTime = timestamp - (deltaTime % frameInterval);
+            lastTime = currentTime - (deltaTime % frameInterval);
             
             // Update glow positions first
             updateGlowPositions();
@@ -526,15 +532,14 @@ function createNonIntrusiveGlowEffect() {
                 const cardId = canvas.dataset.cardId;
                 const card = document.getElementById(cardId);
                 const config = glowConfig[cardId];
+                const ctx = canvasContexts.get(canvas);
                 
                 if (!card || card.classList.contains('active')) {
                     // Clear canvas if card is active
-                    const ctx = canvas.getContext('2d');
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     return;
                 }
                 
-                const ctx = canvas.getContext('2d');
                 const dpr = window.devicePixelRatio || 1;
                 canvas.width = parseInt(canvas.style.width) * dpr;
                 canvas.height = parseInt(canvas.style.height) * dpr;
@@ -542,6 +547,7 @@ function createNonIntrusiveGlowEffect() {
                 
                 // Initialize progress if not exists
                 if (!canvas.progress) canvas.progress = 0;
+                // Use deltaTime for consistent animation speed regardless of frame rate
                 canvas.progress = (canvas.progress + config.speed * (deltaTime/1000)) % 1;
                 
                 drawSmoothGlow(
@@ -624,11 +630,16 @@ function createNonIntrusiveGlowEffect() {
     }
 
     // Initialize
+    updateGlowPositions(); // Initial position update
     animationId = requestAnimationFrame(animate);
     
-    // Handle resize
+    // Handle resize with debounce
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        updateGlowPositions();
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            updateGlowPositions();
+        }, 100);
     });
     
     // Cleanup when cards flip
