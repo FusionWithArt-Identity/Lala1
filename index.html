@@ -438,7 +438,7 @@
 
 <script>
 function createNonIntrusiveGlowEffect() {
-    // Configuration for each card
+    // Configuration for each card (unchanged)
     const glowConfig = {
         'clown-card': { 
             color: '#00a8ff',
@@ -460,7 +460,7 @@ function createNonIntrusiveGlowEffect() {
         }
     };
 
-    // Create container for glow effects
+    // Create container for glow effects (unchanged)
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -474,7 +474,7 @@ function createNonIntrusiveGlowEffect() {
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvas elements positioned absolutely relative to the cards
+    // Create canvas elements (unchanged)
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
@@ -485,8 +485,6 @@ function createNonIntrusiveGlowEffect() {
             borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
-        
-        // Store reference to card
         canvas.dataset.cardId = card.id;
     });
 
@@ -495,9 +493,8 @@ function createNonIntrusiveGlowEffect() {
     let animationId = null;
     const frameRate = 60;
     const frameInterval = 1000 / frameRate;
-    let deltaTime = 0;
 
-    // Store canvas contexts to avoid repeated lookups
+    // Store canvas contexts
     const canvasContexts = new Map();
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
         canvasContexts.set(canvas, canvas.getContext('2d'));
@@ -519,15 +516,13 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function animate(currentTime) {
-        deltaTime = currentTime - lastTime;
+        const deltaTime = currentTime - lastTime;
         
         if (deltaTime > frameInterval) {
             lastTime = currentTime - (deltaTime % frameInterval);
             
-            // Update glow positions first
             updateGlowPositions();
             
-            // Then animate
             document.querySelectorAll('.glow-canvas').forEach(canvas => {
                 const cardId = canvas.dataset.cardId;
                 const card = document.getElementById(cardId);
@@ -535,7 +530,6 @@ function createNonIntrusiveGlowEffect() {
                 const ctx = canvasContexts.get(canvas);
                 
                 if (!card || card.classList.contains('active')) {
-                    // Clear canvas if card is active
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     return;
                 }
@@ -545,16 +539,14 @@ function createNonIntrusiveGlowEffect() {
                 canvas.height = parseInt(canvas.style.height) * dpr;
                 ctx.scale(dpr, dpr);
                 
-                // Initialize progress if not exists
                 if (!canvas.progress) canvas.progress = 0;
-                // Use deltaTime for consistent animation speed regardless of frame rate
                 canvas.progress = (canvas.progress + config.speed * (deltaTime/1000)) % 1;
                 
                 drawSmoothGlow(
                     ctx,
                     config.color,
                     canvas.progress,
-                    0.3, // trail length
+                    0.3,
                     config.width,
                     config.blur,
                     parseInt(canvas.style.width) - 16,
@@ -580,66 +572,84 @@ function createNonIntrusiveGlowEffect() {
         ctx.shadowColor = color;
         ctx.shadowBlur = blur;
         ctx.lineCap = 'round';
+        ctx.lineJoin = 'round'; // Smoother corners
         
         // Offset to center in the canvas (8px padding)
         ctx.translate(8, 8);
-        
         ctx.beginPath();
         
-        // Function to draw segment with opacity
-        const drawSegment = (from, to) => {
+        // Improved corner handling with quadratic curves
+        const drawSmoothSegment = (from, to) => {
             let pos = from;
             while (pos < to) {
                 // Top edge
                 if (pos < w) {
                     const x = Math.min(pos, to);
-                    ctx.moveTo(x, 0);
-                    ctx.lineTo(x + 1, 0);
+                    if (x === w) {
+                        // Smooth right-top corner
+                        ctx.lineTo(w, 0);
+                        ctx.quadraticCurveTo(w, 0, w, 0);
+                    } else {
+                        ctx.lineTo(x, 0);
+                    }
                 } 
                 // Right edge
                 else if (pos < w + h) {
                     const y = Math.min(pos - w, to - w);
-                    ctx.moveTo(w, y);
-                    ctx.lineTo(w, y + 1);
+                    if (y === h) {
+                        // Smooth right-bottom corner
+                        ctx.lineTo(w, h);
+                        ctx.quadraticCurveTo(w, h, w, h);
+                    } else {
+                        ctx.lineTo(w, y);
+                    }
                 } 
                 // Bottom edge (right to left)
                 else if (pos < 2*w + h) {
                     const x = w - Math.min(pos - w - h, to - w - h);
-                    ctx.moveTo(x, h);
-                    ctx.lineTo(x - 1, h);
+                    if (x === 0) {
+                        // Smooth left-bottom corner
+                        ctx.lineTo(0, h);
+                        ctx.quadraticCurveTo(0, h, 0, h);
+                    } else {
+                        ctx.lineTo(x, h);
+                    }
                 } 
                 // Left edge (bottom to top)
                 else {
                     const y = h - Math.min(pos - 2*w - h, to - 2*w - h);
-                    ctx.moveTo(0, y);
-                    ctx.lineTo(0, y - 1);
+                    if (y === 0) {
+                        // Smooth left-top corner
+                        ctx.lineTo(0, 0);
+                        ctx.quadraticCurveTo(0, 0, 0, 0);
+                    } else {
+                        ctx.lineTo(0, y);
+                    }
                 }
                 pos += 1;
             }
         };
         
         if (start < end) {
-            drawSegment(start, end);
+            drawSmoothSegment(start, end);
         } else {
-            drawSegment(start, perimeter);
-            drawSegment(0, end);
+            drawSmoothSegment(start, perimeter);
+            drawSmoothSegment(0, end);
         }
         
         ctx.stroke();
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
     // Initialize
-    updateGlowPositions(); // Initial position update
+    updateGlowPositions();
     animationId = requestAnimationFrame(animate);
     
     // Handle resize with debounce
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            updateGlowPositions();
-        }, 100);
+        resizeTimeout = setTimeout(updateGlowPositions, 100);
     });
     
     // Cleanup when cards flip
