@@ -565,90 +565,80 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    
-    const perimeter = 2 * (w + h);
-    const center = progress * perimeter;
-    const halfLen = (length * perimeter) / 2;
-    const start = (center - halfLen + perimeter) % perimeter;
-    const end = (center + halfLen) % perimeter;
-    
-    // Offset to account for glow padding
-    const offset = blur + width;
-    ctx.translate(offset, offset);
-    
-    // Generate smooth path points (unchanged)
-    const points = [];
-    const addPoint = (pos) => {
-        if (pos < w) {
-            points.push({x: pos, y: 0});
-        } else if (pos < w + h) {
-            points.push({x: w, y: pos - w});
-        } else if (pos < 2*w + h) {
-            points.push({x: w - (pos - w - h), y: h});
-        } else {
-            points.push({x: 0, y: h - (pos - 2*w - h)});
-        }
-    };
-    
-    // Trace the path with small steps for smoothness
-    const traceSegment = (from, to) => {
-        for (let pos = from; pos < to; pos += 0.5) {
-            addPoint(pos);
-        }
-    };
-    
-    if (start < end) {
-        traceSegment(start, end);
-    } else {
-        traceSegment(start, perimeter);
-        traceSegment(0, end);
-    }
-
-    // ====== CORE MODIFICATION ======
-    // 1. First draw the INNER glow (sharp)
-    ctx.lineWidth = width;
-    ctx.strokeStyle = color;
-    ctx.shadowBlur = 0; // No blur for inner line
-    drawSmoothPath(ctx, points);
-
-    // 2. Then draw the OUTER glow (blurred)
-    ctx.lineWidth = width * 0.7; // Slightly thinner
-    ctx.strokeStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = blur * 1.5; // Increased outer blur
-    drawSmoothPath(ctx, points);
-    // ==============================
-    
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-}
-
-// Helper function to avoid code duplication
-function drawSmoothPath(ctx, points) {
-    if (points.length < 2) return;
-    
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    
-    for (let i = 1; i < points.length; i++) {
-        const prev = points[i-1];
-        const curr = points[i];
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         
-        // Use quadratic curves for smooth corners
-        if ((prev.x === w && curr.y === h) || 
-            (prev.y === h && curr.x === 0) || 
-            (prev.x === 0 && curr.y === 0) || 
-            (prev.y === 0 && curr.x === w)) {
-            const cpx = (prev.x + curr.x) / 2;
-            const cpy = (prev.y + curr.y) / 2;
-            ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
+        const perimeter = 2 * (w + h);
+        const center = progress * perimeter;
+        const halfLen = (length * perimeter) / 2;
+        const start = (center - halfLen + perimeter) % perimeter;
+        const end = (center + halfLen) % perimeter;
+        
+        ctx.lineWidth = width;
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = blur;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        // Offset to account for glow padding
+        const offset = blur + width;
+        ctx.translate(offset, offset);
+        
+        // Generate smooth path points
+        const points = [];
+        const addPoint = (pos) => {
+            if (pos < w) {
+                points.push({x: pos, y: 0});
+            } else if (pos < w + h) {
+                points.push({x: w, y: pos - w});
+            } else if (pos < 2*w + h) {
+                points.push({x: w - (pos - w - h), y: h});
+            } else {
+                points.push({x: 0, y: h - (pos - 2*w - h)});
+            }
+        };
+        
+        // Trace the path with small steps for smoothness
+        const traceSegment = (from, to) => {
+            for (let pos = from; pos < to; pos += 0.5) {
+                addPoint(pos);
+            }
+        };
+        
+        if (start < end) {
+            traceSegment(start, end);
         } else {
-            ctx.lineTo(curr.x, curr.y);
+            traceSegment(start, perimeter);
+            traceSegment(0, end);
         }
+        
+        // Draw the smooth path
+        if (points.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            
+            for (let i = 1; i < points.length; i++) {
+                const prev = points[i-1];
+                const curr = points[i];
+                
+                // Use quadratic curves for smooth corners
+                if ((prev.x === w && curr.y === h) || 
+                    (prev.y === h && curr.x === 0) || 
+                    (prev.x === 0 && curr.y === 0) || 
+                    (prev.y === 0 && curr.x === w)) {
+                    const cpx = (prev.x + curr.x) / 2;
+                    const cpy = (prev.y + curr.y) / 2;
+                    ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
+                } else {
+                    ctx.lineTo(curr.x, curr.y);
+                }
+            }
+            
+            ctx.stroke();
+        }
+        
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-    
-    ctx.stroke();
-}
     // Initialize
     updateGlowPositions();
     animationId = requestAnimationFrame(animate);
