@@ -437,29 +437,32 @@
 
 <script>
 function createNonIntrusiveGlowEffect() {
-    // Configuration for each card (blur values updated)
+    // Configuration with enhanced neon glow and corner speed adjustment
     const glowConfig = {
         'clown-card': { 
             color: '#00a8ff',
             width: 6,
-            blur: 25,  // Increased blur for glow effect
-            speed: 0.35
+            blur: 30,  // Increased for stronger neon effect
+            speed: 0.20,
+            cornerSlowdown: 0.7  // Corner speed modifier (0.7 = 30% slower)
         },
         'joker-card': { 
             color: '#ff3333',
             width: 6,
-            blur: 25,  // Increased blur for glow effect
-            speed: 0.35
+            blur: 30,  // Increased for stronger neon effect
+            speed: 0.20,
+            cornerSlowdown: 0.7
         },
         'jester-card': { 
             color: '#00cc66',
             width: 6,
-            blur: 25,  // Increased blur for glow effect
-            speed: 0.35
+            blur: 30,  // Increased for stronger neon effect
+            speed: 0.20,
+            cornerSlowdown: 0.7
         }
     };
 
-    // Create container for glow effects (unchanged)
+    // Container setup (unchanged)
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -473,7 +476,7 @@ function createNonIntrusiveGlowEffect() {
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvas elements with proper padding for glow
+    // Create canvas elements with neon glow padding
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
@@ -484,19 +487,18 @@ function createNonIntrusiveGlowEffect() {
             borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
-        
-        // Store reference to card
         canvas.dataset.cardId = card.id;
     });
 
-    // Animation variables
+    // Animation optimization
     let lastTime = performance.now();
     let animationId = null;
     const canvasContexts = new Map();
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
-            progress: 0
+            progress: 0,
+            lastCorner: null
         });
     });
 
@@ -506,7 +508,7 @@ function createNonIntrusiveGlowEffect() {
             if (!canvas) return;
             
             const config = glowConfig[card.id];
-            const padding = config.blur + config.width; // Calculate padding based on glow size
+            const padding = config.blur + config.width;
             
             const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
@@ -519,7 +521,7 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function animate(currentTime) {
-        const deltaTime = Math.min(currentTime - lastTime, 100); // Cap delta to prevent jumps
+        const deltaTime = Math.min(currentTime - lastTime, 100);
         lastTime = currentTime;
         
         updateGlowPositions();
@@ -535,27 +537,26 @@ function createNonIntrusiveGlowEffect() {
                 return;
             }
             
-            // Update canvas size with proper DPI scaling
+            // Update canvas size
             const dpr = window.devicePixelRatio || 1;
             canvas.width = parseInt(canvas.style.width) * dpr;
             canvas.height = parseInt(canvas.style.height) * dpr;
             canvasData.ctx.scale(dpr, dpr);
             
-            // Update progress with time-based movement
-            canvasData.progress = (canvasData.progress + config.speed * (deltaTime/1000)) % 1;
+            // Enhanced neon glow effect
+            canvasData.ctx.shadowColor = config.color;
+            canvasData.ctx.shadowBlur = config.blur;
+            canvasData.ctx.shadowOffsetX = 0;
+            canvasData.ctx.shadowOffsetY = 0;
             
-            // Calculate actual content dimensions (subtracting glow padding)
+            // Calculate progress with corner slowdown
             const contentWidth = parseInt(canvas.style.width) - (config.blur + config.width) * 2;
             const contentHeight = parseInt(canvas.style.height) - (config.blur + config.width) * 2;
             
-            // Draw with enhanced glow effect
-            drawEnhancedGlow(
-                canvasData.ctx,
-                config.color,
-                canvasData.progress,
-                0.3, // trail length
-                config.width,
-                config.blur,
+            drawNeonGlowWithCornerSlowdown(
+                canvasData,
+                config,
+                deltaTime,
                 contentWidth,
                 contentHeight
             );
@@ -564,41 +565,58 @@ function createNonIntrusiveGlowEffect() {
         animationId = requestAnimationFrame(animate);
     }
 
-    function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
+    function drawNeonGlowWithCornerSlowdown(canvasData, config, deltaTime, w, h) {
+        const ctx = canvasData.ctx;
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         
         const perimeter = 2 * (w + h);
-        const center = progress * perimeter;
-        const halfLen = (length * perimeter) / 2;
+        const center = canvasData.progress * perimeter;
+        const halfLen = (0.3 * perimeter) / 2;
         const start = (center - halfLen + perimeter) % perimeter;
         const end = (center + halfLen) % perimeter;
         
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = blur;
+        ctx.lineWidth = config.width;
+        ctx.strokeStyle = config.color;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
-        // Offset to account for glow padding
-        const offset = blur + width;
+        const offset = config.blur + config.width;
         ctx.translate(offset, offset);
+        
+        // Detect corners and apply slowdown
+        const currentPos = center % perimeter;
+        let currentSpeed = config.speed;
+        
+        // Check if we're near a corner (within 10% of corner position)
+        const cornerThreshold = 0.1 * perimeter;
+        const corners = [w, w+h, 2*w+h, perimeter];
+        
+        for (const corner of corners) {
+            if (Math.abs(currentPos - corner) < cornerThreshold || 
+                Math.abs(currentPos - corner + perimeter) < cornerThreshold) {
+                currentSpeed = config.speed * config.cornerSlowdown;
+                break;
+            }
+        }
+        
+        // Update progress with adjusted speed
+        canvasData.progress = (canvasData.progress + currentSpeed * (deltaTime/1000)) % 1;
         
         // Generate smooth path points
         const points = [];
         const addPoint = (pos) => {
             if (pos < w) {
-                points.push({x: pos, y: 0});
+                points.push({x: pos, y: 0, edge: 'top'});
             } else if (pos < w + h) {
-                points.push({x: w, y: pos - w});
+                points.push({x: w, y: pos - w, edge: 'right'});
             } else if (pos < 2*w + h) {
-                points.push({x: w - (pos - w - h), y: h});
+                points.push({x: w - (pos - w - h), y: h, edge: 'bottom'});
             } else {
-                points.push({x: 0, y: h - (pos - 2*w - h)});
+                points.push({x: 0, y: h - (pos - 2*w - h), edge: 'left'});
             }
         };
         
-        // Trace the path with small steps for smoothness
+        // Trace the path with adjusted density near corners
         const traceSegment = (from, to) => {
             for (let pos = from; pos < to; pos += 0.5) {
                 addPoint(pos);
@@ -612,25 +630,25 @@ function createNonIntrusiveGlowEffect() {
             traceSegment(0, end);
         }
         
-        // Draw the smooth path
+        // Draw the path with enhanced neon effect
         if (points.length > 1) {
             ctx.beginPath();
             ctx.moveTo(points[0].x, points[0].y);
             
-            for (let i = 1; i < points.length; i++) {
-                const prev = points[i-1];
-                const curr = points[i];
-                
-                // Use quadratic curves for smooth corners
-                if ((prev.x === w && curr.y === h) || 
-                    (prev.y === h && curr.x === 0) || 
-                    (prev.x === 0 && curr.y === 0) || 
-                    (prev.y === 0 && curr.x === w)) {
-                    const cpx = (prev.x + curr.x) / 2;
-                    const cpy = (prev.y + curr.y) / 2;
-                    ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
-                } else {
-                    ctx.lineTo(curr.x, curr.y);
+            // Draw multiple passes for stronger neon effect
+            for (let pass = 0; pass < 3; pass++) {
+                for (let i = 1; i < points.length; i++) {
+                    const prev = points[i-1];
+                    const curr = points[i];
+                    
+                    // Extra smoothness at corners
+                    if (prev.edge !== curr.edge) {
+                        const cpx = (prev.x + curr.x) / 2;
+                        const cpy = (prev.y + curr.y) / 2;
+                        ctx.quadraticCurveTo(prev.x, prev.y, cpx, cpy);
+                    } else {
+                        ctx.lineTo(curr.x, curr.y);
+                    }
                 }
             }
             
@@ -644,7 +662,7 @@ function createNonIntrusiveGlowEffect() {
     updateGlowPositions();
     animationId = requestAnimationFrame(animate);
     
-    // Handle resize with debounce
+    // Handle resize
     let resizeTimeout;
     window.addEventListener('resize', () => {
         cancelAnimationFrame(animationId);
@@ -655,7 +673,7 @@ function createNonIntrusiveGlowEffect() {
         }, 100);
     });
     
-    // Cleanup when cards flip
+    // Handle card clicks
     document.addEventListener('click', (e) => {
         if (e.target.closest('.flip-card')) {
             updateGlowPositions();
