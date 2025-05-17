@@ -706,18 +706,16 @@ if (document.readyState === 'complete') {
 
 <script>
 (function createDynamicBackgroundGlow() {
-    // Configuration with mobile-friendly adjustments
     const colors = {
-        default: '#777777',   // glowing grey when no active card
-        'clown-card': '#00a8ff', // neon blue
-        'joker-card': '#ff3333', // neon red
-        'jester-card': '#00cc66' // neon green
+        default: '#666666',
+        'clown-card': '#00a8ff',
+        'joker-card': '#ff3333',
+        'jester-card': '#00cc66'
     };
 
-    // Dynamic settings based on screen size
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const glowWidth = isMobile ? 6 : 8;
-    const glowBlur = isMobile ? 30 : 45;
+    const glowWidth = isMobile ? 5 : 8;           // Slightly increased
+    const glowBlur = isMobile ? 40 : 70;          // Increased for stronger glow
     const glowSpeed = 0.2;
     const glowLength = isMobile ? 0.2 : 0.25;
     const frameRate = 60;
@@ -727,7 +725,6 @@ if (document.readyState === 'complete') {
     let lastTime = 0;
     let timeAccumulator = 0;
 
-    // Create canvas with mobile-optimized settings
     const bgCanvas = document.createElement('canvas');
     const bgCtx = bgCanvas.getContext('2d', { alpha: true });
     Object.assign(bgCanvas.style, {
@@ -738,37 +735,28 @@ if (document.readyState === 'complete') {
         height: '100vh',
         pointerEvents: 'none',
         zIndex: '0',
-        // Mobile optimization
-        willChange: 'transform', // Improve performance on mobile
-        backfaceVisibility: 'hidden' // Prevent flickering on mobile
+        willChange: 'transform',
+        backfaceVisibility: 'hidden'
     });
     document.body.appendChild(bgCanvas);
 
-    // Mobile-friendly resize handler with debounce
     let resizeTimeout;
     function resizeCanvas() {
-        // Clear pending resize
         if (resizeTimeout) clearTimeout(resizeTimeout);
-        
-        // Debounce to prevent performance issues
         resizeTimeout = setTimeout(() => {
             const dpr = window.devicePixelRatio || 1;
             const w = window.innerWidth;
             const h = window.innerHeight;
-            
-            // Set display size
+
             bgCanvas.style.width = `${w}px`;
             bgCanvas.style.height = `${h}px`;
-            
-            // Set actual size accounting for DPI
+
             bgCanvas.width = w * dpr;
             bgCanvas.height = h * dpr;
-            
-            // Scale context to prevent blurriness
+
             bgCtx.setTransform(1, 0, 0, 1, 0, 0);
             bgCtx.scale(dpr, dpr);
-            
-            // Clear and redraw
+
             bgCtx.clearRect(0, 0, w, h);
         }, 100);
     }
@@ -779,17 +767,15 @@ if (document.readyState === 'complete') {
         return colors[activeCard.id] || colors.default;
     }
 
-    // Optimized drawing function for mobile
     function draw(timestamp) {
         if (!lastTime) lastTime = timestamp;
         const deltaTime = timestamp - lastTime;
         lastTime = timestamp;
         timeAccumulator += deltaTime;
 
-        // Fixed timestep animation for consistent speed
         while (timeAccumulator >= frameInterval) {
             timeAccumulator -= frameInterval;
-            
+
             const w = window.innerWidth;
             const h = window.innerHeight;
             const perimeter = 2 * (w + h);
@@ -803,26 +789,16 @@ if (document.readyState === 'complete') {
 
             const color = getActiveCardColor();
 
-            // Clear only the necessary area for performance
             bgCtx.clearRect(0, 0, w, h);
-            
-            // Skip drawing if not visible (mobile optimization)
+
             if (document.visibilityState === 'hidden') {
                 requestAnimationFrame(draw);
                 return;
             }
 
-            bgCtx.lineWidth = glowWidth;
-            bgCtx.strokeStyle = color;
-            bgCtx.shadowColor = color;
-            bgCtx.shadowBlur = glowBlur;
-            bgCtx.lineCap = 'round';
-
-            // Optimized path calculation with fewer points on mobile
             const step = isMobile ? 2 : 1.2;
             const points = [];
 
-            // Pre-calculate path segments for smoother animation
             const addPoint = (pos) => {
                 if (pos < w) {
                     points.push({ x: pos, y: 0 });
@@ -850,18 +826,29 @@ if (document.readyState === 'complete') {
                 trace(0, end);
             }
 
-            // Draw with optimization for mobile
             if (points.length > 1) {
+                // Neon glow aura stroke (behind main line)
                 bgCtx.beginPath();
                 bgCtx.moveTo(points[0].x, points[0].y);
-                
-                // Use simpler path for mobile
+                for (let i = 1; i < points.length; i++) {
+                    const p = points[i];
+                    bgCtx.lineTo(p.x, p.y);
+                }
+                bgCtx.strokeStyle = color;
+                bgCtx.shadowColor = color;
+                bgCtx.shadowBlur = glowBlur;
+                bgCtx.lineWidth = glowWidth * 1.6; // broader aura
+                bgCtx.lineCap = 'round';
+                bgCtx.stroke();
+
+                // Main sharper stroke
+                bgCtx.beginPath();
+                bgCtx.moveTo(points[0].x, points[0].y);
                 if (isMobile) {
                     for (let i = 1; i < points.length; i++) {
                         bgCtx.lineTo(points[i].x, points[i].y);
                     }
                 } else {
-                    // Smoother curves for desktop
                     for (let i = 1; i < points.length; i++) {
                         const prev = points[i - 1];
                         const curr = points[i];
@@ -870,6 +857,8 @@ if (document.readyState === 'complete') {
                         bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
                     }
                 }
+                bgCtx.shadowBlur = glowBlur / 2; // tighter inner glow
+                bgCtx.lineWidth = glowWidth;
                 bgCtx.stroke();
             }
         }
@@ -877,33 +866,20 @@ if (document.readyState === 'complete') {
         requestAnimationFrame(draw);
     }
 
-    // Initial setup with mobile considerations
     resizeCanvas();
-    
-    // Optimized resize handler for mobile
-    window.addEventListener('resize', () => {
-        // Use passive listener for better mobile performance
-        resizeCanvas();
-    }, { passive: true });
+    window.addEventListener('resize', () => resizeCanvas(), { passive: true });
 
-    // Mobile-friendly mutation observer
-    const observer = new MutationObserver(() => {
-        // No action needed, color is fetched dynamically
-    });
-    
-    // Observe card changes with optimized settings
+    const observer = new MutationObserver(() => {});
     document.querySelectorAll('.flip-card').forEach(card => {
-        observer.observe(card, { 
-            attributes: true, 
+        observer.observe(card, {
+            attributes: true,
             attributeFilter: ['class'],
-            // Mobile optimization
             subtree: false,
             childList: false,
             characterData: false
         });
     });
 
-    // Start animation with mobile visibility consideration
     if (document.visibilityState === 'visible') {
         requestAnimationFrame(draw);
     } else {
@@ -917,6 +893,7 @@ if (document.readyState === 'complete') {
     }
 })();
 </script>
+
 
 </body>
 </html>
