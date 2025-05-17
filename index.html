@@ -445,7 +445,7 @@ function createNonIntrusiveGlowEffect() {
             blur: 40,         // Increased outer glow blur
             outerBlurBoost: 1.5, // Multiplier for corner blur enhancement
             speed: 0.20,
-            cornerSpeedFactor: 0.85 // Adjusts speed at corners for synchronization
+            cornerSpeedFactor: 0.65 // Reduced speed factor for corners
         },
         'joker-card': { 
             color: '#ff3333',
@@ -453,7 +453,7 @@ function createNonIntrusiveGlowEffect() {
             blur: 40,
             outerBlurBoost: 1.5,
             speed: 0.20,
-            cornerSpeedFactor: 0.85
+            cornerSpeedFactor: 0.65
         },
         'jester-card': { 
             color: '#00cc66',
@@ -461,7 +461,7 @@ function createNonIntrusiveGlowEffect() {
             blur: 40,
             outerBlurBoost: 1.5,
             speed: 0.20,
-            cornerSpeedFactor: 0.85
+            cornerSpeedFactor: 0.65
         }
     };
 
@@ -501,7 +501,8 @@ function createNonIntrusiveGlowEffect() {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
             progress: 0,
-            cornerState: 0 // 0 = no corner, 1-4 = which corner
+            cornerState: 0, // 0 = no corner, 1-4 = which corner
+            cornerProgress: 0 // Track progress through corners
         });
     });
 
@@ -549,7 +550,16 @@ function createNonIntrusiveGlowEffect() {
             // Calculate adjusted speed based on corner position
             let speedAdjustment = 1;
             if (canvasData.cornerState > 0) {
-                speedAdjustment = config.cornerSpeedFactor;
+                // Smooth transition when entering/exiting corners
+                if (canvasData.cornerProgress < 1) {
+                    canvasData.cornerProgress += 0.05;
+                    speedAdjustment = 1 - (1 - config.cornerSpeedFactor) * canvasData.cornerProgress;
+                } else {
+                    speedAdjustment = config.cornerSpeedFactor;
+                }
+            } else if (canvasData.cornerProgress > 0) {
+                canvasData.cornerProgress -= 0.05;
+                speedAdjustment = 1 - (1 - config.cornerSpeedFactor) * canvasData.cornerProgress;
             }
             
             // Update animation progress with adjusted speed
