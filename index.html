@@ -714,10 +714,11 @@ if (document.readyState === 'complete') {
     };
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const glowWidth = isMobile ? 5 : 8;           // Slightly increased
-    const glowBlur = isMobile ? 40 : 70;          // Increased for stronger glow
+    const glowWidth = isMobile ? 5 : 8;
+    const glowBlur = isMobile ? 40 : 70;
     const glowSpeed = 0.2;
     const glowLength = isMobile ? 0.2 : 0.25;
+    const glowTrailOffset = 0.15; // Gap between trailing and leading glow
     const frameRate = 60;
     const frameInterval = 1000 / frameRate;
 
@@ -747,16 +748,12 @@ if (document.readyState === 'complete') {
             const dpr = window.devicePixelRatio || 1;
             const w = window.innerWidth;
             const h = window.innerHeight;
-
             bgCanvas.style.width = `${w}px`;
             bgCanvas.style.height = `${h}px`;
-
             bgCanvas.width = w * dpr;
             bgCanvas.height = h * dpr;
-
             bgCtx.setTransform(1, 0, 0, 1, 0, 0);
             bgCtx.scale(dpr, dpr);
-
             bgCtx.clearRect(0, 0, w, h);
         }, 100);
     }
@@ -765,6 +762,82 @@ if (document.readyState === 'complete') {
         const activeCard = document.querySelector('.flip-card.active');
         if (!activeCard) return colors.default;
         return colors[activeCard.id] || colors.default;
+    }
+
+    function drawGlowSegment(prog, color) {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const perimeter = 2 * (w + h);
+
+        const center = prog * perimeter;
+        const halfLen = (glowLength * perimeter) / 2;
+        const start = (center - halfLen + perimeter) % perimeter;
+        const end = (center + halfLen) % perimeter;
+
+        const step = isMobile ? 2 : 1.2;
+        const points = [];
+
+        const addPoint = (pos) => {
+            if (pos < w) {
+                points.push({ x: pos, y: 0 });
+            } else if (pos < w + h) {
+                points.push({ x: w, y: pos - w });
+            } else if (pos < 2 * w + h) {
+                points.push({ x: w - (pos - w - h), y: h });
+            } else {
+                points.push({ x: 0, y: h - (pos - 2 * w - h) });
+            }
+        };
+
+        const trace = (from, to) => {
+            let pos = from;
+            while (pos < to) {
+                addPoint(pos);
+                pos += step;
+            }
+        };
+
+        if (start < end) {
+            trace(start, end);
+        } else {
+            trace(start, perimeter);
+            trace(0, end);
+        }
+
+        if (points.length > 1) {
+            // Glow aura
+            bgCtx.beginPath();
+            bgCtx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                bgCtx.lineTo(points[i].x, points[i].y);
+            }
+            bgCtx.strokeStyle = color;
+            bgCtx.shadowColor = color;
+            bgCtx.shadowBlur = glowBlur;
+            bgCtx.lineWidth = glowWidth * 1.6;
+            bgCtx.lineCap = 'round';
+            bgCtx.stroke();
+
+            // Inner main line
+            bgCtx.beginPath();
+            bgCtx.moveTo(points[0].x, points[0].y);
+            if (isMobile) {
+                for (let i = 1; i < points.length; i++) {
+                    bgCtx.lineTo(points[i].x, points[i].y);
+                }
+            } else {
+                for (let i = 1; i < points.length; i++) {
+                    const prev = points[i - 1];
+                    const curr = points[i];
+                    const cx = (prev.x + curr.x) / 2;
+                    const cy = (prev.y + curr.y) / 2;
+                    bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
+                }
+            }
+            bgCtx.shadowBlur = glowBlur / 2;
+            bgCtx.lineWidth = glowWidth;
+            bgCtx.stroke();
+        }
     }
 
     function draw(timestamp) {
@@ -776,18 +849,11 @@ if (document.readyState === 'complete') {
         while (timeAccumulator >= frameInterval) {
             timeAccumulator -= frameInterval;
 
+            const color = getActiveCardColor();
             const w = window.innerWidth;
             const h = window.innerHeight;
-            const perimeter = 2 * (w + h);
 
             progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
-
-            const center = progress * perimeter;
-            const halfLen = (glowLength * perimeter) / 2;
-            const start = (center - halfLen + perimeter) % perimeter;
-            const end = (center + halfLen) % perimeter;
-
-            const color = getActiveCardColor();
 
             bgCtx.clearRect(0, 0, w, h);
 
@@ -796,71 +862,12 @@ if (document.readyState === 'complete') {
                 return;
             }
 
-            const step = isMobile ? 2 : 1.2;
-            const points = [];
+            // First glow trail
+            drawGlowSegment(progress, color);
 
-            const addPoint = (pos) => {
-                if (pos < w) {
-                    points.push({ x: pos, y: 0 });
-                } else if (pos < w + h) {
-                    points.push({ x: w, y: pos - w });
-                } else if (pos < 2 * w + h) {
-                    points.push({ x: w - (pos - w - h), y: h });
-                } else {
-                    points.push({ x: 0, y: h - (pos - 2 * w - h) });
-                }
-            };
-
-            const trace = (from, to) => {
-                let pos = from;
-                while (pos < to) {
-                    addPoint(pos);
-                    pos += step;
-                }
-            };
-
-            if (start < end) {
-                trace(start, end);
-            } else {
-                trace(start, perimeter);
-                trace(0, end);
-            }
-
-            if (points.length > 1) {
-                // Neon glow aura stroke (behind main line)
-                bgCtx.beginPath();
-                bgCtx.moveTo(points[0].x, points[0].y);
-                for (let i = 1; i < points.length; i++) {
-                    const p = points[i];
-                    bgCtx.lineTo(p.x, p.y);
-                }
-                bgCtx.strokeStyle = color;
-                bgCtx.shadowColor = color;
-                bgCtx.shadowBlur = glowBlur;
-                bgCtx.lineWidth = glowWidth * 1.6; // broader aura
-                bgCtx.lineCap = 'round';
-                bgCtx.stroke();
-
-                // Main sharper stroke
-                bgCtx.beginPath();
-                bgCtx.moveTo(points[0].x, points[0].y);
-                if (isMobile) {
-                    for (let i = 1; i < points.length; i++) {
-                        bgCtx.lineTo(points[i].x, points[i].y);
-                    }
-                } else {
-                    for (let i = 1; i < points.length; i++) {
-                        const prev = points[i - 1];
-                        const curr = points[i];
-                        const cx = (prev.x + curr.x) / 2;
-                        const cy = (prev.y + curr.y) / 2;
-                        bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
-                    }
-                }
-                bgCtx.shadowBlur = glowBlur / 2; // tighter inner glow
-                bgCtx.lineWidth = glowWidth;
-                bgCtx.stroke();
-            }
+            // Trailing glow with offset
+            const trailingProgress = (progress - glowTrailOffset + 1) % 1;
+            drawGlowSegment(trailingProgress, color);
         }
 
         requestAnimationFrame(draw);
@@ -893,6 +900,7 @@ if (document.readyState === 'complete') {
     }
 })();
 </script>
+
 
 
 </body>
