@@ -714,11 +714,10 @@ if (document.readyState === 'complete') {
     };
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const glowWidth = isMobile ? 5 : 8;
-    const glowBlur = isMobile ? 40 : 70;
+    const glowWidth = isMobile ? 4 : 6;
+    const glowBlur = isMobile ? 25 : 40;
     const glowSpeed = 0.2;
     const glowLength = isMobile ? 0.2 : 0.25;
-    const glowTrailOffset = 0.15; // Gap between trailing and leading glow
     const frameRate = 60;
     const frameInterval = 1000 / frameRate;
 
@@ -764,12 +763,11 @@ if (document.readyState === 'complete') {
         return colors[activeCard.id] || colors.default;
     }
 
-    function drawGlowSegment(prog, color) {
+    function drawGlowSegment(progressPoint, color) {
         const w = window.innerWidth;
         const h = window.innerHeight;
         const perimeter = 2 * (w + h);
-
-        const center = prog * perimeter;
+        const center = progressPoint * perimeter;
         const halfLen = (glowLength * perimeter) / 2;
         const start = (center - halfLen + perimeter) % perimeter;
         const end = (center + halfLen) % perimeter;
@@ -805,22 +803,9 @@ if (document.readyState === 'complete') {
         }
 
         if (points.length > 1) {
-            // Glow aura
             bgCtx.beginPath();
             bgCtx.moveTo(points[0].x, points[0].y);
-            for (let i = 1; i < points.length; i++) {
-                bgCtx.lineTo(points[i].x, points[i].y);
-            }
-            bgCtx.strokeStyle = color;
-            bgCtx.shadowColor = color;
-            bgCtx.shadowBlur = glowBlur;
-            bgCtx.lineWidth = glowWidth * 1.6;
-            bgCtx.lineCap = 'round';
-            bgCtx.stroke();
 
-            // Inner main line
-            bgCtx.beginPath();
-            bgCtx.moveTo(points[0].x, points[0].y);
             if (isMobile) {
                 for (let i = 1; i < points.length; i++) {
                     bgCtx.lineTo(points[i].x, points[i].y);
@@ -834,8 +819,12 @@ if (document.readyState === 'complete') {
                     bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
                 }
             }
-            bgCtx.shadowBlur = glowBlur / 2;
+
             bgCtx.lineWidth = glowWidth;
+            bgCtx.strokeStyle = color;
+            bgCtx.shadowColor = color;
+            bgCtx.shadowBlur = glowBlur;
+            bgCtx.lineCap = 'round';
             bgCtx.stroke();
         }
     }
@@ -849,9 +838,9 @@ if (document.readyState === 'complete') {
         while (timeAccumulator >= frameInterval) {
             timeAccumulator -= frameInterval;
 
-            const color = getActiveCardColor();
             const w = window.innerWidth;
             const h = window.innerHeight;
+            const color = getActiveCardColor();
 
             progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
 
@@ -862,19 +851,15 @@ if (document.readyState === 'complete') {
                 return;
             }
 
-            // First glow trail
             drawGlowSegment(progress, color);
-
-            // Trailing glow with offset
-            const trailingProgress = (progress - glowTrailOffset + 1) % 1;
-            drawGlowSegment(trailingProgress, color);
+            drawGlowSegment((progress + 0.5) % 1, color);
         }
 
         requestAnimationFrame(draw);
     }
 
     resizeCanvas();
-    window.addEventListener('resize', () => resizeCanvas(), { passive: true });
+    window.addEventListener('resize', resizeCanvas, { passive: true });
 
     const observer = new MutationObserver(() => {});
     document.querySelectorAll('.flip-card').forEach(card => {
