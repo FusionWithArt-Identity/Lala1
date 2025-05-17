@@ -504,7 +504,7 @@ function createNonIntrusiveGlowEffect() {
             if (!canvas) return;
             
             const config = glowConfig[card.id];
-            const padding = config.blur * 1.3 + config.width; // Increased padding for outer glow
+            const padding = config.blur + config.width; 
             
             const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
