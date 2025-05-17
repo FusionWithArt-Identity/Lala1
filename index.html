@@ -442,26 +442,26 @@ function createNonIntrusiveGlowEffect() {
         'clown-card': { 
             color: '#00a8ff',
             width: 6,          // Inner line thickness
-            blur: 60,         // Increased outer glow blur
+            blur: 40,         // Increased outer glow blur
             outerBlurBoost: 1.5, // Multiplier for corner blur enhancement
-            speed: 0.40,
-            cornerSpeedFactor: 0.65 // Adjusts speed at corners for synchronization
+            speed: 0.20,
+            cornerSpeedFactor: 0.85 // Adjusts speed at corners for synchronization
         },
         'joker-card': { 
             color: '#ff3333',
             width: 6,
-            blur: 60,
+            blur: 40,
             outerBlurBoost: 1.5,
-            speed: 0.40,
-            cornerSpeedFactor: 0.65
+            speed: 0.20,
+            cornerSpeedFactor: 0.85
         },
         'jester-card': { 
             color: '#00cc66',
             width: 6,
-            blur: 60,
+            blur: 40,
             outerBlurBoost: 1.5,
-            speed: 0.40,
-            cornerSpeedFactor: 0.65
+            speed: 0.20,
+            cornerSpeedFactor: 0.85
         }
     };
 
@@ -487,7 +487,7 @@ function createNonIntrusiveGlowEffect() {
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '1',
-            borderRadius: '16px'
+            borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
@@ -703,6 +703,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 <script>
