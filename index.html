@@ -354,14 +354,94 @@
             </div>
         </div>
     </div>
+    <script>
+        let currentActiveCard = null;
+        let isAnimating = false;
+        
+        async function toggleCard(card) {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            if (currentActiveCard === card) {
+                card.classList.remove('lifted');
+                await new Promise(resolve => setTimeout(resolve, 300));
+                card.classList.remove('active');
+                currentActiveCard = null;
+                resetCardContent(card);
+            } else {
+                if (currentActiveCard) {
+                    currentActiveCard.classList.remove('lifted');
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    currentActiveCard.classList.remove('active');
+                    resetCardContent(currentActiveCard);
+                }
+                
+                card.classList.add('lifted');
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                card.classList.add('active');
+                currentActiveCard = card;
+                animateCardContent(card);
+            }
+            isAnimating = false;
+        }
+        
+        function animateCardContent(card) {
+            const aspectItems = card.querySelectorAll('.aspect-item');
+            const aspectContents = card.querySelectorAll('.aspect-content');
+            
+            aspectItems.forEach(item => {
+                item.classList.remove('visible');
+            });
+            aspectContents.forEach(content => {
+                content.classList.remove('visible');
+            });
+            
+            aspectItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('visible');
+                    setTimeout(() => {
+                        const content = item.querySelector('.aspect-content');
+                        content.classList.add('visible');
+                    }, 300);
+                }, index * 600);
+            });
+        }
+        
+        function resetCardContent(card) {
+            const aspectItems = card.querySelectorAll('.aspect-item');
+            const aspectContents = card.querySelectorAll('.aspect-content');
+            
+            aspectItems.forEach(item => {
+                item.classList.remove('visible');
+            });
+            aspectContents.forEach(content => {
+                content.classList.remove('visible');
+            });
+        }
+        
+        document.body.addEventListener('click', function(e) {
+            if (currentActiveCard && !currentActiveCard.contains(e.target) && !isAnimating) {
+                isAnimating = true;
+                currentActiveCard.classList.remove('lifted');
+                setTimeout(() => {
+                    currentActiveCard.classList.remove('active');
+                    resetCardContent(currentActiveCard);
+                    currentActiveCard = null;
+                    isAnimating = false;
+                }, 300);
+            }
+        });
+    </script>
 
-<script>
+
+    <script>
 function createNonIntrusiveGlowEffect() {
     // Configuration remains identical
     const glowConfig = {
-        'clown-card': { color: '#00a8ff', width: 6, blur: 15, speed: 0.20 },
-        'joker-card': { color: '#ff3333', width: 6, blur: 15, speed: 0.20 },
-        'jester-card': { color: '#00cc66', width: 6, blur: 15, speed: 0.20 }
+        'clown-card': { color: '#00a8ff', width: 6, blur: 25, speed: 0.35 },
+        'joker-card': { color: '#ff3333', width: 6, blur: 25, speed: 0.35 },
+        'jester-card': { color: '#00cc66', width: 6, blur: 25, speed: 0.35 }
     };
 
     // Container setup unchanged
