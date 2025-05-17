@@ -436,45 +436,27 @@
     </script>
 
 
-<script>
+
+    <script>
 function createNonIntrusiveGlowEffect() {
-    // Configuration for each card (unchanged)
+    // Configuration remains identical
     const glowConfig = {
-        'clown-card': { 
-            color: '#00a8ff',
-            width: 6,
-            blur: 15,
-            speed: 0.20
-        },
-        'joker-card': { 
-            color: '#ff3333',
-            width: 6,
-            blur: 15,
-            speed: 0.20
-        },
-        'jester-card': { 
-            color: '#00cc66',
-            width: 6,
-            blur: 15,
-            speed: 0.20
-        }
+        'clown-card': { color: '#00a8ff', width: 6, blur: 15, speed: 0.20 },
+        'joker-card': { color: '#ff3333', width: 6, blur: 15, speed: 0.20 },
+        'jester-card': { color: '#00cc66', width: 6, blur: 15, speed: 0.20 }
     };
 
-    // Create container for glow effects (unchanged)
+    // Container setup unchanged
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: '10'
+        position: 'fixed', top: '0', left: '0', 
+        width: '100%', height: '100%',
+        pointerEvents: 'none', zIndex: '10'
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvas elements (unchanged)
+    // Canvas creation identical
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
@@ -491,13 +473,13 @@ function createNonIntrusiveGlowEffect() {
     // Animation optimization
     let lastTime = performance.now();
     let animationId = null;
-    const frameRate = 60;
-    const frameInterval = 1000 / frameRate;
-
-    // Store canvas contexts
     const canvasContexts = new Map();
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
-        canvasContexts.set(canvas, canvas.getContext('2d'));
+        canvasContexts.set(canvas, {
+            ctx: canvas.getContext('2d'),
+            progress: 0,
+            lastPos: 0
+        });
     });
 
     function updateGlowPositions() {
@@ -516,49 +498,48 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function animate(currentTime) {
-        const deltaTime = currentTime - lastTime;
+        const deltaTime = Math.min(currentTime - lastTime, 100); // Cap delta to prevent jumps
+        lastTime = currentTime;
         
-        if (deltaTime > frameInterval) {
-            lastTime = currentTime - (deltaTime % frameInterval);
+        updateGlowPositions();
+        
+        document.querySelectorAll('.glow-canvas').forEach(canvas => {
+            const cardId = canvas.dataset.cardId;
+            const card = document.getElementById(cardId);
+            const config = glowConfig[cardId];
+            const canvasData = canvasContexts.get(canvas);
             
-            updateGlowPositions();
+            if (!card || card.classList.contains('active')) {
+                canvasData.ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
+            }
             
-            document.querySelectorAll('.glow-canvas').forEach(canvas => {
-                const cardId = canvas.dataset.cardId;
-                const card = document.getElementById(cardId);
-                const config = glowConfig[cardId];
-                const ctx = canvasContexts.get(canvas);
-                
-                if (!card || card.classList.contains('active')) {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    return;
-                }
-                
-                const dpr = window.devicePixelRatio || 1;
-                canvas.width = parseInt(canvas.style.width) * dpr;
-                canvas.height = parseInt(canvas.style.height) * dpr;
-                ctx.scale(dpr, dpr);
-                
-                if (!canvas.progress) canvas.progress = 0;
-                canvas.progress = (canvas.progress + config.speed * (deltaTime/1000)) % 1;
-                
-                drawSmoothGlow(
-                    ctx,
-                    config.color,
-                    canvas.progress,
-                    0.3,
-                    config.width,
-                    config.blur,
-                    parseInt(canvas.style.width) - 16,
-                    parseInt(canvas.style.height) - 16
-                );
-            });
-        }
+            // Update canvas size
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = parseInt(canvas.style.width) * dpr;
+            canvas.height = parseInt(canvas.style.height) * dpr;
+            canvasData.ctx.scale(dpr, dpr);
+            
+            // Update progress with time-based movement
+            canvasData.progress = (canvasData.progress + config.speed * (deltaTime/1000)) % 1;
+            
+            // Draw with new smooth algorithm
+            drawUltraSmoothGlow(
+                canvasData.ctx,
+                config.color,
+                canvasData.progress,
+                0.3, // trail length
+                config.width,
+                config.blur,
+                parseInt(canvas.style.width) - 16,
+                parseInt(canvas.style.height) - 16
+            );
+        });
         
         animationId = requestAnimationFrame(animate);
     }
 
-    function drawSmoothGlow(ctx, color, progress, length, width, blur, w, h) {
+    function drawUltraSmoothGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         
         const perimeter = 2 * (w + h);
@@ -572,69 +553,55 @@ function createNonIntrusiveGlowEffect() {
         ctx.shadowColor = color;
         ctx.shadowBlur = blur;
         ctx.lineCap = 'round';
-        ctx.lineJoin = 'round'; // Smoother corners
+        ctx.lineJoin = 'round';
         
-        // Offset to center in the canvas (8px padding)
         ctx.translate(8, 8);
         ctx.beginPath();
         
-        // Improved corner handling with quadratic curves
-        const drawSmoothSegment = (from, to) => {
-            let pos = from;
-            while (pos < to) {
-                // Top edge
+        // New continuous path drawing algorithm
+        const drawContinuousPath = (from, to) => {
+            const points = [];
+            
+            // Generate points along perimeter
+            for (let pos = from; pos <= to; pos += 1) {
                 if (pos < w) {
-                    const x = Math.min(pos, to);
-                    if (x === w) {
-                        // Smooth right-top corner
-                        ctx.lineTo(w, 0);
-                        ctx.quadraticCurveTo(w, 0, w, 0);
+                    points.push({x: pos, y: 0});
+                } else if (pos < w + h) {
+                    points.push({x: w, y: pos - w});
+                } else if (pos < 2*w + h) {
+                    points.push({x: 2*w + h - pos, y: h});
+                } else {
+                    points.push({x: 0, y: perimeter - pos});
+                }
+            }
+            
+            // Draw smooth path
+            if (points.length > 0) {
+                ctx.moveTo(points[0].x, points[0].y);
+                for (let i = 1; i < points.length; i++) {
+                    const prev = points[i-1];
+                    const curr = points[i];
+                    
+                    // Smooth corners using quadratic curves
+                    if ((prev.x === w && curr.y === h) ||  // Top-right to right-bottom
+                        (prev.y === h && curr.x === 0) ||  // Right-bottom to bottom-left
+                        (prev.x === 0 && curr.y === 0) ||  // Bottom-left to left-top
+                        (prev.y === 0 && curr.x === w)) {  // Left-top to top-right
+                        const cpx = (prev.x + curr.x) / 2;
+                        const cpy = (prev.y + curr.y) / 2;
+                        ctx.quadraticCurveTo(cpx, cpy, curr.x, curr.y);
                     } else {
-                        ctx.lineTo(x, 0);
-                    }
-                } 
-                // Right edge
-                else if (pos < w + h) {
-                    const y = Math.min(pos - w, to - w);
-                    if (y === h) {
-                        // Smooth right-bottom corner
-                        ctx.lineTo(w, h);
-                        ctx.quadraticCurveTo(w, h, w, h);
-                    } else {
-                        ctx.lineTo(w, y);
-                    }
-                } 
-                // Bottom edge (right to left)
-                else if (pos < 2*w + h) {
-                    const x = w - Math.min(pos - w - h, to - w - h);
-                    if (x === 0) {
-                        // Smooth left-bottom corner
-                        ctx.lineTo(0, h);
-                        ctx.quadraticCurveTo(0, h, 0, h);
-                    } else {
-                        ctx.lineTo(x, h);
-                    }
-                } 
-                // Left edge (bottom to top)
-                else {
-                    const y = h - Math.min(pos - 2*w - h, to - 2*w - h);
-                    if (y === 0) {
-                        // Smooth left-top corner
-                        ctx.lineTo(0, 0);
-                        ctx.quadraticCurveTo(0, 0, 0, 0);
-                    } else {
-                        ctx.lineTo(0, y);
+                        ctx.lineTo(curr.x, curr.y);
                     }
                 }
-                pos += 1;
             }
         };
         
         if (start < end) {
-            drawSmoothSegment(start, end);
+            drawContinuousPath(start, end);
         } else {
-            drawSmoothSegment(start, perimeter);
-            drawSmoothSegment(0, end);
+            drawContinuousPath(start, perimeter);
+            drawContinuousPath(0, end);
         }
         
         ctx.stroke();
@@ -645,14 +612,18 @@ function createNonIntrusiveGlowEffect() {
     updateGlowPositions();
     animationId = requestAnimationFrame(animate);
     
-    // Handle resize with debounce
+    // Resize handling
     let resizeTimeout;
     window.addEventListener('resize', () => {
+        cancelAnimationFrame(animationId);
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(updateGlowPositions, 100);
+        resizeTimeout = setTimeout(() => {
+            updateGlowPositions();
+            animationId = requestAnimationFrame(animate);
+        }, 100);
     });
     
-    // Cleanup when cards flip
+    // Click handling
     document.addEventListener('click', (e) => {
         if (e.target.closest('.flip-card')) {
             updateGlowPositions();
@@ -667,7 +638,6 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
-
 
 
 </body>
