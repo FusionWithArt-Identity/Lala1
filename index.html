@@ -438,16 +438,36 @@
 <script>
 function createNonIntrusiveGlowEffect() {
     const glowConfig = {
-        'clown-card': { color: '#00a8ff', width: 6, blur: 35, speed: 0.40 },
-        'joker-card': { color: '#ff3333', width: 6, blur: 35, speed: 0.40 },
-        'jester-card': { color: '#00cc66', width: 6, blur: 35, speed: 0.40 }
+        'clown-card': {
+            color: '#00a8ff',
+            width: 6,
+            blur: 35,
+            speed: 0.40 // increased speed with trail support
+        },
+        'joker-card': {
+            color: '#ff3333',
+            width: 6,
+            blur: 35,
+            speed: 0.40
+        },
+        'jester-card': {
+            color: '#00cc66',
+            width: 6,
+            blur: 35,
+            speed: 0.40
+        }
     };
 
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
-        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
-        pointerEvents: 'none', zIndex: '10'
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '10'
     });
     document.body.appendChild(glowContainer);
 
@@ -464,9 +484,14 @@ function createNonIntrusiveGlowEffect() {
         canvas.dataset.cardId = card.id;
     });
 
+    let lastTime = performance.now();
+    let animationId = null;
     const canvasContexts = new Map();
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
-        canvasContexts.set(canvas, { ctx: canvas.getContext('2d'), progress: 0 });
+        canvasContexts.set(canvas, {
+            ctx: canvas.getContext('2d'),
+            progress: 0
+        });
     });
 
     function updateGlowPositions() {
@@ -476,8 +501,8 @@ function createNonIntrusiveGlowEffect() {
 
             const config = glowConfig[card.id];
             const padding = config.blur + config.width;
-            const rect = card.getBoundingClientRect();
 
+            const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
                 top: `${rect.top - padding}px`,
                 left: `${rect.left - padding}px`,
@@ -487,70 +512,82 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    // Easing for corner smoothing (easeInOutSine)
-    function easeSine(t) {
-        return -(Math.cos(Math.PI * t) - 1) / 2;
-    }
-
-    function buildGlowPath(w, h, startT, endT) {
-        const segments = [
-            { x1: 0, y1: 0, x2: w, y2: 0 },       // Top
-            { x1: w, y1: 0, x2: w, y2: h },       // Right
-            { x1: w, y1: h, x2: 0, y2: h },       // Bottom
-            { x1: 0, y1: h, x2: 0, y2: 0 }        // Left
-        ];
+    function buildUniformGlowPath(w, h, startT, endT) {
         const P = 2 * (w + h);
-        const start = startT * P;
-        const end = endT * P;
-
         const path = new Path2D();
-        const step = 1; // px
 
-        function getPoint(pos) {
+        const pointAt = (pos) => {
             pos = (pos + P) % P;
-            if (pos < w) return [0 + pos, 0];                 // Top
-            if (pos < w + h) return [w, pos - w];             // Right
-            if (pos < 2 * w + h) return [w - (pos - w - h), h]; // Bottom
-            return [0, h - (pos - 2 * w - h)];                // Left
+            if (pos < w) return { x: pos, y: 0 };
+            else if (pos < w + h) return { x: w, y: pos - w };
+            else if (pos < 2 * w + h) return { x: 2 * w + h - pos, y: h };
+            else return { x: 0, y: P - pos };
+        };
+
+        const toPerimeter = (t) => t * P;
+        let startPos = toPerimeter(startT);
+        let endPos = toPerimeter(endT);
+
+        function drawSegment(s, e) {
+            const step = 1;
+            if (e <= s) return;
+            let first = pointAt(s);
+            path.moveTo(first.x, first.y);
+            for (let pos = s + step; pos <= e; pos += step) {
+                let pt = pointAt(pos);
+                path.lineTo(pt.x, pt.y);
+            }
+            if ((e - s) % step !== 0) {
+                let pt = pointAt(e);
+                path.lineTo(pt.x, pt.y);
+            }
         }
 
-        let current = start;
-        while (current < end || (end < start && current < P + end)) {
-            const t = (current - start) / (end - start + (end < start ? P : 0));
-            const easedT = easeSine(t);
-            const pos = (start + easedT * ((end - start + (end < start ? P : 0)))) % P;
-            const [x, y] = getPoint(pos);
-            if (current === start) path.moveTo(x, y);
-            else path.lineTo(x, y);
-            current += step;
+        if (startPos > endPos) {
+            drawSegment(startPos, P);
+            drawSegment(0, endPos);
+        } else {
+            drawSegment(startPos, endPos);
         }
+
         return path;
     }
 
-    function drawGlow(ctx, color, progress, length, width, blur, w, h) {
+    function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        const P = 2 * (w + h);
-        const center = progress * P;
-        const half = (length * P) / 2;
-        const start = (center - half + P) % P;
-        const end = (center + half) % P;
 
+        const perimeter = 2 * (w + h);
+        const offset = blur + width;
         ctx.save();
-        ctx.translate(blur + width, blur + width);
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = blur;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+        ctx.translate(offset, offset);
 
-        const path = buildGlowPath(w, h, start / P, end / P);
-        ctx.stroke(path);
+        const trailSteps = 5; // Number of trailing segments
+        const trailGap = 0.015; // Fractional gap between trails
+        const trailAlphaFalloff = 0.12; // Transparency decrease per step
+
+        for (let i = 0; i < trailSteps; i++) {
+            const localProgress = (progress - i * trailGap + 1) % 1;
+            const segmentLength = 0.3;
+            const center = localProgress * perimeter;
+            const halfLen = (segmentLength * perimeter) / 2;
+            const start = (center - halfLen + perimeter) % perimeter;
+            const end = (center + halfLen) % perimeter;
+
+            const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter);
+
+            ctx.lineWidth = width;
+            ctx.strokeStyle = color;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = blur;
+            ctx.globalAlpha = 1.0 - i * trailAlphaFalloff;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke(path);
+        }
+
+        ctx.globalAlpha = 1;
         ctx.restore();
     }
-
-    let lastTime = performance.now();
-    let animationId = null;
 
     function animate(currentTime) {
         const deltaTime = Math.min(currentTime - lastTime, 100);
@@ -562,33 +599,41 @@ function createNonIntrusiveGlowEffect() {
             const cardId = canvas.dataset.cardId;
             const card = document.getElementById(cardId);
             const config = glowConfig[cardId];
-            const ctxData = canvasContexts.get(canvas);
+            const canvasData = canvasContexts.get(canvas);
 
             if (!card || card.classList.contains('active')) {
-                ctxData.ctx.clearRect(0, 0, canvas.width, canvas.height);
+                canvasData.ctx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
 
             const dpr = window.devicePixelRatio || 1;
             const styleWidth = parseInt(canvas.style.width);
             const styleHeight = parseInt(canvas.style.height);
-
             if (canvas.width !== styleWidth * dpr || canvas.height !== styleHeight * dpr) {
                 canvas.width = styleWidth * dpr;
                 canvas.height = styleHeight * dpr;
-                ctxData.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctxData.ctx.scale(dpr, dpr);
+                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                canvasData.ctx.scale(dpr, dpr);
             } else {
-                ctxData.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                ctxData.ctx.scale(dpr, dpr);
+                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                canvasData.ctx.scale(dpr, dpr);
             }
 
-            ctxData.progress = (ctxData.progress + config.speed * (deltaTime / 1000)) % 1;
+            canvasData.progress = (canvasData.progress + config.speed * (deltaTime / 1000)) % 1;
 
-            const contentW = styleWidth - (config.blur + config.width) * 2;
-            const contentH = styleHeight - (config.blur + config.width) * 2;
+            const contentWidth = styleWidth - (config.blur + config.width) * 2;
+            const contentHeight = styleHeight - (config.blur + config.width) * 2;
 
-            drawGlow(ctxData.ctx, config.color, ctxData.progress, 0.3, config.width, config.blur, contentW, contentH);
+            drawEnhancedGlow(
+                canvasData.ctx,
+                config.color,
+                canvasData.progress,
+                0.3,
+                config.width,
+                config.blur,
+                contentWidth,
+                contentHeight
+            );
         });
 
         animationId = requestAnimationFrame(animate);
@@ -607,8 +652,10 @@ function createNonIntrusiveGlowEffect() {
         }, 100);
     });
 
-    document.addEventListener('click', e => {
-        if (e.target.closest('.flip-card')) updateGlowPositions();
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.flip-card')) {
+            updateGlowPositions();
+        }
     });
 }
 
