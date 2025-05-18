@@ -444,24 +444,24 @@ function createNonIntrusiveGlowEffect() {
             width: 6,          // Inner line thickness
             blur: 40,         // Increased outer glow blur
             outerBlurBoost: 1.5, // Multiplier for corner blur enhancement
-            speed: 0.60,
-            cornerSlowdownFactor: 0.5 // How much to slow down at corners (0.5 = 50% speed)
+            speed: 0.25,      // Increased base speed
+            cornerSpeedMaintain: true // Maintain speed at corners
         },
         'joker-card': { 
             color: '#ff3333',
             width: 6,
             blur: 40,
             outerBlurBoost: 1.5,
-            speed: 0.60,
-            cornerSlowdownFactor: 0.5
+            speed: 0.25,
+            cornerSpeedMaintain: true
         },
         'jester-card': { 
             color: '#00cc66',
             width: 6,
             blur: 40,
             outerBlurBoost: 1.5,
-            speed: 0.60,
-            cornerSlowdownFactor: 0.5
+            speed: 0.25,
+            cornerSpeedMaintain: true
         }
     };
 
@@ -501,8 +501,7 @@ function createNonIntrusiveGlowEffect() {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
             progress: 0,
-            cornerState: 0, // 0 = no corner, 1-4 = which corner
-            cornerTransitionProgress: 0 // For smooth corner slowdown
+            cornerState: 0 // 0 = no corner, 1-4 = which corner
         });
     });
 
@@ -547,29 +546,14 @@ function createNonIntrusiveGlowEffect() {
             canvas.height = parseInt(canvas.style.height) * dpr;
             canvasData.ctx.scale(dpr, dpr);
             
-            // Calculate adjusted speed based on corner position
-            let speedAdjustment = 1;
-            if (canvasData.cornerState > 0) {
-                // Smooth transition into and out of corners
-                if (canvasData.cornerTransitionProgress < 1) {
-                    canvasData.cornerTransitionProgress = Math.min(1, canvasData.cornerTransitionProgress + 0.05);
-                }
-                // Apply slowdown factor with smooth transition
-                speedAdjustment = 1 - (1 - config.cornerSlowdownFactor) * canvasData.cornerTransitionProgress;
-            } else if (canvasData.cornerTransitionProgress > 0) {
-                // Transitioning out of corner
-                canvasData.cornerTransitionProgress = Math.max(0, canvasData.cornerTransitionProgress - 0.05);
-                speedAdjustment = 1 - (1 - config.cornerSlowdownFactor) * canvasData.cornerTransitionProgress;
-            }
-            
-            // Update animation progress with adjusted speed
-            canvasData.progress = (canvasData.progress + (config.speed * speedAdjustment) * (deltaTime/1000)) % 1;
+            // Update animation progress with constant speed
+            canvasData.progress = (canvasData.progress + config.speed * (deltaTime/1000)) % 1;
             
             // Calculate content dimensions
             const contentWidth = parseInt(canvas.style.width) - (config.blur + config.width) * 2;
             const contentHeight = parseInt(canvas.style.height) - (config.blur + config.width) * 2;
             
-            // Draw with enhanced glow and corner handling
+            // Draw with enhanced glow
             drawEnhancedGlow(
                 canvasData,
                 config.color,
@@ -600,36 +584,18 @@ function createNonIntrusiveGlowEffect() {
         const offset = baseBlur + width;
         ctx.translate(offset, offset);
         
-        // Generate path points with corner detection
+        // Generate path points
         const points = [];
-        let currentCorner = 0;
-        let cornerDetected = false;
         
         const addPoint = (pos) => {
             if (pos < w) {
                 points.push({x: pos, y: 0, corner: 0});
-                if (currentCorner !== 0) {
-                    currentCorner = 0;
-                    cornerDetected = true;
-                }
             } else if (pos < w + h) {
                 points.push({x: w, y: pos - w, corner: 1});
-                if (currentCorner !== 1) {
-                    currentCorner = 1;
-                    cornerDetected = true;
-                }
             } else if (pos < 2*w + h) {
                 points.push({x: w - (pos - w - h), y: h, corner: 2});
-                if (currentCorner !== 2) {
-                    currentCorner = 2;
-                    cornerDetected = true;
-                }
             } else {
                 points.push({x: 0, y: h - (pos - 2*w - h), corner: 3});
-                if (currentCorner !== 3) {
-                    currentCorner = 3;
-                    cornerDetected = true;
-                }
             }
         };
         
@@ -645,11 +611,6 @@ function createNonIntrusiveGlowEffect() {
         } else {
             traceSegment(start, perimeter);
             traceSegment(0, end);
-        }
-        
-        // Update corner state if we detected a corner
-        if (cornerDetected) {
-            canvasData.cornerState = currentCorner;
         }
         
         // Draw with enhanced outer glow
@@ -719,7 +680,6 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
-
 
 <script>
 (function createDynamicBackgroundGlow() {
