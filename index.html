@@ -438,9 +438,9 @@
 <script>
 function createNonIntrusiveGlowEffect() {
     const glowConfig = {
-        'clown-card':  { color: '#00a8ff', width: 6, blur: 35, speed: 0.40 },
-        'joker-card':  { color: '#ff3333', width: 6, blur: 35, speed: 0.40 },
-        'jester-card': { color: '#00cc66', width: 6, blur: 35, speed: 0.40 }
+        'clown-card':  { color: '#00a8ff', width: 6, blur: 65, speed: 0.30 },
+        'joker-card':  { color: '#ff3333', width: 6, blur: 65, speed: 0.30 },
+        'jester-card': { color: '#00cc66', width: 6, blur: 65, speed: 0.30 }
     };
 
     const glowContainer = document.createElement('div');
@@ -466,7 +466,7 @@ function createNonIntrusiveGlowEffect() {
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '1',
-            borderRadius: '12px'
+            borderRadius: '16px'
         });
 
         glowContainer.appendChild(canvas);
@@ -515,7 +515,7 @@ function createNonIntrusiveGlowEffect() {
 
         ctx.save();
         const offset = blur + width;
-        ctx.translate(offset + 0.5, offset + 0.5);
+        ctx.translate(offset + 1.5, offset + 1.5);
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
