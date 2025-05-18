@@ -435,160 +435,277 @@
         });
     </script>
 
-function drawSmoothUniformGlow(ctx, color, progress, length, width, blur, w, h) {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    const r = width + blur; // corner radius
-    const straightLengths = [
-        w - 2 * r, // top edge
-        h - 2 * r, // right edge
-        w - 2 * r, // bottom edge
-        h - 2 * r  // left edge
-    ];
-    const cornerArcLength = Math.PI / 2 * r; // quarter circle arc length
-
-    // Total path length = 4 edges + 4 corners
-    const totalLength = straightLengths.reduce((a, b) => a + b, 0) + 4 * cornerArcLength;
-
-    const glowLength = length * totalLength;
-    let centerPos = progress * totalLength;
-
-    // Start and end positions (wrapped)
-    let startPos = centerPos - glowLength / 2;
-    if (startPos < 0) startPos += totalLength;
-    let endPos = (centerPos + glowLength / 2) % totalLength;
-
-    ctx.lineWidth = width;
-    ctx.strokeStyle = color;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = blur;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-
-    const offset = blur + width;
-    ctx.save();
-    ctx.translate(offset, offset);
-
-    // Helper: calculate point along rounded rect perimeter for a given distance pos
-    function getPointOnRoundedRect(pos) {
-        pos = pos % totalLength;
-
-        // Define segments: 4 edges and 4 corners in order:
-        // [edge0, corner0, edge1, corner1, edge2, corner2, edge3, corner3]
-        // edge lengths are straightLengths[i], corner length = cornerArcLength
-
-        // cumulative lengths to find segment where pos belongs
-        const segments = [];
-        for (let i = 0; i < 4; i++) {
-            segments.push(straightLengths[i]);
-            segments.push(cornerArcLength);
+<script>
+function createNonIntrusiveGlowEffect() {
+    const glowConfig = {
+        'clown-card': {
+            color: '#00a8ff',
+            width: 6,
+            blur: 25,
+            speed: 0.20
+        },
+        'joker-card': {
+            color: '#ff3333',
+            width: 6,
+            blur: 25,
+            speed: 0.20
+        },
+        'jester-card': {
+            color: '#00cc66',
+            width: 6,
+            blur: 25,
+            speed: 0.20
         }
-        const cumLengths = segments.reduce((arr, len, i) => {
-            arr.push((arr[i - 1] || 0) + len);
-            return arr;
-        }, []);
+    };
 
-        // Find which segment pos is in
-        let segmentIndex = cumLengths.findIndex(cumLen => pos < cumLen);
-        if (segmentIndex === -1) segmentIndex = 7; // last segment if somehow pos == totalLength
+    const glowContainer = document.createElement('div');
+    glowContainer.id = 'glow-container';
+    Object.assign(glowContainer.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '10'
+    });
+    document.body.appendChild(glowContainer);
 
-        // Calculate distance into the segment
-        let segmentStart = segmentIndex === 0 ? 0 : cumLengths[segmentIndex - 1];
-        let segmentPos = pos - segmentStart;
+    document.querySelectorAll('.flip-card').forEach(card => {
+        const canvas = document.createElement('canvas');
+        canvas.className = `glow-canvas ${card.id}-glow`;
+        Object.assign(canvas.style, {
+            position: 'absolute',
+            pointerEvents: 'none',
+            zIndex: '1'
+        });
+        glowContainer.appendChild(canvas);
+        canvas.dataset.cardId = card.id;
+    });
 
-        // Positions of rectangle corners:
-        // Start from top-left corner (r,r), go clockwise
-        // We'll describe each segment's start and path:
+    let animationId = null;
+    let lastTime = 0;
+    const frameRate = 60;
+    const frameInterval = 1000 / frameRate;
 
-        // segments: 0 edge top, 1 corner top-right, 2 edge right, 3 corner bottom-right,
-        // 4 edge bottom, 5 corner bottom-left, 6 edge left, 7 corner top-left
+    function updateGlowPositions() {
+        document.querySelectorAll('.flip-card').forEach(card => {
+            const canvas = document.querySelector(`.${card.id}-glow`);
+            if (!canvas) return;
 
-        switch (segmentIndex) {
-            case 0: // top edge, left to right
-                return { x: r + segmentPos, y: 0 };
-            case 1: // top-right corner, arc from (w - r, 0) clockwise to (w, r)
-                {
+            const rect = card.getBoundingClientRect();
+            const config = glowConfig[card.id];
+            const padding = config.blur + config.width;
+
+            Object.assign(canvas.style, {
+                top: `${rect.top - padding}px`,
+                left: `${rect.left - padding}px`,
+                width: `${rect.width + padding * 2}px`,
+                height: `${rect.height + padding * 2}px`
+            });
+        });
+    }
+
+    function animate(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const deltaTime = timestamp - lastTime;
+
+        if (deltaTime > frameInterval) {
+            lastTime = timestamp - (deltaTime % frameInterval);
+            updateGlowPositions();
+
+            document.querySelectorAll('.glow-canvas').forEach(canvas => {
+                const cardId = canvas.dataset.cardId;
+                const card = document.getElementById(cardId);
+                const config = glowConfig[cardId];
+
+                const ctx = canvas.getContext('2d');
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = parseInt(canvas.style.width) * dpr;
+                canvas.height = parseInt(canvas.style.height) * dpr;
+                ctx.scale(dpr, dpr);
+
+                if (!card || card.classList.contains('active')) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    return;
+                }
+
+                if (!canvas.progress) canvas.progress = 0;
+                canvas.progress = (canvas.progress + config.speed * (deltaTime / 1000)) % 1;
+
+                const actualWidth = parseInt(canvas.style.width) - (config.blur + config.width) * 2;
+                const actualHeight = parseInt(canvas.style.height) - (config.blur + config.width) * 2;
+
+                drawSmoothUniformGlow(
+                    ctx,
+                    config.color,
+                    canvas.progress,
+                    0.3,
+                    config.width,
+                    config.blur,
+                    actualWidth,
+                    actualHeight
+                );
+            });
+        }
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    // New glow drawing with uniform speed around rounded corners
+    function drawSmoothUniformGlow(ctx, color, progress, length, width, blur, w, h) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        const r = width + blur; // corner radius
+        const straightLengths = [
+            w - 2 * r, // top edge
+            h - 2 * r, // right edge
+            w - 2 * r, // bottom edge
+            h - 2 * r  // left edge
+        ];
+        const cornerArcLength = Math.PI / 2 * r; // quarter circle arc length
+
+        // Total path length = sum straight edges + 4 corners
+        const totalLength = straightLengths.reduce((a, b) => a + b, 0) + 4 * cornerArcLength;
+
+        const glowLength = length * totalLength;
+        let centerPos = progress * totalLength;
+
+        // Calculate start and end positions of the glow segment on the path
+        let startPos = centerPos - glowLength / 2;
+        if (startPos < 0) startPos += totalLength;
+        let endPos = (centerPos + glowLength / 2) % totalLength;
+
+        ctx.lineWidth = width;
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = blur;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        const offset = blur + width;
+        ctx.save();
+        ctx.translate(offset, offset);
+
+        // Returns x,y coordinate on rounded rectangle perimeter at distance pos
+        function getPointOnRoundedRect(pos) {
+            pos = pos % totalLength;
+
+            // Segments: [edge0, corner0, edge1, corner1, edge2, corner2, edge3, corner3]
+            // edge lengths: straightLengths[i], corner length = cornerArcLength
+            const segments = [];
+            for (let i = 0; i < 4; i++) {
+                segments.push(straightLengths[i]);
+                segments.push(cornerArcLength);
+            }
+            const cumLengths = segments.reduce((arr, len, i) => {
+                arr.push((arr[i - 1] || 0) + len);
+                return arr;
+            }, []);
+
+            let segmentIndex = cumLengths.findIndex(cumLen => pos < cumLen);
+            if (segmentIndex === -1) segmentIndex = 7; // fallback
+
+            let segmentStart = segmentIndex === 0 ? 0 : cumLengths[segmentIndex - 1];
+            let segmentPos = pos - segmentStart;
+
+            // Top-left corner (r,r) starting point clockwise
+            switch (segmentIndex) {
+                case 0: // top edge left to right
+                    return { x: r + segmentPos, y: 0 };
+                case 1: { // top-right corner arc
                     const angle = (Math.PI * 3 / 2) + (segmentPos / cornerArcLength) * (Math.PI / 2);
                     return {
                         x: w - r + r * Math.cos(angle),
                         y: r + r * Math.sin(angle)
                     };
                 }
-            case 2: // right edge, top to bottom
-                return { x: w, y: r + segmentPos };
-            case 3: // bottom-right corner, arc from (w, h - r) clockwise to (w - r, h)
-                {
+                case 2: // right edge top to bottom
+                    return { x: w, y: r + segmentPos };
+                case 3: { // bottom-right corner arc
                     const angle = 0 + (segmentPos / cornerArcLength) * (Math.PI / 2);
                     return {
                         x: w - r + r * Math.cos(angle),
                         y: h - r + r * Math.sin(angle)
                     };
                 }
-            case 4: // bottom edge, right to left
-                return { x: w - r - segmentPos, y: h };
-            case 5: // bottom-left corner, arc from (r, h) clockwise to (0, h - r)
-                {
+                case 4: // bottom edge right to left
+                    return { x: w - r - segmentPos, y: h };
+                case 5: { // bottom-left corner arc
                     const angle = (Math.PI / 2) + (segmentPos / cornerArcLength) * (Math.PI / 2);
                     return {
                         x: r + r * Math.cos(angle),
                         y: h - r + r * Math.sin(angle)
                     };
                 }
-            case 6: // left edge, bottom to top
-                return { x: 0, y: h - r - segmentPos };
-            case 7: // top-left corner, arc from (0, r) clockwise to (r, 0)
-                {
+                case 6: // left edge bottom to top
+                    return { x: 0, y: h - r - segmentPos };
+                case 7: { // top-left corner arc
                     const angle = Math.PI + (segmentPos / cornerArcLength) * (Math.PI / 2);
                     return {
                         x: r + r * Math.cos(angle),
                         y: r + r * Math.sin(angle)
                     };
                 }
-        }
-    }
-
-    // Generate points for glowing segment from startPos to endPos (handle wrap)
-    function generateGlowPoints(start, end) {
-        const points = [];
-        const step = 0.5;
-        if (start < end) {
-            for (let pos = start; pos <= end; pos += step) {
-                points.push(getPointOnRoundedRect(pos));
-            }
-        } else {
-            for (let pos = start; pos < totalLength; pos += step) {
-                points.push(getPointOnRoundedRect(pos));
-            }
-            for (let pos = 0; pos <= end; pos += step) {
-                points.push(getPointOnRoundedRect(pos));
             }
         }
-        return points;
-    }
 
-    const points = generateGlowPoints(startPos, endPos);
-
-    if (points.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(points[0].x, points[0].y);
-
-        // Smooth curve drawing via quadratic bezier
-        for (let i = 1; i < points.length - 1; i++) {
-            const prev = points[i - 1];
-            const curr = points[i];
-            const next = points[i + 1];
-
-            const cpx = (prev.x + next.x) / 2;
-            const cpy = (prev.y + next.y) / 2;
-
-            ctx.quadraticCurveTo(curr.x, curr.y, cpx, cpy);
+        function generateGlowPoints(start, end) {
+            const points = [];
+            const step = 0.5;
+            if (start < end) {
+                for (let pos = start; pos <= end; pos += step) {
+                    points.push(getPointOnRoundedRect(pos));
+                }
+            } else {
+                for (let pos = start; pos < totalLength; pos += step) {
+                    points.push(getPointOnRoundedRect(pos));
+                }
+                for (let pos = 0; pos <= end; pos += step) {
+                    points.push(getPointOnRoundedRect(pos));
+                }
+            }
+            return points;
         }
-        ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
-        ctx.stroke();
+
+        const points = generateGlowPoints(startPos, endPos);
+
+        if (points.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+
+            for (let i = 1; i < points.length - 1; i++) {
+                const prev = points[i - 1];
+                const curr = points[i];
+                const next = points[i + 1];
+                const cpx = (prev.x + next.x) / 2;
+                const cpy = (prev.y + next.y) / 2;
+                ctx.quadraticCurveTo(curr.x, curr.y, cpx, cpy);
+            }
+            ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+            ctx.stroke();
+        }
+
+        ctx.restore();
     }
 
-    ctx.restore();
+    animationId = requestAnimationFrame(animate);
+
+    window.addEventListener('resize', updateGlowPositions);
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.flip-card')) {
+            updateGlowPositions();
+        }
+    });
 }
+
+if (document.readyState === 'complete') {
+    createNonIntrusiveGlowEffect();
+} else {
+    document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
+}
+</script>
+
 
 
 
