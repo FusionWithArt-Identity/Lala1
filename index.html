@@ -497,42 +497,32 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    // Eased interpolation to reduce corner speed perception
-    function easedLinearInterpolation(p1, p2, t) {
-        // smoothstep easing
-        t = t * t * (3 - 2 * t);
-        return {
-            x: p1.x + (p2.x - p1.x) * t,
-            y: p1.y + (p2.y - p1.y) * t
-        };
+    // Returns point along perimeter length (linear, no easing)
+    function pointAtLength(len, w, h) {
+        const perimeter = 2 * (w + h);
+        len = (len + perimeter) % perimeter;
+        if (len < w) return { x: len, y: 0 };
+        else if (len < w + h) return { x: w, y: len - w };
+        else if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
+        else return { x: 0, y: perimeter - len };
     }
 
-    function buildSmoothedGlowPath(w, h, startT, endT, segments = 200) {
+    // Build linear path with many segments for smoothness
+    function buildUniformGlowPath(w, h, startT, endT, segments = 500) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
-
-        function pointAtLength(len) {
-            len = (len + perimeter) % perimeter;
-            if (len < w) return { x: len, y: 0 };
-            else if (len < w + h) return { x: w, y: len - w };
-            else if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
-            else return { x: 0, y: perimeter - len };
-        }
-
         const start = startT * perimeter;
         const end = endT * perimeter;
         const totalLen = (end >= start) ? end - start : (perimeter - start + end);
-
         const step = totalLen / segments;
-        let prev = pointAtLength(start);
+
+        let prev = pointAtLength(start, w, h);
         path.moveTo(prev.x, prev.y);
 
         for (let i = 1; i <= segments; i++) {
             const len = (start + step * i) % perimeter;
-            const next = pointAtLength(len);
-            const eased = easedLinearInterpolation(prev, next, 0.5);
-            path.lineTo(eased.x, eased.y);
-            prev = next;
+            const pt = pointAtLength(len, w, h);
+            path.lineTo(pt.x, pt.y);
         }
 
         return path;
@@ -548,7 +538,7 @@ function createNonIntrusiveGlowEffect() {
 
         ctx.save();
         const offset = blur + width;
-        ctx.translate(offset + 0.5, offset + 0.5);
+        ctx.translate(offset + 0.5, offset + 0.5); // align to pixel grid
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
@@ -557,7 +547,7 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildSmoothedGlowPath(w, h, start / perimeter, end / perimeter);
+        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 500);
         ctx.stroke(path);
         ctx.restore();
     }
