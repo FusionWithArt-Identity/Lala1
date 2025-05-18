@@ -446,8 +446,10 @@ function createNonIntrusiveGlowEffect() {
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
-        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
-        pointerEvents: 'none', zIndex: '10', willChange: 'transform'
+        position: 'fixed', top: 0, left: 0,
+        width: '100%', height: '100%',
+        pointerEvents: 'none', zIndex: 10,
+        willChange: 'transform'
     });
     document.body.appendChild(glowContainer);
 
@@ -455,23 +457,25 @@ function createNonIntrusiveGlowEffect() {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
         Object.assign(canvas.style, {
-            position: 'absolute', pointerEvents: 'none', zIndex: '1',
-            borderRadius: '12px', willChange: 'transform'
+            position: 'absolute', pointerEvents: 'none',
+            zIndex: 1, borderRadius: '12px',
+            willChange: 'transform'
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
     });
 
+    const canvasContexts = new Map();
     let lastTime = performance.now();
     let animationId = null;
-    const canvasContexts = new Map();
 
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
         const ctx = canvas.getContext('2d', { alpha: true });
         ctx.imageSmoothingEnabled = true;
         canvasContexts.set(canvas, {
-            ctx: ctx,
+            ctx,
             progress: 0,
+            velocity: 0,
             targetProgress: 0
         });
     });
@@ -480,10 +484,8 @@ function createNonIntrusiveGlowEffect() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
             if (!canvas) return;
-
             const config = glowConfig[card.id];
             const padding = config.blur + config.width;
-
             const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
                 top: `${rect.top - padding}px`,
@@ -516,70 +518,56 @@ function createNonIntrusiveGlowEffect() {
             const height = parseInt(canvas.style.height);
             canvas.width = width * dpr;
             canvas.height = height * dpr;
-            canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
-            canvasData.ctx.scale(dpr, dpr);
 
-            canvasData.targetProgress = (canvasData.targetProgress + config.baseSpeed * (deltaTime / 1000)) % 1;
+            const ctx = canvasData.ctx;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.scale(dpr, dpr);
+
+            canvasData.targetProgress = (canvasData.targetProgress + config.baseSpeed * deltaTime / 1000) % 1;
             const diff = (canvasData.targetProgress - canvasData.progress + 1) % 1;
             const direction = diff > 0.5 ? -1 : 1;
-            const eased = diff > 0.5 ? 1 - diff : diff;
-            canvasData.progress = (canvasData.progress + direction * eased * config.smoothFactor + 1) % 1;
+            const adjustedDiff = diff > 0.5 ? 1 - diff : diff;
+            canvasData.progress = (canvasData.progress + direction * adjustedDiff * config.smoothFactor) % 1;
 
-            const glowWidth = config.width;
-            const blur = config.blur;
-            const boost = config.outerBlurBoost;
-            const innerWidth = width - 2 * (blur + glowWidth);
-            const innerHeight = height - 2 * (blur + glowWidth);
+            const glowPadding = config.blur + config.width;
+            const contentWidth = width - glowPadding * 2;
+            const contentHeight = height - glowPadding * 2;
 
-            drawGlow(canvasData.ctx, innerWidth, innerHeight, canvasData.progress, glowWidth, blur, boost, config.color);
+            drawGlowPath(ctx, canvasData.progress, contentWidth, contentHeight, config);
         });
 
         animationId = requestAnimationFrame(animate);
     }
 
-    function drawGlow(ctx, w, h, progress, width, blur, boost, color) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        const offset = width + blur;
-        ctx.translate(offset, offset);
-
+    function drawGlowPath(ctx, progress, w, h, config) {
+        const { color, width, blur, outerBlurBoost } = config;
+        const offset = blur + width;
         const perimeter = 2 * (w + h);
-        const trailLength = 0.3;
-        const trailPixels = perimeter * trailLength;
-        const start = (progress * perimeter - trailPixels / 2 + perimeter) % perimeter;
-        const end = (progress * perimeter + trailPixels / 2) % perimeter;
+        const trail = 0.3 * perimeter;
+        const start = (progress * perimeter - trail / 2 + perimeter) % perimeter;
+        const end = (start + trail) % perimeter;
 
-        const getPoint = (p) => {
-            p = p % perimeter;
-            if (p < w) return { x: p, y: 0, c: 0 };
-            if (p < w + h) return { x: w, y: p - w, c: 1 };
-            if (p < 2 * w + h) return { x: w - (p - w - h), y: h, c: 2 };
-            return { x: 0, y: h - (p - 2 * w - h), c: 3 };
+        const getPoint = pos => {
+            if (pos < w) return { x: pos, y: 0, corner: 0 };
+            if (pos < w + h) return { x: w, y: pos - w, corner: 1 };
+            if (pos < 2 * w + h) return { x: w - (pos - w - h), y: h, corner: 2 };
+            return { x: 0, y: h - (pos - 2 * w - h), corner: 3 };
         };
 
         const points = [];
-        const steps = 120;
-        if (start < end) {
-            for (let i = 0; i <= steps; i++) {
-                const pos = start + ((end - start) * i) / steps;
+        const segments = 100;
+        const generatePoints = (s, e) => {
+            for (let i = 0; i <= segments; i++) {
+                const pos = (s + (e - s + perimeter) % perimeter * (i / segments)) % perimeter;
                 points.push(getPoint(pos));
             }
-        } else {
-            for (let i = 0; i <= steps / 2; i++) {
-                const pos = start + ((perimeter - start) * i) / (steps / 2);
-                points.push(getPoint(pos));
-            }
-            for (let i = 1; i <= steps / 2; i++) {
-                const pos = (end * i) / (steps / 2);
-                points.push(getPoint(pos));
-            }
-        }
+        };
+        if (start < end) generatePoints(start, end);
+        else { generatePoints(start, perimeter); generatePoints(0, end); }
 
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-        ctx.shadowColor = color;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
+        ctx.save();
+        ctx.translate(offset, offset);
         ctx.beginPath();
         ctx.moveTo(points[0].x, points[0].y);
 
@@ -587,39 +575,40 @@ function createNonIntrusiveGlowEffect() {
             const prev = points[i - 1];
             const curr = points[i];
             const next = points[i + 1];
+            const isCorner = curr.corner !== prev.corner;
+            ctx.shadowBlur = isCorner ? blur * outerBlurBoost : blur;
+            ctx.shadowColor = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
 
-            ctx.shadowBlur = curr.c !== prev.c ? blur * boost : blur;
-
-            const cp1x = (prev.x + curr.x) / 2;
-            const cp1y = (prev.y + curr.y) / 2;
-            const cp2x = (curr.x + next.x) / 2;
-            const cp2y = (curr.y + next.y) / 2;
-
-            ctx.quadraticCurveTo(cp1x, cp1y, cp2x, cp2y);
+            const cpx = (curr.x + next.x) / 2;
+            const cpy = (curr.y + next.y) / 2;
+            ctx.quadraticCurveTo(curr.x, curr.y, cpx, cpy);
         }
-
         ctx.stroke();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.restore();
     }
 
     updateGlowPositions();
     lastTime = performance.now();
     animationId = requestAnimationFrame(animate);
 
-    let resizeTimeout;
     const resizeObserver = new ResizeObserver(() => {
         cancelAnimationFrame(animationId);
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
+        requestAnimationFrame(() => {
             updateGlowPositions();
             lastTime = performance.now();
             animationId = requestAnimationFrame(animate);
-        }, 50);
+        });
     });
     resizeObserver.observe(document.body);
 
     document.addEventListener('click', e => {
-        if (e.target.closest('.flip-card')) updateGlowPositions();
+        if (e.target.closest('.flip-card')) {
+            updateGlowPositions();
+        }
     });
 
     window.addEventListener('beforeunload', () => {
@@ -640,6 +629,7 @@ if (document.readyState === 'complete') {
     });
 }
 </script>
+
 
 
 
