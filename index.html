@@ -436,11 +436,11 @@
     </script>
 
 <script>
-function createNonIntrusiveGlowEffect() {
+function createNonIntrusiveGlassGlowEffect() {
     const glowConfig = {
-        'clown-card':  { color: '#00a8ff', width: 6, blur: 35, speed: 0.40 },
-        'joker-card':  { color: '#ff3333', width: 6, blur: 35, speed: 0.40 },
-        'jester-card': { color: '#00cc66', width: 6, blur: 35, speed: 0.40 }
+        'clown-card':  { color: 'rgba(0, 168, 255, 0.3)', width: 12, blur: 30, speed: 0.40 },
+        'joker-card':  { color: 'rgba(255, 51, 51, 0.3)', width: 12, blur: 30, speed: 0.40 },
+        'jester-card': { color: 'rgba(0, 204, 102, 0.3)', width: 12, blur: 30, speed: 0.40 }
     };
 
     const glowContainer = document.createElement('div');
@@ -499,7 +499,7 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function smoothInterpolate(p1, p2, t) {
-        t = t * t * (3 - 2 * t); // Smoothstep
+        t = t * t * (3 - 2 * t); // Smoothstep easing
         return {
             x: p1.x + (p2.x - p1.x) * t,
             y: p1.y + (p2.y - p1.y) * t
@@ -534,7 +534,7 @@ function createNonIntrusiveGlowEffect() {
         return path;
     }
 
-    function drawGlow(ctx, color, progress, length, width, blur, w, h) {
+    function drawGlassGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         const P = 2 * (w + h);
         const center = progress * P;
@@ -545,16 +545,40 @@ function createNonIntrusiveGlowEffect() {
         ctx.save();
         const offset = blur + width;
         ctx.translate(offset + 0.5, offset + 0.5);
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = blur;
+
+        // Multiple layered strokes for glassy translucent effect
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildGlowPath(w, h, start / P, end / P);
-        ctx.stroke(path);
+        // Outer big soft glow
+        ctx.lineWidth = width * 2.5;
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = blur * 1.2;
+        ctx.globalAlpha = 0.15;
+        ctx.stroke(buildGlowPath(w, h, start / P, end / P));
+
+        // Medium glow layer
+        ctx.lineWidth = width * 1.5;
+        ctx.shadowBlur = blur * 0.8;
+        ctx.globalAlpha = 0.25;
+        ctx.stroke(buildGlowPath(w, h, start / P, end / P));
+
+        // Core glow line
+        ctx.lineWidth = width;
+        ctx.shadowBlur = blur * 0.5;
+        ctx.globalAlpha = 0.5;
+        ctx.stroke(buildGlowPath(w, h, start / P, end / P));
+
+        // Highlight line (white translucent)
+        ctx.lineWidth = width * 0.6;
+        ctx.shadowBlur = blur * 0.3;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.globalAlpha = 0.4;
+        ctx.stroke(buildGlowPath(w, h, (start / P + 0.005) % 1, (end / P + 0.005) % 1));
+
         ctx.restore();
+        ctx.globalAlpha = 1.0;
     }
 
     function animate(currentTime) {
@@ -593,7 +617,7 @@ function createNonIntrusiveGlowEffect() {
             const contentW = sw - (config.blur + config.width) * 2;
             const contentH = sh - (config.blur + config.width) * 2;
 
-            drawGlow(ctx, config.color, data.progress, 0.3, config.width, config.blur, contentW, contentH);
+            drawGlassGlow(ctx, config.color, data.progress, 0.3, config.width, config.blur, contentW, contentH);
         }
 
         requestAnimationFrame(animate);
@@ -616,9 +640,9 @@ function createNonIntrusiveGlowEffect() {
 }
 
 if (document.readyState === 'complete') {
-    createNonIntrusiveGlowEffect();
+    createNonIntrusiveGlassGlowEffect();
 } else {
-    document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
+    document.addEventListener('DOMContentLoaded', createNonIntrusiveGlassGlowEffect);
 }
 </script>
 
