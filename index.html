@@ -497,7 +497,6 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    // Returns point along perimeter length (linear, no easing)
     function pointAtLength(len, w, h) {
         const perimeter = 2 * (w + h);
         len = (len + perimeter) % perimeter;
@@ -507,7 +506,6 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    // Build linear path with many segments for smoothness
     function buildUniformGlowPath(w, h, startT, endT, segments = 500) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
@@ -529,7 +527,10 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        // Instead of clearRect, draw translucent black rect for trailing effect
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';  // tweak alpha for trail length (lower = longer trail)
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
         const halfLen = (length * perimeter) / 2;
@@ -538,7 +539,7 @@ function createNonIntrusiveGlowEffect() {
 
         ctx.save();
         const offset = blur + width;
-        ctx.translate(offset + 0.5, offset + 0.5); // align to pixel grid
+        ctx.translate(offset + 0.5, offset + 0.5);
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
@@ -578,6 +579,8 @@ function createNonIntrusiveGlowEffect() {
                 canvas.height = styleHeight * dpr;
                 canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 canvasData.ctx.scale(dpr, dpr);
+                // Clear immediately to avoid ghosting on resize
+                canvasData.ctx.clearRect(0, 0, canvas.width, canvas.height);
             } else {
                 canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 canvasData.ctx.scale(dpr, dpr);
