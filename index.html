@@ -438,9 +438,9 @@
 <script>
 function createNonIntrusiveGlowEffect() {
     const glowConfig = {
-        'clown-card':  { color: '#00a8ff', width: 6, blur: 65, speed: 0.30 },
-        'joker-card':  { color: '#ff3333', width: 6, blur: 65, speed: 0.30 },
-        'jester-card': { color: '#00cc66', width: 6, blur: 65, speed: 0.30 }
+        'clown-card':  { color: '#00a8ff', width: 6, blur: 35, speed: 0.40 },
+        'joker-card':  { color: '#ff3333', width: 6, blur: 35, speed: 0.40 },
+        'jester-card': { color: '#00cc66', width: 6, blur: 35, speed: 0.40 }
     };
 
     const glowContainer = document.createElement('div');
@@ -485,7 +485,7 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    function buildGlowPath(w, h, startT, endT, segments = 1200) {
+    function buildGlowPath(w, h, startT, endT, segments = 600) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -515,7 +515,7 @@ function createNonIntrusiveGlowEffect() {
 
         ctx.save();
         const offset = blur + width;
-        
+        ctx.translate(offset + 0.5, offset + 0.5);
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
@@ -599,7 +599,7 @@ function createNonIntrusiveGlowEffect() {
     let resizeTimer;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(updateCanvasPositions, 10000);
+        resizeTimer = setTimeout(updateCanvasPositions, 80);
     });
 
     document.addEventListener('click', e => {
