@@ -493,16 +493,18 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function easingAtCorners(t) {
-        // Add slowdown effect near corners (at 0, 0.25, 0.5, 0.75)
-        const distanceToCorner = Math.min(
+        // Distance from nearest corner (0, 0.25, 0.5, 0.75)
+        const cornerDistance = Math.min(
             Math.abs(t - 0.00),
             Math.abs(t - 0.25),
             Math.abs(t - 0.50),
             Math.abs(t - 0.75),
             Math.abs(t - 1.00)
         );
-        const influence = Math.max(0, 0.125 - distanceToCorner); // within 0.125 of a corner
-        return 1 - Math.pow(influence * 8, 2); // quadratic slowdown
+        const influence = Math.max(0, 0.125 - cornerDistance); // within range
+        const slowdown = Math.pow(influence * 8, 2); // quadratic curve
+
+        return Math.max(0.3, 1 - slowdown); // guarantee minimum speed of 0.3
     }
 
     function buildGlowPath(w, h, startT, endT, segments = 200) {
@@ -524,12 +526,7 @@ function createNonIntrusiveGlowEffect() {
         for (let i = 1; i <= segments; i++) {
             const t = (startT + totalLen * (i / segments)) % 1;
             const pt = pointAt(t);
-            const eased = {
-                x: prev.x + (pt.x - prev.x) * 0.5,
-                y: prev.y + (pt.y - prev.y) * 0.5
-            };
-            path.lineTo(eased.x, eased.y);
-            prev = pt;
+            path.lineTo(pt.x, pt.y);
         }
 
         return path;
@@ -633,6 +630,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
