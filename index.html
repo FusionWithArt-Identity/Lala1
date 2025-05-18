@@ -437,29 +437,12 @@
 
 <script>
 function createNonIntrusiveGlowEffect() {
-    // Configuration with increased blur for outer glow
     const glowConfig = {
-        'clown-card': { 
-            color: '#00a8ff',
-            width: 6,
-            blur: 35,
-            speed: 0.40  // You can change this value as needed
-        },
-        'joker-card': { 
-            color: '#ff3333',
-            width: 6,
-            blur: 35,
-            speed: 0.40
-        },
-        'jester-card': { 
-            color: '#00cc66',
-            width: 6,
-            blur: 35,
-            speed: 0.40
-        }
+        'clown-card':  { color: '#00a8ff', width: 6, blur: 35, speed: 0.40 },
+        'joker-card':  { color: '#ff3333', width: 6, blur: 35, speed: 0.40 },
+        'jester-card': { color: '#00cc66', width: 6, blur: 35, speed: 0.40 }
     };
 
-    // Create container for glow canvases
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -473,7 +456,6 @@ function createNonIntrusiveGlowEffect() {
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvas elements for each card
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
@@ -487,10 +469,9 @@ function createNonIntrusiveGlowEffect() {
         canvas.dataset.cardId = card.id;
     });
 
-    // Prepare contexts and progress trackers
-    let lastTime = performance.now();
-    let animationId = null;
     const canvasContexts = new Map();
+    let lastTime = performance.now();
+
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
@@ -498,15 +479,14 @@ function createNonIntrusiveGlowEffect() {
         });
     });
 
-    // Update canvas positions and sizes on screen
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
             if (!canvas) return;
-            
+
             const config = glowConfig[card.id];
-            const padding = config.blur + config.width; 
-            
+            const padding = config.blur + config.width;
+
             const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
                 top: `${rect.top - padding}px`,
@@ -517,67 +497,48 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    // Build uniform perimeter path (clockwise) for glow drawing
-    function buildUniformGlowPath(w, h, startT, endT) {
-        const P = 2 * (w + h);
+    // Returns point along perimeter length (linear, no easing)
+    function pointAtLength(len, w, h) {
+        const perimeter = 2 * (w + h);
+        len = (len + perimeter) % perimeter;
+        if (len < w) return { x: len, y: 0 };
+        else if (len < w + h) return { x: w, y: len - w };
+        else if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
+        else return { x: 0, y: perimeter - len };
+    }
+
+    // Build linear path with many segments for smoothness
+    function buildUniformGlowPath(w, h, startT, endT, segments = 500) {
         const path = new Path2D();
+        const perimeter = 2 * (w + h);
+        const start = startT * perimeter;
+        const end = endT * perimeter;
+        const totalLen = (end >= start) ? end - start : (perimeter - start + end);
+        const step = totalLen / segments;
 
-        const pointAt = (pos) => {
-            pos = (pos + P) % P;
-            if (pos < w) return { x: pos, y: 0 };
-            else if (pos < w + h) return { x: w, y: pos - w };
-            else if (pos < 2 * w + h) return { x: 2 * w + h - pos, y: h };
-            else return { x: 0, y: P - pos };
-        };
+        let prev = pointAtLength(start, w, h);
+        path.moveTo(prev.x, prev.y);
 
-        const toPerimeter = (t) => t * P;
-
-        let startPos = toPerimeter(startT);
-        let endPos = toPerimeter(endT);
-
-        function drawSegment(s, e) {
-            const step = 1; // 1 px step for smoothness/performance balance
-            if (e <= s) return;
-            let firstPoint = pointAt(s);
-            path.moveTo(firstPoint.x, firstPoint.y);
-            for (let pos = s + step; pos <= e; pos += step) {
-                let pt = pointAt(pos);
-                path.lineTo(pt.x, pt.y);
-            }
-            if ((e - s) % step !== 0) {
-                let pt = pointAt(e);
-                path.lineTo(pt.x, pt.y);
-            }
-        }
-
-        if (startPos > endPos) {
-            drawSegment(startPos, P);
-            drawSegment(0, endPos);
-        } else {
-            drawSegment(startPos, endPos);
+        for (let i = 1; i <= segments; i++) {
+            const len = (start + step * i) % perimeter;
+            const pt = pointAtLength(len, w, h);
+            path.lineTo(pt.x, pt.y);
         }
 
         return path;
     }
 
-    // Draw the glow with trailing motion blur effect & clipping to avoid shadow outside card
     function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
-        // Draw semi-transparent black overlay for trailing blur effect
-        ctx.save();
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
         const halfLen = (length * perimeter) / 2;
         const start = (center - halfLen + perimeter) % perimeter;
         const end = (center + halfLen) % perimeter;
 
-        // Clip to card content area to prevent glow drawing outside bounds
-        ctx.beginPath();
-        ctx.rect(width + blur, width + blur, w, h);
-        ctx.clip();
+        ctx.save();
+        const offset = blur + width;
+        ctx.translate(offset + 0.5, offset + 0.5); // align to pixel grid
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
@@ -586,82 +547,71 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter);
+        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 500);
         ctx.stroke(path);
-
         ctx.restore();
     }
 
-    // Animation loop
     function animate(currentTime) {
-        const deltaTime = Math.min(currentTime - lastTime, 100);
+        const deltaTime = Math.min(currentTime - lastTime, 33);
         lastTime = currentTime;
-        
+
         updateGlowPositions();
-        
+
         document.querySelectorAll('.glow-canvas').forEach(canvas => {
             const cardId = canvas.dataset.cardId;
-            const card = document.getElementById(cardId);
             const config = glowConfig[cardId];
             const canvasData = canvasContexts.get(canvas);
-            
+            const card = document.getElementById(cardId);
+
             if (!card || card.classList.contains('active')) {
                 canvasData.ctx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
-            
-            // Retina scaling and canvas resize
+
             const dpr = window.devicePixelRatio || 1;
             const styleWidth = parseInt(canvas.style.width);
             const styleHeight = parseInt(canvas.style.height);
+
             if (canvas.width !== styleWidth * dpr || canvas.height !== styleHeight * dpr) {
                 canvas.width = styleWidth * dpr;
                 canvas.height = styleHeight * dpr;
-                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 canvasData.ctx.scale(dpr, dpr);
             } else {
                 canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 canvasData.ctx.scale(dpr, dpr);
             }
-            
-            // Update animation progress
+
             canvasData.progress = (canvasData.progress + config.speed * (deltaTime / 1000)) % 1;
-            
-            // Content area excluding glow padding
+
             const contentWidth = styleWidth - (config.blur + config.width) * 2;
             const contentHeight = styleHeight - (config.blur + config.width) * 2;
-            
+
             drawEnhancedGlow(
                 canvasData.ctx,
                 config.color,
                 canvasData.progress,
-                0.3, // segment length as fraction of perimeter
+                0.3,
                 config.width,
                 config.blur,
                 contentWidth,
                 contentHeight
             );
         });
-        
-        animationId = requestAnimationFrame(animate);
+
+        requestAnimationFrame(animate);
     }
 
-    // Initialize
     updateGlowPositions();
-    animationId = requestAnimationFrame(animate);
-    
-    // Resize handling with debounce
+    requestAnimationFrame(animate);
+
     let resizeTimeout;
     window.addEventListener('resize', () => {
-        cancelAnimationFrame(animationId);
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            updateGlowPositions();
-            animationId = requestAnimationFrame(animate);
-        }, 100);
+        resizeTimeout = setTimeout(updateGlowPositions, 100);
     });
-    
-    // Update glow on card click (optional)
+
     document.addEventListener('click', (e) => {
         if (e.target.closest('.flip-card')) {
             updateGlowPositions();
@@ -669,7 +619,6 @@ function createNonIntrusiveGlowEffect() {
     });
 }
 
-// Start the glow effect once DOM is ready
 if (document.readyState === 'complete') {
     createNonIntrusiveGlowEffect();
 } else {
