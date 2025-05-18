@@ -28,13 +28,44 @@
         overflow-x: hidden;
     }
     
-    h1 {
-        color: #5e35b1;
-        margin-bottom: 20px;
-        font-size: 1.8rem;
-        text-align: center;
-        font-weight: bold;
+   h1 {
+    color: #5e35b1;
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+    text-align: center;
+    font-weight: bold;
+
+    /* Neon Glow Effect */
+    text-shadow:
+        0 0 5px #5e35b1,
+        0 0 10px #5e35b1,
+        0 0 20px #7e57c2,
+        0 0 30px #9575cd,
+        0 0 40px #b39ddb;
+}
+@keyframes neon-glow {
+    0%, 100% {
+        text-shadow:
+            0 0 5px #5e35b1,
+            0 0 10px #5e35b1,
+            0 0 20px #7e57c2,
+            0 0 30px #9575cd,
+            0 0 40px #b39ddb;
     }
+    50% {
+        text-shadow:
+            0 0 3px #5e35b1,
+            0 0 6px #5e35b1,
+            0 0 12px #7e57c2,
+            0 0 18px #9575cd,
+            0 0 24px #b39ddb;
+    }
+}
+
+h1 {
+    animation: neon-glow 2s ease-in-out infinite;
+}
+
     
     .cards-container {
         display: flex;
