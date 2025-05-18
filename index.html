@@ -437,35 +437,38 @@
 
 <script>
 function createNonIntrusiveGlowEffect() {
-    // Enhanced configuration with fluid dynamics
+    // Configuration with flicker-free settings
     const glowConfig = {
         'clown-card': { 
             color: '#00a8ff',
             width: 6,
             blur: 40,
-            outerBlurBoost: 1.8,  // Stronger corner glow
-            baseSpeed: 0.28,      // Base movement speed
-            smoothFactor: 0.15    // Easing smoothness (0-1)
+            outerBlurBoost: 1.5,
+            baseSpeed: 0.25,
+            smoothFactor: 0.12,
+            trailLength: 0.25
         },
         'joker-card': { 
             color: '#ff3333',
             width: 6,
             blur: 40,
-            outerBlurBoost: 1.8,
-            baseSpeed: 0.28,
-            smoothFactor: 0.15
+            outerBlurBoost: 1.5,
+            baseSpeed: 0.25,
+            smoothFactor: 0.12,
+            trailLength: 0.25
         },
         'jester-card': { 
             color: '#00cc66',
             width: 6,
             blur: 40,
-            outerBlurBoost: 1.8,
-            baseSpeed: 0.28,
-            smoothFactor: 0.15
+            outerBlurBoost: 1.5,
+            baseSpeed: 0.25,
+            smoothFactor: 0.12,
+            trailLength: 0.25
         }
     };
 
-    // Create optimized container
+    // Create container with flicker prevention
     const glowContainer = document.createElement('div');
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
@@ -476,11 +479,12 @@ function createNonIntrusiveGlowEffect() {
         height: '100%',
         pointerEvents: 'none',
         zIndex: '10',
-        willChange: 'transform' // Boost performance
+        willChange: 'transform',
+        backfaceVisibility: 'hidden' // Prevent flickering
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvas elements with hardware acceleration
+    // Create optimized canvas elements
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
@@ -489,38 +493,40 @@ function createNonIntrusiveGlowEffect() {
             pointerEvents: 'none',
             zIndex: '1',
             borderRadius: '12px',
-            willChange: 'transform' // Boost performance
+            willChange: 'transform',
+            backfaceVisibility: 'hidden', // Prevent flickering
+            transformStyle: 'preserve-3d' // Better rendering
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
     });
 
-    // Advanced animation setup
+    // Animation setup with flicker prevention
     let lastTime = performance.now();
     let animationId = null;
     const canvasContexts = new Map();
     
-    // Store previous positions for smoothing
-    const positionHistory = new Map();
-    
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
-        const ctx = canvas.getContext('2d', { alpha: true });
+        const ctx = canvas.getContext('2d', { 
+            alpha: true,
+            desynchronized: true // Important for flicker prevention
+        });
+        
+        // Anti-flicker canvas settings
         ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.globalCompositeOperation = 'lighter';
+        
         canvasContexts.set(canvas, {
             ctx: ctx,
             progress: 0,
-            velocity: 0,
-            targetProgress: 0,
-            lastPositions: [] // For smoothing trail
-        });
-        
-        positionHistory.set(canvas, {
-            positions: [],
-            timestamps: []
+            lastProgress: 0,
+            lastRenderTime: 0,
+            smoothingQueue: []
         });
     });
 
-    // Fluid position updater with momentum
+    // Position updater with double buffering
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
@@ -539,7 +545,7 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    // High-performance animation loop
+    // Flicker-free animation loop
     function animate(currentTime) {
         const deltaTime = Math.min(currentTime - lastTime, 100);
         lastTime = currentTime;
@@ -557,48 +563,62 @@ function createNonIntrusiveGlowEffect() {
                 return;
             }
             
-            // Update canvas size with device pixel ratio
+            // Update canvas size with stabilization
             const dpr = window.devicePixelRatio || 1;
-            canvas.width = parseInt(canvas.style.width) * dpr;
-            canvas.height = parseInt(canvas.style.height) * dpr;
-            canvasData.ctx.scale(dpr, dpr);
+            const targetWidth = parseInt(canvas.style.width) * dpr;
+            const targetHeight = parseInt(canvas.style.height) * dpr;
             
-            // Physics-based smooth progression
-            canvasData.targetProgress = (canvasData.targetProgress + config.baseSpeed * (deltaTime/1000)) % 1;
+            // Only resize if necessary to prevent flicker
+            if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
+                canvasData.ctx.scale(dpr, dpr);
+                canvasData.ctx.imageSmoothingEnabled = true;
+                canvasData.ctx.imageSmoothingQuality = 'high';
+            }
             
-            // Apply easing for ultra-smooth movement
+            // Smooth progression with time-based interpolation
+            canvasData.targetProgress = (canvasData.targetProgress || 0) + config.baseSpeed * (deltaTime/1000);
+            canvasData.targetProgress %= 1;
+            
+            // Apply smooth interpolation
             const progressDiff = (canvasData.targetProgress - canvasData.progress + 1) % 1;
             const direction = progressDiff > 0.5 ? -1 : 1;
-            const smoothProgress = progressDiff > 0.5 ? 1 - progressDiff : progressDiff;
+            const adjustedDiff = progressDiff > 0.5 ? 1 - progressDiff : progressDiff;
             
             canvasData.progress = (canvasData.progress + 
-                direction * smoothProgress * config.smoothFactor) % 1;
+                direction * adjustedDiff * config.smoothFactor) % 1;
             
             // Calculate dimensions
             const contentWidth = parseInt(canvas.style.width) - (config.blur + config.width) * 2;
             const contentHeight = parseInt(canvas.style.height) - (config.blur + config.width) * 2;
             
-            // Draw with enhanced fluid glow
-            drawFluidGlow(
+            // Draw with flicker-free glow
+            drawStableGlow(
                 canvasData,
                 config.color,
                 canvasData.progress,
-                0.3, // Trail length
+                config.trailLength,
                 config.width,
                 config.blur,
                 config.outerBlurBoost,
                 contentWidth,
-                contentHeight
+                contentHeight,
+                currentTime
             );
         });
         
         animationId = requestAnimationFrame(animate);
     }
 
-    // Ultra-smooth glow rendering with bezier curves
-    function drawFluidGlow(canvasData, color, progress, length, width, baseBlur, blurBoost, w, h) {
+    // Flicker-free glow rendering
+    function drawStableGlow(canvasData, color, progress, length, width, baseBlur, blurBoost, w, h, currentTime) {
         const ctx = canvasData.ctx;
+        
+        // Clear with preservation of existing glow
+        ctx.globalCompositeOperation = 'copy';
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.globalCompositeOperation = 'lighter';
         
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
@@ -610,9 +630,9 @@ function createNonIntrusiveGlowEffect() {
         const offset = baseBlur + width;
         ctx.translate(offset, offset);
         
-        // Generate smooth path points
+        // Generate stable path points
         const points = [];
-        const segments = 100; // High resolution for smoothness
+        const segments = 80; // Optimal for smoothness without overdraw
         
         const getPoint = (pos) => {
             if (pos < w) return {x: pos, y: 0, corner: 0};
@@ -621,7 +641,7 @@ function createNonIntrusiveGlowEffect() {
             return {x: 0, y: h - (pos - 2*w - h), corner: 3};
         };
         
-        // Generate high-resolution path
+        // Generate path with stable point distribution
         if (start < end) {
             for (let i = 0; i <= segments; i++) {
                 const pos = start + (end - start) * (i / segments);
@@ -638,7 +658,7 @@ function createNonIntrusiveGlowEffect() {
             }
         }
         
-        // Draw with enhanced fluidity
+        // Draw with stable glow effect
         if (points.length > 2) {
             ctx.lineWidth = width;
             ctx.strokeStyle = color;
@@ -646,42 +666,52 @@ function createNonIntrusiveGlowEffect() {
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
             
-            // Begin glow path
+            // Begin path with stable initial point
             ctx.beginPath();
             ctx.moveTo(points[0].x, points[0].y);
             
-            // Draw smooth bezier curves through all points
+            // Draw smooth path with consistent glow
             for (let i = 1; i < points.length - 1; i++) {
                 const prev = points[i-1];
                 const curr = points[i];
                 const next = points[i+1];
                 
-                // Enhanced corner detection
+                // Stable corner detection with consistent blur
                 const isCorner = curr.corner !== prev.corner;
                 ctx.shadowBlur = isCorner ? baseBlur * blurBoost : baseBlur;
                 
-                // Calculate control points for smooth curves
+                // Calculate stable control points
                 const cpx1 = (prev.x + curr.x) / 2;
                 const cpy1 = (prev.y + curr.y) / 2;
                 const cpx2 = (curr.x + next.x) / 2;
                 const cpy2 = (curr.y + next.y) / 2;
                 
-                // Draw quadratic bezier curve
+                // Draw stable quadratic curve
                 ctx.quadraticCurveTo(cpx1, cpy1, cpx2, cpy2);
             }
             
-            // Complete the path
+            // Complete the path with stable ending
             ctx.lineTo(points[points.length-1].x, points[points.length-1].y);
+            
+            // Apply shadow only once for stability
+            ctx.save();
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
             ctx.stroke();
+            ctx.restore();
         }
         
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
 
-    // Initialize with high-precision timing
+    // Initialize with stabilization
     updateGlowPositions();
     lastTime = performance.now();
-    animationId = requestAnimationFrame(animate);
+    
+    // Start animation with stabilization delay
+    setTimeout(() => {
+        animationId = requestAnimationFrame(animate);
+    }, 50);
     
     // Optimized resize handler
     let resizeTimeout;
@@ -692,34 +722,23 @@ function createNonIntrusiveGlowEffect() {
             updateGlowPositions();
             lastTime = performance.now();
             animationId = requestAnimationFrame(animate);
-        }, 50);
+        }, 100);
     });
     resizeObserver.observe(document.body);
     
-    // Handle card interactions
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('.flip-card')) {
-            updateGlowPositions();
-        }
-    });
-
-    // Cleanup on unmount
+    // Cleanup
     window.addEventListener('beforeunload', () => {
         cancelAnimationFrame(animationId);
         resizeObserver.disconnect();
     });
 }
 
-// Start the effect with double requestAnimationFrame for smooth init
+// Start with stabilization
 if (document.readyState === 'complete') {
-    requestAnimationFrame(() => {
-        requestAnimationFrame(createNonIntrusiveGlowEffect);
-    });
+    setTimeout(createNonIntrusiveGlowEffect, 100);
 } else {
     document.addEventListener('DOMContentLoaded', () => {
-        requestAnimationFrame(() => {
-            requestAnimationFrame(createNonIntrusiveGlowEffect);
-        });
+        setTimeout(createNonIntrusiveGlowEffect, 100);
     });
 }
 </script>
