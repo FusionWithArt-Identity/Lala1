@@ -476,6 +476,10 @@ function createNonIntrusiveGlowEffect() {
         });
     });
 
+    function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
     function pointAtLength(len, w, h) {
         const perimeter = 2 * (w + h);
         len = (len + perimeter) % perimeter;
@@ -497,7 +501,8 @@ function createNonIntrusiveGlowEffect() {
         path.moveTo(prev.x, prev.y);
 
         for (let i = 1; i <= segments; i++) {
-            const len = (start + i * step) % perimeter;
+            const easedT = easeInOutCubic(i / segments);
+            const len = (start + totalLen * easedT) % perimeter;
             const pt = pointAtLength(len, w, h);
             path.lineTo(pt.x, pt.y);
         }
@@ -505,27 +510,43 @@ function createNonIntrusiveGlowEffect() {
         return path;
     }
 
-    function drawGlow(ctx, color, progress, glowLength, width, blur, w, h) {
+    function drawGlowTrail(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
-        const half = (glowLength * perimeter) / 2;
+        const half = (length * perimeter) / 2;
         const start = (center - half + perimeter) % perimeter;
         const end = (center + half) % perimeter;
 
-        ctx.save();
         const offset = blur + width;
+        ctx.save();
         ctx.translate(offset + 0.5, offset + 0.5);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
 
+        // Main glow stroke
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
         ctx.shadowColor = color;
         ctx.shadowBlur = blur;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
 
         const path = buildGlowPath(w, h, start / perimeter, end / perimeter);
         ctx.stroke(path);
+
+        // Trailing glow strokes
+        const trailCount = 4;
+        for (let i = 1; i <= trailCount; i++) {
+            const fade = 1 - i / (trailCount + 1);
+            const trailProgress = (progress - 0.01 * i + 1) % 1;
+            const trailStart = ((trailProgress * perimeter) - half + perimeter) % perimeter;
+            const trailEnd = ((trailProgress * perimeter) + half) % perimeter;
+
+            ctx.strokeStyle = `${color}${Math.floor(fade * 255).toString(16).padStart(2, '0')}`;
+            ctx.shadowBlur = blur * fade;
+            const trailPath = buildGlowPath(w, h, trailStart / perimeter, trailEnd / perimeter);
+            ctx.stroke(trailPath);
+        }
+
         ctx.restore();
     }
 
@@ -587,7 +608,7 @@ function createNonIntrusiveGlowEffect() {
             const drawW = styleW - (config.blur + config.width) * 2;
             const drawH = styleH - (config.blur + config.width) * 2;
 
-            drawGlow(ctx, config.color, data.progress, 0.3, config.width, config.blur, drawW, drawH);
+            drawGlowTrail(ctx, config.color, data.progress, 0.3, config.width, config.blur, drawW, drawH);
         });
 
         requestAnimationFrame(animate);
@@ -613,6 +634,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
