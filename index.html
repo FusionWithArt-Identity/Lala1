@@ -443,7 +443,6 @@ function createNonIntrusiveGlowEffect() {
         'jester-card': { color: '#00cc66', width: 6, blur: 35, speed: 0.40 }
     };
 
-    // Use absolute to follow page scroll
     const container = document.createElement('div');
     Object.assign(container.style, {
         position: 'absolute',
@@ -458,8 +457,9 @@ function createNonIntrusiveGlowEffect() {
 
     const canvasMap = new Map();
 
-    document.querySelectorAll('.flip-card').forEach(card => {
+    function setupCanvas(card) {
         const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
         canvas.dataset.cardId = card.id;
         Object.assign(canvas.style, {
             position: 'absolute',
@@ -468,13 +468,44 @@ function createNonIntrusiveGlowEffect() {
             borderRadius: '12px'
         });
         container.appendChild(canvas);
-        canvasMap.set(canvas, {
-            ctx: canvas.getContext('2d'),
-            progress: 0
-        });
-    });
 
-    // Convert progress along perimeter to point
+        const config = glowConfig[card.id];
+        const pad = config.blur + config.width;
+
+        const updateCanvasPosition = () => {
+            const rect = card.getBoundingClientRect();
+            const scrollY = window.scrollY;
+            const scrollX = window.scrollX;
+            const width = Math.ceil(rect.width + pad * 2);
+            const height = Math.ceil(rect.height + pad * 2);
+            const top = Math.floor(rect.top + scrollY - pad);
+            const left = Math.floor(rect.left + scrollX - pad);
+            Object.assign(canvas.style, {
+                top: `${top}px`,
+                left: `${left}px`,
+                width: `${width}px`,
+                height: `${height}px`
+            });
+            canvasMap.set(canvas, {
+                ctx,
+                card,
+                config,
+                progress: 0,
+                drawW: rect.width,
+                drawH: rect.height,
+                pad
+            });
+        };
+
+        // Listen for resize changes only on this card
+        const resizeObserver = new ResizeObserver(updateCanvasPosition);
+        resizeObserver.observe(card);
+
+        updateCanvasPosition();
+    }
+
+    document.querySelectorAll('.flip-card').forEach(setupCanvas);
+
     function pointAtLength(len, w, h) {
         const p = 2 * (w + h);
         len = (len + p) % p;
@@ -484,7 +515,6 @@ function createNonIntrusiveGlowEffect() {
         return { x: 0, y: p - len };
     }
 
-    // Create glow path from perimeter segment
     function buildGlowPath(w, h, startT, endT, segments = 600) {
         const p = 2 * (w + h), s = startT * p, e = endT * p;
         const totalLen = (e >= s) ? e - s : p - s + e;
@@ -499,7 +529,6 @@ function createNonIntrusiveGlowEffect() {
         return path;
     }
 
-    // Draw glow arc along perimeter
     function drawGlow(ctx, color, progress, glowLength, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         const p = 2 * (w + h), center = progress * p, half = (glowLength * p) / 2;
@@ -519,50 +548,22 @@ function createNonIntrusiveGlowEffect() {
         ctx.restore();
     }
 
-    // Re-align canvas with card on screen
-    function updateCanvasPositions() {
-        document.querySelectorAll('.flip-card').forEach(card => {
-            const canvas = [...canvasMap.keys()].find(c => c.dataset.cardId === card.id);
-            if (!canvas) return;
-            const config = glowConfig[card.id];
-            const pad = config.blur + config.width;
-            const rect = card.getBoundingClientRect();
-            const scrollY = window.scrollY;
-            const scrollX = window.scrollX;
-            Object.assign(canvas.style, {
-                top: `${Math.floor(rect.top + scrollY - pad)}px`,
-                left: `${Math.floor(rect.left + scrollX - pad)}px`,
-                width: `${Math.ceil(rect.width + pad * 2)}px`,
-                height: `${Math.ceil(rect.height + pad * 2)}px`
-            });
-        });
-    }
-
-    // Main animation loop
-    let lastTime = performance.now();
+    let lastFrame = performance.now();
     function animate(now) {
-        const delta = (now - lastTime) / 1000;
-        lastTime = now;
-
-        updateCanvasPositions();
+        const dt = (now - lastFrame) / 1000;
+        lastFrame = now;
 
         canvasMap.forEach((data, canvas) => {
-            const cardId = canvas.dataset.cardId;
-            const config = glowConfig[cardId];
-            const ctx = data.ctx;
-            const card = document.getElementById(cardId);
-
+            const { ctx, card, config, pad } = data;
             if (!card || card.classList.contains('active')) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
 
-            const dpr = window.devicePixelRatio || 1;
             const styleW = parseFloat(canvas.style.width);
             const styleH = parseFloat(canvas.style.height);
-            const pad = config.blur + config.width;
+            const dpr = window.devicePixelRatio || 1;
 
-            // Resize canvas if needed
             if (canvas.width !== styleW * dpr || canvas.height !== styleH * dpr) {
                 canvas.width = styleW * dpr;
                 canvas.height = styleH * dpr;
@@ -571,30 +572,19 @@ function createNonIntrusiveGlowEffect() {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
 
-            data.progress = (data.progress + config.speed * delta) % 1;
+            data.progress = (data.progress + config.speed * dt) % 1;
+            const drawW = styleW - pad * 2;
+            const drawH = styleH - pad * 2;
 
-            drawGlow(ctx, config.color, data.progress, 0.3, config.width, config.blur, styleW - pad * 2, styleH - pad * 2);
+            drawGlow(ctx, config.color, data.progress, 0.3, config.width, config.blur, drawW, drawH);
         });
 
         requestAnimationFrame(animate);
     }
 
-    // Initialize
-    updateCanvasPositions();
     requestAnimationFrame(animate);
-
-    // Adjust on resize or card click
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(updateCanvasPositions, 100);
-    });
-    document.addEventListener('click', e => {
-        if (e.target.closest('.flip-card')) updateCanvasPositions();
-    });
 }
 
-// Run when DOM is ready
 if (document.readyState === 'complete') {
     createNonIntrusiveGlowEffect();
 } else {
