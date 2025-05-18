@@ -438,15 +438,21 @@
 <script>
 function createNonIntrusiveGlowEffect() {
     const glowConfig = {
-        'clown-card': { color: '#00a8ff', width: 6, blur: 35, speed: 0.40 },
-        'joker-card': { color: '#ff3333', width: 6, blur: 35, speed: 0.40 },
+        'clown-card':  { color: '#00a8ff', width: 6, blur: 35, speed: 0.40 },
+        'joker-card':  { color: '#ff3333', width: 6, blur: 35, speed: 0.40 },
         'jester-card': { color: '#00cc66', width: 6, blur: 35, speed: 0.40 }
     };
 
     const glowContainer = document.createElement('div');
+    glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
-        position: 'fixed', top: '0', left: '0', width: '100%', height: '100%',
-        pointerEvents: 'none', zIndex: '10'
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '10'
     });
     document.body.appendChild(glowContainer);
 
@@ -454,25 +460,33 @@ function createNonIntrusiveGlowEffect() {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
         Object.assign(canvas.style, {
-            position: 'absolute', pointerEvents: 'none',
-            zIndex: '1', borderRadius: '12px'
+            position: 'absolute',
+            pointerEvents: 'none',
+            zIndex: '1',
+            borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
     });
 
-    let lastTime = performance.now();
     const canvasContexts = new Map();
+    let lastTime = performance.now();
+
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
-        canvasContexts.set(canvas, { ctx: canvas.getContext('2d'), progress: 0 });
+        canvasContexts.set(canvas, {
+            ctx: canvas.getContext('2d'),
+            progress: 0
+        });
     });
 
     function updateGlowPositions() {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
             if (!canvas) return;
+
             const config = glowConfig[card.id];
             const padding = config.blur + config.width;
+
             const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
                 top: `${rect.top - padding}px`,
@@ -483,54 +497,82 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    function samplePerimeter(w, h, step = 1) {
-        const points = [];
-        for (let x = 0; x < w; x += step) points.push({ x, y: 0 });
-        for (let y = 0; y < h; y += step) points.push({ x: w, y });
-        for (let x = w; x > 0; x -= step) points.push({ x, y: h });
-        for (let y = h; y > 0; y -= step) points.push({ x: 0, y });
-        return points;
+    // Eased interpolation to reduce corner speed perception
+    function easedLinearInterpolation(p1, p2, t) {
+        // smoothstep easing
+        t = t * t * (3 - 2 * t);
+        return {
+            x: p1.x + (p2.x - p1.x) * t,
+            y: p1.y + (p2.y - p1.y) * t
+        };
     }
 
-    function drawLightTrail(ctx, points, headIndex, trailLength, config) {
-        const offset = config.blur + config.width;
+    function buildSmoothedGlowPath(w, h, startT, endT, segments = 200) {
+        const path = new Path2D();
+        const perimeter = 2 * (w + h);
+
+        function pointAtLength(len) {
+            len = (len + perimeter) % perimeter;
+            if (len < w) return { x: len, y: 0 };
+            else if (len < w + h) return { x: w, y: len - w };
+            else if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
+            else return { x: 0, y: perimeter - len };
+        }
+
+        const start = startT * perimeter;
+        const end = endT * perimeter;
+        const totalLen = (end >= start) ? end - start : (perimeter - start + end);
+
+        const step = totalLen / segments;
+        let prev = pointAtLength(start);
+        path.moveTo(prev.x, prev.y);
+
+        for (let i = 1; i <= segments; i++) {
+            const len = (start + step * i) % perimeter;
+            const next = pointAtLength(len);
+            const eased = easedLinearInterpolation(prev, next, 0.5);
+            path.lineTo(eased.x, eased.y);
+            prev = next;
+        }
+
+        return path;
+    }
+
+    function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        const perimeter = 2 * (w + h);
+        const center = progress * perimeter;
+        const halfLen = (length * perimeter) / 2;
+        const start = (center - halfLen + perimeter) % perimeter;
+        const end = (center + halfLen) % perimeter;
+
         ctx.save();
-        ctx.translate(offset, offset);
+        const offset = blur + width;
+        ctx.translate(offset + 0.5, offset + 0.5);
+
+        ctx.lineWidth = width;
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = blur;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        for (let i = 0; i < trailLength; i++) {
-            const index = (headIndex - i + points.length) % points.length;
-            const alpha = Math.pow(1 - i / trailLength, 1.5);
-            ctx.beginPath();
-            ctx.moveTo(points[index].x, points[index].y);
-            ctx.lineTo(points[index].x + 0.1, points[index].y + 0.1); // micro segment
-            ctx.strokeStyle = `rgba(${hexToRGB(config.color)}, ${alpha})`;
-            ctx.shadowColor = config.color;
-            ctx.shadowBlur = config.blur * alpha;
-            ctx.lineWidth = config.width;
-            ctx.stroke();
-        }
-
+        const path = buildSmoothedGlowPath(w, h, start / perimeter, end / perimeter);
+        ctx.stroke(path);
         ctx.restore();
     }
 
-    function hexToRGB(hex) {
-        const bigint = parseInt(hex.replace('#', ''), 16);
-        return `${(bigint >> 16) & 255},${(bigint >> 8) & 255},${bigint & 255}`;
-    }
-
     function animate(currentTime) {
-        const deltaTime = Math.min(currentTime - lastTime, 100);
+        const deltaTime = Math.min(currentTime - lastTime, 33);
         lastTime = currentTime;
 
         updateGlowPositions();
 
         document.querySelectorAll('.glow-canvas').forEach(canvas => {
             const cardId = canvas.dataset.cardId;
-            const card = document.getElementById(cardId);
             const config = glowConfig[cardId];
             const canvasData = canvasContexts.get(canvas);
+            const card = document.getElementById(cardId);
 
             if (!card || card.classList.contains('active')) {
                 canvasData.ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -538,11 +580,12 @@ function createNonIntrusiveGlowEffect() {
             }
 
             const dpr = window.devicePixelRatio || 1;
-            const styleW = parseInt(canvas.style.width);
-            const styleH = parseInt(canvas.style.height);
-            if (canvas.width !== styleW * dpr || canvas.height !== styleH * dpr) {
-                canvas.width = styleW * dpr;
-                canvas.height = styleH * dpr;
+            const styleWidth = parseInt(canvas.style.width);
+            const styleHeight = parseInt(canvas.style.height);
+
+            if (canvas.width !== styleWidth * dpr || canvas.height !== styleHeight * dpr) {
+                canvas.width = styleWidth * dpr;
+                canvas.height = styleHeight * dpr;
                 canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 canvasData.ctx.scale(dpr, dpr);
             } else {
@@ -550,14 +593,21 @@ function createNonIntrusiveGlowEffect() {
                 canvasData.ctx.scale(dpr, dpr);
             }
 
-            canvasData.progress = (canvasData.progress + config.speed * deltaTime / 1000) % 1;
-            const contentW = styleW - (config.blur + config.width) * 2;
-            const contentH = styleH - (config.blur + config.width) * 2;
-            const points = samplePerimeter(contentW, contentH, 1);
-            const headIndex = Math.floor(canvasData.progress * points.length);
+            canvasData.progress = (canvasData.progress + config.speed * (deltaTime / 1000)) % 1;
 
-            canvasData.ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-            drawLightTrail(canvasData.ctx, points, headIndex, 50, config); // trailLength = 50
+            const contentWidth = styleWidth - (config.blur + config.width) * 2;
+            const contentHeight = styleHeight - (config.blur + config.width) * 2;
+
+            drawEnhancedGlow(
+                canvasData.ctx,
+                config.color,
+                canvasData.progress,
+                0.3,
+                config.width,
+                config.blur,
+                contentWidth,
+                contentHeight
+            );
         });
 
         requestAnimationFrame(animate);
@@ -569,9 +619,7 @@ function createNonIntrusiveGlowEffect() {
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            updateGlowPositions();
-        }, 100);
+        resizeTimeout = setTimeout(updateGlowPositions, 100);
     });
 
     document.addEventListener('click', (e) => {
