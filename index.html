@@ -437,50 +437,26 @@
 
 <script>
 function createNonIntrusiveGlowEffect() {
-    // Configuration
     const glowConfig = {
-        'clown-card': {
-            color: '#00a8ff',
-            width: 6,
-            blur: 35,
-            speed: 0.20
-        },
-        'joker-card': {
-            color: '#ff3333',
-            width: 6,
-            blur: 35,
-            speed: 0.20
-        },
-        'jester-card': {
-            color: '#00cc66',
-            width: 6,
-            blur: 35,
-            speed: 0.20
-        }
+        'clown-card': { color: '#00a8ff', width: 6, blur: 35, speed: 0.20 },
+        'joker-card': { color: '#ff3333', width: 6, blur: 35, speed: 0.20 },
+        'jester-card': { color: '#00cc66', width: 6, blur: 35, speed: 0.20 }
     };
 
     const glowContainer = document.createElement('div');
-    glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-        zIndex: '10'
+        position: 'fixed', top: '0', left: '0',
+        width: '100%', height: '100%',
+        pointerEvents: 'none', zIndex: '10'
     });
     document.body.appendChild(glowContainer);
 
-    // Create canvas for each card
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
         Object.assign(canvas.style, {
-            position: 'absolute',
-            pointerEvents: 'none',
-            zIndex: '1',
-            borderRadius: '12px'
+            position: 'absolute', pointerEvents: 'none',
+            zIndex: '1', borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
@@ -501,7 +477,6 @@ function createNonIntrusiveGlowEffect() {
             if (!canvas) return;
             const config = glowConfig[card.id];
             const padding = config.blur + config.width;
-
             const rect = card.getBoundingClientRect();
             Object.assign(canvas.style, {
                 top: `${rect.top - padding}px`,
@@ -512,7 +487,6 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    // NEW: Constant-speed path drawing
     function buildUniformGlowPath(w, h, startT, endT) {
         const edges = [
             { from: [0, 0], to: [w, 0], length: w },
@@ -527,9 +501,10 @@ function createNonIntrusiveGlowEffect() {
             for (let edge of edges) {
                 if (dist <= edge.length) {
                     const t = dist / edge.length;
-                    const x = edge.from[0] + (edge.to[0] - edge.from[0]) * t;
-                    const y = edge.from[1] + (edge.to[1] - edge.from[1]) * t;
-                    return { x, y };
+                    return {
+                        x: edge.from[0] + (edge.to[0] - edge.from[0]) * t,
+                        y: edge.from[1] + (edge.to[1] - edge.from[1]) * t
+                    };
                 }
                 dist -= edge.length;
             }
@@ -537,12 +512,12 @@ function createNonIntrusiveGlowEffect() {
         }
 
         const path = new Path2D();
+        const step = 0.25; // More fine-grained path
         const toDistance = t => t * totalLength;
         let start = toDistance(startT);
         let end = toDistance(endT);
 
         const drawSegment = (a, b) => {
-            const step = 0.5;
             let first = true;
             for (let d = a; d <= b; d += step) {
                 const pt = pointAt(d);
@@ -569,7 +544,7 @@ function createNonIntrusiveGlowEffect() {
         return path;
     }
 
-    function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
+    function drawGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         const perimeter = 2 * (w + h);
 
@@ -596,7 +571,7 @@ function createNonIntrusiveGlowEffect() {
     }
 
     function animate(currentTime) {
-        const deltaTime = Math.min(currentTime - lastTime, 100);
+        const deltaTime = Math.min(16.66, currentTime - lastTime); // Clamped to 60 FPS
         lastTime = currentTime;
 
         updateGlowPositions();
@@ -613,14 +588,14 @@ function createNonIntrusiveGlowEffect() {
             }
 
             const dpr = window.devicePixelRatio || 1;
-            const styleWidth = parseInt(canvas.style.width);
-            const styleHeight = parseInt(canvas.style.height);
-            if (canvas.width !== styleWidth * dpr || canvas.height !== styleHeight * dpr) {
-                canvas.width = styleWidth * dpr;
-                canvas.height = styleHeight * dpr;
-                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                canvasData.ctx.scale(dpr, dpr);
-            } else {
+            const styleWidth = parseFloat(canvas.style.width);
+            const styleHeight = parseFloat(canvas.style.height);
+            const scaledWidth = styleWidth * dpr;
+            const scaledHeight = styleHeight * dpr;
+
+            if (canvas.width !== scaledWidth || canvas.height !== scaledHeight) {
+                canvas.width = scaledWidth;
+                canvas.height = scaledHeight;
                 canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 canvasData.ctx.scale(dpr, dpr);
             }
@@ -630,7 +605,7 @@ function createNonIntrusiveGlowEffect() {
             const contentWidth = styleWidth - (config.blur + config.width) * 2;
             const contentHeight = styleHeight - (config.blur + config.width) * 2;
 
-            drawEnhancedGlow(
+            drawGlow(
                 canvasData.ctx,
                 config.color,
                 canvasData.progress,
@@ -645,15 +620,12 @@ function createNonIntrusiveGlowEffect() {
         requestAnimationFrame(animate);
     }
 
-    // Initialize
     updateGlowPositions();
     requestAnimationFrame(animate);
 
-    // Resize handler
-    let resizeTimeout;
     window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(updateGlowPositions, 100);
+        clearTimeout(window._glowResizeTimeout);
+        window._glowResizeTimeout = setTimeout(updateGlowPositions, 100);
     });
 
     document.addEventListener('click', (e) => {
@@ -663,13 +635,13 @@ function createNonIntrusiveGlowEffect() {
     });
 }
 
-// Launch
 if (document.readyState === 'complete') {
     createNonIntrusiveGlowEffect();
 } else {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
