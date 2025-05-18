@@ -485,24 +485,34 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    function buildGlowPath(w, h, startT, endT, segments = 600) {
+    function smoothPath(points) {
         const path = new Path2D();
+        if (points.length < 2) return path;
+
+        path.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length - 1; i++) {
+            const midX = (points[i].x + points[i + 1].x) / 2;
+            const midY = (points[i].y + points[i + 1].y) / 2;
+            path.quadraticCurveTo(points[i].x, points[i].y, midX, midY);
+        }
+        path.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+        return path;
+    }
+
+    function buildGlowPath(w, h, startT, endT, segments = 1000) {
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
         const end = endT * perimeter;
         const totalLen = (end >= start) ? end - start : perimeter - start + end;
         const step = totalLen / segments;
 
-        let prev = pointAtLength(start, w, h);
-        path.moveTo(prev.x, prev.y);
-
-        for (let i = 1; i <= segments; i++) {
+        const points = [];
+        for (let i = 0; i <= segments; i++) {
             const len = (start + i * step) % perimeter;
-            const pt = pointAtLength(len, w, h);
-            path.lineTo(pt.x, pt.y);
+            points.push(pointAtLength(len, w, h));
         }
 
-        return path;
+        return smoothPath(points);
     }
 
     function drawGlow(ctx, color, progress, glowLength, width, blur, w, h) {
@@ -538,10 +548,10 @@ function createNonIntrusiveGlowEffect() {
             const pad = config.blur + config.width;
 
             const rect = card.getBoundingClientRect();
-            const top = Math.round(rect.top - pad);
-            const left = Math.round(rect.left - pad);
-            const width = Math.round(rect.width + pad * 2);
-            const height = Math.round(rect.height + pad * 2);
+            const top = rect.top - pad;
+            const left = rect.left - pad;
+            const width = rect.width + pad * 2;
+            const height = rect.height + pad * 2;
 
             Object.assign(canvas.style, {
                 top: `${top}px`,
@@ -571,8 +581,8 @@ function createNonIntrusiveGlowEffect() {
             }
 
             const dpr = window.devicePixelRatio || 1;
-            const styleW = parseInt(canvas.style.width);
-            const styleH = parseInt(canvas.style.height);
+            const styleW = parseFloat(canvas.style.width);
+            const styleH = parseFloat(canvas.style.height);
 
             if (canvas.width !== styleW * dpr || canvas.height !== styleH * dpr) {
                 canvas.width = styleW * dpr;
@@ -613,6 +623,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
