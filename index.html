@@ -476,39 +476,32 @@ function createNonIntrusiveGlowEffect() {
         });
     });
 
-    function pointAtPerimeter(t, w, h) {
+    function pointAtLength(len, w, h) {
         const perimeter = 2 * (w + h);
-        let len = t * perimeter;
-
-        if (len <= w) return { x: len, y: 0 };
-        len -= w;
-
-        if (len <= h) return { x: w, y: len };
-        len -= h;
-
-        if (len <= w) return { x: w - len, y: h };
-        len -= w;
-
-        return { x: 0, y: h - len };
+        len = (len + perimeter) % perimeter;
+        if (len < w) return { x: len, y: 0 };
+        else if (len < w + h) return { x: w, y: len - w };
+        else if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
+        else return { x: 0, y: perimeter - len };
     }
 
-    function buildSmoothPath(w, h, startT, endT, segments = 800) {
-        const points = [];
-        const step = 1 / segments;
-        for (let i = 0; i <= segments; i++) {
-            const t = (startT + (endT >= startT ? i * step * (endT - startT) : i * step * (1 - startT + endT))) % 1;
-            points.push(pointAtPerimeter(t, w, h));
-        }
-
+    function buildGlowPath(w, h, startT, endT, segments = 600) {
         const path = new Path2D();
-        if (points.length === 0) return path;
+        const perimeter = 2 * (w + h);
+        const start = startT * perimeter;
+        const end = endT * perimeter;
+        const totalLen = (end >= start) ? end - start : perimeter - start + end;
+        const step = totalLen / segments;
 
-        path.moveTo(points[0].x, points[0].y);
-        for (let i = 1; i < points.length - 1; i++) {
-            const midX = (points[i].x + points[i + 1].x) / 2;
-            const midY = (points[i].y + points[i + 1].y) / 2;
-            path.quadraticCurveTo(points[i].x, points[i].y, midX, midY);
+        let prev = pointAtLength(start, w, h);
+        path.moveTo(prev.x, prev.y);
+
+        for (let i = 1; i <= segments; i++) {
+            const len = (start + i * step) % perimeter;
+            const pt = pointAtLength(len, w, h);
+            path.lineTo(pt.x, pt.y);
         }
+
         return path;
     }
 
@@ -517,12 +510,13 @@ function createNonIntrusiveGlowEffect() {
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
         const half = (glowLength * perimeter) / 2;
-        const start = (center - half + perimeter) % perimeter / perimeter;
-        const end = (center + half) % perimeter / perimeter;
+        const start = (center - half + perimeter) % perimeter;
+        const end = (center + half) % perimeter;
 
         ctx.save();
         const offset = blur + width;
         ctx.translate(offset + 0.5, offset + 0.5);
+
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
         ctx.shadowColor = color;
@@ -530,7 +524,7 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildSmoothPath(w, h, start, end);
+        const path = buildGlowPath(w, h, start / perimeter, end / perimeter);
         ctx.stroke(path);
         ctx.restore();
     }
@@ -544,11 +538,16 @@ function createNonIntrusiveGlowEffect() {
             const pad = config.blur + config.width;
 
             const rect = card.getBoundingClientRect();
+            const top = Math.round(rect.top - pad);
+            const left = Math.round(rect.left - pad);
+            const width = Math.round(rect.width + pad * 2);
+            const height = Math.round(rect.height + pad * 2);
+
             Object.assign(canvas.style, {
-                top: `${rect.top - pad}px`,
-                left: `${rect.left - pad}px`,
-                width: `${rect.width + pad * 2}px`,
-                height: `${rect.height + pad * 2}px`
+                top: `${top}px`,
+                left: `${left}px`,
+                width: `${width}px`,
+                height: `${height}px`
             });
         });
     }
@@ -565,14 +564,15 @@ function createNonIntrusiveGlowEffect() {
             const config = glowConfig[cardId];
             const ctx = data.ctx;
             const card = document.getElementById(cardId);
+
             if (!card || card.classList.contains('active')) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
 
             const dpr = window.devicePixelRatio || 1;
-            const styleW = parseFloat(canvas.style.width);
-            const styleH = parseFloat(canvas.style.height);
+            const styleW = parseInt(canvas.style.width);
+            const styleH = parseInt(canvas.style.height);
 
             if (canvas.width !== styleW * dpr || canvas.height !== styleH * dpr) {
                 canvas.width = styleW * dpr;
