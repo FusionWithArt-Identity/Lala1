@@ -445,7 +445,7 @@ function createNonIntrusiveGlowEffect() {
             blur: 40,         // Increased outer glow blur
             outerBlurBoost: 1.5, // Multiplier for corner blur enhancement
             speed: 0.20,
-            cornerSpeedFactor: 0.85 // Adjusts speed at corners for synchronization
+            cornerSlowdownFactor: 0.5 // How much to slow down at corners (0.5 = 50% speed)
         },
         'joker-card': { 
             color: '#ff3333',
@@ -453,7 +453,7 @@ function createNonIntrusiveGlowEffect() {
             blur: 40,
             outerBlurBoost: 1.5,
             speed: 0.20,
-            cornerSpeedFactor: 0.85
+            cornerSlowdownFactor: 0.5
         },
         'jester-card': { 
             color: '#00cc66',
@@ -461,7 +461,7 @@ function createNonIntrusiveGlowEffect() {
             blur: 40,
             outerBlurBoost: 1.5,
             speed: 0.20,
-            cornerSpeedFactor: 0.85
+            cornerSlowdownFactor: 0.5
         }
     };
 
@@ -501,7 +501,8 @@ function createNonIntrusiveGlowEffect() {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
             progress: 0,
-            cornerState: 0 // 0 = no corner, 1-4 = which corner
+            cornerState: 0, // 0 = no corner, 1-4 = which corner
+            cornerTransitionProgress: 0 // For smooth corner slowdown
         });
     });
 
@@ -549,7 +550,16 @@ function createNonIntrusiveGlowEffect() {
             // Calculate adjusted speed based on corner position
             let speedAdjustment = 1;
             if (canvasData.cornerState > 0) {
-                speedAdjustment = config.cornerSpeedFactor;
+                // Smooth transition into and out of corners
+                if (canvasData.cornerTransitionProgress < 1) {
+                    canvasData.cornerTransitionProgress = Math.min(1, canvasData.cornerTransitionProgress + 0.05);
+                }
+                // Apply slowdown factor with smooth transition
+                speedAdjustment = 1 - (1 - config.cornerSlowdownFactor) * canvasData.cornerTransitionProgress;
+            } else if (canvasData.cornerTransitionProgress > 0) {
+                // Transitioning out of corner
+                canvasData.cornerTransitionProgress = Math.max(0, canvasData.cornerTransitionProgress - 0.05);
+                speedAdjustment = 1 - (1 - config.cornerSlowdownFactor) * canvasData.cornerTransitionProgress;
             }
             
             // Update animation progress with adjusted speed
@@ -593,31 +603,32 @@ function createNonIntrusiveGlowEffect() {
         // Generate path points with corner detection
         const points = [];
         let currentCorner = 0;
+        let cornerDetected = false;
         
         const addPoint = (pos) => {
             if (pos < w) {
                 points.push({x: pos, y: 0, corner: 0});
                 if (currentCorner !== 0) {
                     currentCorner = 0;
-                    canvasData.cornerState = 0;
+                    cornerDetected = true;
                 }
             } else if (pos < w + h) {
                 points.push({x: w, y: pos - w, corner: 1});
                 if (currentCorner !== 1) {
                     currentCorner = 1;
-                    canvasData.cornerState = 1;
+                    cornerDetected = true;
                 }
             } else if (pos < 2*w + h) {
                 points.push({x: w - (pos - w - h), y: h, corner: 2});
                 if (currentCorner !== 2) {
                     currentCorner = 2;
-                    canvasData.cornerState = 2;
+                    cornerDetected = true;
                 }
             } else {
                 points.push({x: 0, y: h - (pos - 2*w - h), corner: 3});
                 if (currentCorner !== 3) {
                     currentCorner = 3;
-                    canvasData.cornerState = 3;
+                    cornerDetected = true;
                 }
             }
         };
@@ -634,6 +645,11 @@ function createNonIntrusiveGlowEffect() {
         } else {
             traceSegment(start, perimeter);
             traceSegment(0, end);
+        }
+        
+        // Update corner state if we detected a corner
+        if (cornerDetected) {
+            canvasData.cornerState = currentCorner;
         }
         
         // Draw with enhanced outer glow
