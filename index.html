@@ -442,20 +442,20 @@ function createNonIntrusiveGlowEffect() {
         'clown-card': { 
             color: '#00a8ff',
             width: 6,
-            blur:65,
-            speed: 0.40
+            blur: 35,
+            speed: 0.5  // You can increase speed here smoothly
         },
         'joker-card': { 
             color: '#ff3333',
             width: 6,
-            blur: 65,
-            speed: 0.40
+            blur: 35,
+            speed: 0.5
         },
         'jester-card': { 
             color: '#00cc66',
             width: 6,
-            blur: 65,
-            speed: 0.40
+            blur: 35,
+            speed: 0.5
         }
     };
 
@@ -534,7 +534,7 @@ function createNonIntrusiveGlowEffect() {
         let endPos = toPerimeter(endT);
 
         function drawSegment(s, e) {
-            const step = 1; // 1 px step for smoothness/performance balance
+            const step = 0.5;  // smaller step for smoothness
             if (e <= s) return;
             let firstPoint = pointAt(s);
             path.moveTo(firstPoint.x, firstPoint.y);
@@ -617,6 +617,10 @@ function createNonIntrusiveGlowEffect() {
             
             // Update animation progress
             canvasData.progress = (canvasData.progress + config.speed * (deltaTime / 1000)) % 1;
+
+            // Reduce glow segment length as speed increases for smoothness
+            const baseLength = 0.3;
+            const length = Math.min(baseLength, 1 / (config.speed * 10));
             
             // Calculate content size inside padding
             const contentWidth = styleWidth - (config.blur + config.width) * 2;
@@ -626,7 +630,7 @@ function createNonIntrusiveGlowEffect() {
                 canvasData.ctx,
                 config.color,
                 canvasData.progress,
-                0.3, // glow segment length as fraction of perimeter
+                length,
                 config.width,
                 config.blur,
                 contentWidth,
