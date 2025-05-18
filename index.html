@@ -466,7 +466,7 @@ function createNonIntrusiveGlowEffect() {
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '1',
-            borderRadius: '16px'
+            borderRadius: '12px'
         });
 
         glowContainer.appendChild(canvas);
@@ -485,7 +485,7 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    function buildGlowPath(w, h, startT, endT, segments = 600) {
+    function buildGlowPath(w, h, startT, endT, segments = 1200) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -515,7 +515,7 @@ function createNonIntrusiveGlowEffect() {
 
         ctx.save();
         const offset = blur + width;
-        ctx.translate(offset + 1.5, offset + 1.5);
+        ctx.translate(offset + 0.5, offset + 0.5);
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
@@ -613,7 +613,6 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
-
 
 
 
