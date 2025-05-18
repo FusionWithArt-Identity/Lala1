@@ -444,10 +444,15 @@ function createNonIntrusiveGlowEffect() {
     };
 
     const glowContainer = document.createElement('div');
+    glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
-        position: 'fixed', top: 0, left: 0,
-        width: '100%', height: '100%',
-        pointerEvents: 'none', zIndex: 10
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+        zIndex: '10'
     });
     document.body.appendChild(glowContainer);
 
@@ -457,7 +462,7 @@ function createNonIntrusiveGlowEffect() {
         Object.assign(canvas.style, {
             position: 'absolute',
             pointerEvents: 'none',
-            zIndex: 1,
+            zIndex: '1',
             borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
@@ -470,7 +475,8 @@ function createNonIntrusiveGlowEffect() {
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
-            progress: 0
+            progress: 0,
+            cornerProgress: 0 // Track corner progress separately
         });
     });
 
@@ -492,47 +498,77 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    function easingAtCorners(t) {
-        // Distance from nearest corner (0, 0.25, 0.5, 0.75)
-        const cornerDistance = Math.min(
-            Math.abs(t - 0.00),
-            Math.abs(t - 0.25),
-            Math.abs(t - 0.50),
-            Math.abs(t - 0.75),
-            Math.abs(t - 1.00)
-        );
-        const influence = Math.max(0, 0.125 - cornerDistance); // within range
-        const slowdown = Math.pow(influence * 8, 2); // quadratic curve
-
-        return Math.max(0.3, 1 - slowdown); // guarantee minimum speed of 0.3
+    // Enhanced easing function for smoother corner transitions
+    function cornerEasedInterpolation(p1, p2, t, isCorner) {
+        if (isCorner) {
+            // Slow down in corners with cubic easing
+            t = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        } else {
+            // Standard smoothstep for straight sections
+            t = t * t * (3 - 2 * t);
+        }
+        return {
+            x: p1.x + (p2.x - p1.x) * t,
+            y: p1.y + (p2.y - p1.y) * t
+        };
     }
 
-    function buildGlowPath(w, h, startT, endT, segments = 200) {
+    function buildSmoothedGlowPath(w, h, startT, endT, segments = 200) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
 
-        function pointAt(t) {
-            let len = (t * perimeter) % perimeter;
-            if (len < w) return { x: len, y: 0 };
-            else if (len < w + h) return { x: w, y: len - w };
-            else if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
-            else return { x: 0, y: perimeter - len };
+        function pointAtLength(len) {
+            len = (len + perimeter) % perimeter;
+            if (len < w) return { x: len, y: 0, isCorner: false };
+            else if (len < w + h) return { x: w, y: len - w, isCorner: false };
+            else if (len < 2 * w + h) return { x: 2 * w + h - len, y: h, isCorner: false };
+            else return { x: 0, y: perimeter - len, isCorner: false };
         }
 
-        const totalLen = ((endT - startT + 1) % 1);
-        let prev = pointAt(startT);
+        // Mark corner regions (10% of each side near corners)
+        function getPointWithCorners(len) {
+            len = (len + perimeter) % perimeter;
+            const cornerThreshold = Math.min(w, h) * 0.1;
+            
+            if (len < cornerThreshold) {
+                return { x: len, y: 0, isCorner: true };
+            } else if (len < w - cornerThreshold) {
+                return { x: len, y: 0, isCorner: false };
+            } else if (len < w + cornerThreshold) {
+                return { x: w, y: len - w, isCorner: true };
+            } else if (len < w + h - cornerThreshold) {
+                return { x: w, y: len - w, isCorner: false };
+            } else if (len < w + h + cornerThreshold) {
+                return { x: 2 * w + h - len, y: h, isCorner: true };
+            } else if (len < 2 * w + h - cornerThreshold) {
+                return { x: 2 * w + h - len, y: h, isCorner: false };
+            } else if (len < 2 * w + h + cornerThreshold) {
+                return { x: 0, y: perimeter - len, isCorner: true };
+            } else {
+                return { x: 0, y: perimeter - len, isCorner: false };
+            }
+        }
+
+        const start = startT * perimeter;
+        const end = endT * perimeter;
+        const totalLen = (end >= start) ? end - start : (perimeter - start + end);
+
+        const step = totalLen / segments;
+        let prev = getPointWithCorners(start);
         path.moveTo(prev.x, prev.y);
 
         for (let i = 1; i <= segments; i++) {
-            const t = (startT + totalLen * (i / segments)) % 1;
-            const pt = pointAt(t);
-            path.lineTo(pt.x, pt.y);
+            const len = (start + step * i) % perimeter;
+            const next = getPointWithCorners(len);
+            const eased = cornerEasedInterpolation(prev, next, 0.5, prev.isCorner || next.isCorner);
+            path.lineTo(eased.x, eased.y);
+            prev = next;
         }
 
         return path;
     }
 
-    function drawGlow(ctx, color, progress, length, width, blur, w, h) {
+    function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
@@ -551,7 +587,7 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildGlowPath(w, h, start / perimeter, end / perimeter);
+        const path = buildSmoothedGlowPath(w, h, start / perimeter, end / perimeter);
         ctx.stroke(path);
         ctx.restore();
     }
@@ -587,13 +623,28 @@ function createNonIntrusiveGlowEffect() {
                 canvasData.ctx.scale(dpr, dpr);
             }
 
-            const easingFactor = easingAtCorners(canvasData.progress);
-            canvasData.progress = (canvasData.progress + config.speed * easingFactor * (deltaTime / 1000)) % 1;
+            // Calculate adjusted speed based on current position (slower in corners)
+            const perimeter = 2 * (styleWidth + styleHeight - (config.blur + config.width) * 2);
+            const currentPos = (canvasData.progress * perimeter) % perimeter;
+            const cornerThreshold = Math.min(styleWidth, styleHeight) * 0.1;
+            
+            let speedMultiplier = 1;
+            // Check if near any corner
+            if (
+                currentPos < cornerThreshold || 
+                Math.abs(currentPos - styleWidth) < cornerThreshold ||
+                Math.abs(currentPos - (styleWidth + styleHeight)) < cornerThreshold ||
+                Math.abs(currentPos - (2 * styleWidth + styleHeight)) < cornerThreshold
+            ) {
+                speedMultiplier = 0.6; // Slow down in corners
+            }
+            
+            canvasData.progress = (canvasData.progress + config.speed * speedMultiplier * (deltaTime / 1000)) % 1;
 
             const contentWidth = styleWidth - (config.blur + config.width) * 2;
             const contentHeight = styleHeight - (config.blur + config.width) * 2;
 
-            drawGlow(
+            drawEnhancedGlow(
                 canvasData.ctx,
                 config.color,
                 canvasData.progress,
@@ -630,7 +681,6 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
-
 
 
 
