@@ -497,17 +497,23 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    // Eased interpolation to reduce corner speed perception
-    function easedLinearInterpolation(p1, p2, t) {
-        // smoothstep easing
-        t = t * t * (3 - 2 * t);
+    // Cubic ease-in-out function for smooth acceleration & deceleration
+    function cubicEaseInOut(t) {
+        return t < 0.5
+            ? 4 * t * t * t
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    // Interpolate between points with easing applied to parameter t
+    function easedInterpolation(p1, p2, t) {
+        const et = cubicEaseInOut(t);
         return {
-            x: p1.x + (p2.x - p1.x) * t,
-            y: p1.y + (p2.y - p1.y) * t
+            x: p1.x + (p2.x - p1.x) * et,
+            y: p1.y + (p2.y - p1.y) * et
         };
     }
 
-    function buildSmoothedGlowPath(w, h, startT, endT, segments = 200) {
+    function buildSmoothedGlowPath(w, h, startT, endT, segments = 300) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
 
@@ -530,8 +536,9 @@ function createNonIntrusiveGlowEffect() {
         for (let i = 1; i <= segments; i++) {
             const len = (start + step * i) % perimeter;
             const next = pointAtLength(len);
-            const eased = easedLinearInterpolation(prev, next, 0.5);
-            path.lineTo(eased.x, eased.y);
+            // Use eased interpolation halfway between prev and next to smooth corner visually
+            const mid = easedInterpolation(prev, next, 0.5);
+            path.lineTo(mid.x, mid.y);
             prev = next;
         }
 
@@ -635,6 +642,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
