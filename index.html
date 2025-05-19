@@ -820,8 +820,9 @@ if (document.readyState === 'complete') {
 </script>
 
 
-<script>
-(function applyStripedHeadingEffect() {
+
+    <script>
+(function applyStripedHollowHeading() {
   const style = document.createElement("style");
   style.textContent = `
     :root {
@@ -837,14 +838,16 @@ if (document.readyState === 'complete') {
       justify-content: center;
       align-items: center;
       margin-bottom: 20px;
-      height: auto;
     }
 
     .stripe-heading-text {
-      font-family: 'Anton', sans-serif;
-      font-size: 3.5rem;
+      font-family: inherit;
+      font-size: 1.8rem;
+      font-weight: bold;
       text-align: center;
       color: transparent;
+      -webkit-text-stroke: 1px #5e35b1;
+      text-stroke: 1px #5e35b1;
       background: repeating-linear-gradient(
         45deg,
         var(--color1) 25%,
@@ -856,6 +859,7 @@ if (document.readyState === 'complete') {
       background-clip: text;
       -webkit-background-clip: text;
       animation: stripeMove var(--duration) linear infinite;
+      margin: 0;
     }
 
     @keyframes stripeMove {
@@ -865,7 +869,7 @@ if (document.readyState === 'complete') {
 
     @media (max-width: 500px) {
       .stripe-heading-text {
-        font-size: 2.2rem;
+        font-size: 1.4rem;
       }
     }
   `;
@@ -885,6 +889,7 @@ if (document.readyState === 'complete') {
   container.appendChild(styledText);
 })();
 </script>
+
 
 
 
