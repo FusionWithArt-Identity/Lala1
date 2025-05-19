@@ -485,7 +485,7 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    function buildGlowPath(w, h, startT, endT, segments = 800) {
+    function buildGlowPath(w, h, startT, endT, segments = 600) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -524,7 +524,7 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildGlowPath(w, h, start / perimeter, end / perimeter, 1000);
+        const path = buildGlowPath(w, h, start / perimeter, end / perimeter);
         ctx.stroke(path);
         ctx.restore();
     }
@@ -550,11 +550,6 @@ function createNonIntrusiveGlowEffect() {
                 height: `${height}px`
             });
         });
-    }
-
-    // Cubic easing for smoother loop
-    function easeInOutCubic(t) {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
     let lastTimestamp = performance.now();
@@ -587,14 +582,12 @@ function createNonIntrusiveGlowEffect() {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
 
-            // Smoothed movement
             data.progress = (data.progress + config.speed * elapsed) % 1;
-            const easedProgress = easeInOutCubic(data.progress);
 
             const drawW = styleW - (config.blur + config.width) * 2;
             const drawH = styleH - (config.blur + config.width) * 2;
 
-            drawGlow(ctx, config.color, easedProgress, 0.3, config.width, config.blur, drawW, drawH);
+            drawGlow(ctx, config.color, data.progress, 0.3, config.width, config.blur, drawW, drawH);
         });
 
         requestAnimationFrame(animate);
@@ -622,18 +615,6 @@ if (document.readyState === 'complete') {
 </script>
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 <script>
 (function createDynamicBackgroundGlow() {
     const colors = {
@@ -652,11 +633,11 @@ if (document.readyState === 'complete') {
     const frameInterval = 1000 / frameRate;
 
     let progress = 0;
-    let lastTime = 0;
+    let lastTime = performance.now();
     let timeAccumulator = 0;
 
     const bgCanvas = document.createElement('canvas');
-    const bgCtx = bgCanvas.getContext('2d', { alpha: true });
+    const bgCtx = bgCanvas.getContext('2d');
     Object.assign(bgCanvas.style, {
         position: 'fixed',
         top: '0',
@@ -666,31 +647,24 @@ if (document.readyState === 'complete') {
         pointerEvents: 'none',
         zIndex: '0',
         willChange: 'transform',
+        contain: 'strict',
         backfaceVisibility: 'hidden'
     });
     document.body.appendChild(bgCanvas);
 
-    let resizeTimeout;
     function resizeCanvas() {
-        if (resizeTimeout) clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            const dpr = window.devicePixelRatio || 1;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            bgCanvas.style.width = `${w}px`;
-            bgCanvas.style.height = `${h}px`;
-            bgCanvas.width = w * dpr;
-            bgCanvas.height = h * dpr;
-            bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-            bgCtx.scale(dpr, dpr);
-            bgCtx.clearRect(0, 0, w, h);
-        }, 100);
+        const dpr = window.devicePixelRatio || 1;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        bgCanvas.width = width * dpr;
+        bgCanvas.height = height * dpr;
+        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+        bgCtx.scale(dpr, dpr);
     }
 
     function getActiveCardColor() {
         const activeCard = document.querySelector('.flip-card.active');
-        if (!activeCard) return colors.default;
-        return colors[activeCard.id] || colors.default;
+        return activeCard ? colors[activeCard.id] || colors.default : colors.default;
     }
 
     function drawGlowSegment(progressPoint, color) {
@@ -705,7 +679,7 @@ if (document.readyState === 'complete') {
         const step = isMobile ? 2 : 1.2;
         const points = [];
 
-        const addPoint = (pos) => {
+        function addPoint(pos) {
             if (pos < w) {
                 points.push({ x: pos, y: 0 });
             } else if (pos < w + h) {
@@ -715,15 +689,13 @@ if (document.readyState === 'complete') {
             } else {
                 points.push({ x: 0, y: h - (pos - 2 * w - h) });
             }
-        };
+        }
 
-        const trace = (from, to) => {
-            let pos = from;
-            while (pos < to) {
+        function trace(from, to) {
+            for (let pos = from; pos < to; pos += step) {
                 addPoint(pos);
-                pos += step;
             }
-        };
+        }
 
         if (start < end) {
             trace(start, end);
@@ -736,18 +708,12 @@ if (document.readyState === 'complete') {
             bgCtx.beginPath();
             bgCtx.moveTo(points[0].x, points[0].y);
 
-            if (isMobile) {
-                for (let i = 1; i < points.length; i++) {
-                    bgCtx.lineTo(points[i].x, points[i].y);
-                }
-            } else {
-                for (let i = 1; i < points.length; i++) {
-                    const prev = points[i - 1];
-                    const curr = points[i];
-                    const cx = (prev.x + curr.x) / 2;
-                    const cy = (prev.y + curr.y) / 2;
-                    bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
-                }
+            for (let i = 1; i < points.length; i++) {
+                const prev = points[i - 1];
+                const curr = points[i];
+                const cx = (prev.x + curr.x) / 2;
+                const cy = (prev.y + curr.y) / 2;
+                bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
             }
 
             bgCtx.lineWidth = glowWidth;
@@ -759,8 +725,7 @@ if (document.readyState === 'complete') {
         }
     }
 
-    function draw(timestamp) {
-        if (!lastTime) lastTime = timestamp;
+    function animate(timestamp) {
         const deltaTime = timestamp - lastTime;
         lastTime = timestamp;
         timeAccumulator += deltaTime;
@@ -770,22 +735,18 @@ if (document.readyState === 'complete') {
 
             const w = window.innerWidth;
             const h = window.innerHeight;
-            const color = getActiveCardColor();
+            if (document.visibilityState !== 'visible') return;
 
+            const color = getActiveCardColor();
             progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
 
             bgCtx.clearRect(0, 0, w, h);
-
-            if (document.visibilityState === 'hidden') {
-                requestAnimationFrame(draw);
-                return;
-            }
 
             drawGlowSegment(progress, color);
             drawGlowSegment((progress + 0.5) % 1, color);
         }
 
-        requestAnimationFrame(draw);
+        requestAnimationFrame(animate);
     }
 
     resizeCanvas();
@@ -795,26 +756,36 @@ if (document.readyState === 'complete') {
     document.querySelectorAll('.flip-card').forEach(card => {
         observer.observe(card, {
             attributes: true,
-            attributeFilter: ['class'],
-            subtree: false,
-            childList: false,
-            characterData: false
+            attributeFilter: ['class']
         });
     });
 
     if (document.visibilityState === 'visible') {
-        requestAnimationFrame(draw);
+        requestAnimationFrame(animate);
     } else {
-        const handleVisibilityChange = () => {
+        const resumeOnVisible = () => {
             if (document.visibilityState === 'visible') {
-                requestAnimationFrame(draw);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                requestAnimationFrame(animate);
+                document.removeEventListener('visibilitychange', resumeOnVisible);
             }
         };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('visibilitychange', resumeOnVisible);
     }
 })();
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
