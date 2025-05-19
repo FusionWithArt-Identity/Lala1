@@ -474,7 +474,8 @@ function createNonIntrusiveGlowEffect() {
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
-            progress: 0
+            progress: 0,
+            lastDrawnSize: { width: 0, height: 0 }
         });
     });
 
@@ -500,12 +501,12 @@ function createNonIntrusiveGlowEffect() {
         const perimeter = 2 * (w + h);
         len = (len + perimeter) % perimeter;
         if (len < w) return { x: len, y: 0 };
-        else if (len < w + h) return { x: w, y: len - w };
-        else if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
-        else return { x: 0, y: perimeter - len };
+        if (len < w + h) return { x: w, y: len - w };
+        if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
+        return { x: 0, y: perimeter - len };
     }
 
-    function buildUniformGlowPath(w, h, startT, endT, segments = 600) {
+    function buildUniformGlowPath(w, h, startT, endT, segments = 800) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -535,7 +536,7 @@ function createNonIntrusiveGlowEffect() {
 
         ctx.save();
         const offset = blur + width;
-        ctx.translate(offset + 0.5, offset + 0.5); // pixel-perfect alignment
+        ctx.translate(offset + 0.5, offset + 0.5);
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
@@ -544,46 +545,53 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 600);
+        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 800);
         ctx.stroke(path);
         ctx.restore();
     }
 
     let lastTimestamp = performance.now();
+    let smoothedDelta = 0.016;
 
     function animate(timestamp) {
-        const delta = (timestamp - lastTimestamp) / 1000;
+        const rawDelta = (timestamp - lastTimestamp) / 1000;
+        smoothedDelta = smoothedDelta * 0.85 + rawDelta * 0.15;
         lastTimestamp = timestamp;
 
         updateGlowPositions();
 
-        for (const canvas of document.querySelectorAll('.glow-canvas')) {
+        document.querySelectorAll('.glow-canvas').forEach(canvas => {
             const cardId = canvas.dataset.cardId;
             const card = document.getElementById(cardId);
             if (!card || card.classList.contains('active')) {
                 const ctx = canvasContexts.get(canvas).ctx;
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-                continue;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                return;
             }
 
             const config = glowConfig[cardId];
-            const canvasData = canvasContexts.get(canvas);
-            canvasData.progress = (canvasData.progress + config.speed * delta) % 1;
-
+            const ctxData = canvasContexts.get(canvas);
             const dpr = window.devicePixelRatio || 1;
+
             const styleWidth = parseFloat(canvas.style.width);
             const styleHeight = parseFloat(canvas.style.height);
             const realWidth = styleWidth * dpr;
             const realHeight = styleHeight * dpr;
 
-            if (canvas.width !== realWidth || canvas.height !== realHeight) {
+            if (
+                ctxData.lastDrawnSize.width !== realWidth ||
+                ctxData.lastDrawnSize.height !== realHeight
+            ) {
                 canvas.width = realWidth;
                 canvas.height = realHeight;
+                ctxData.lastDrawnSize = { width: realWidth, height: realHeight };
             }
 
-            const ctx = canvasData.ctx;
+            const ctx = ctxData.ctx;
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
+
+            ctxData.progress = (ctxData.progress + config.speed * smoothedDelta) % 1;
 
             const contentWidth = styleWidth - (config.blur + config.width) * 2;
             const contentHeight = styleHeight - (config.blur + config.width) * 2;
@@ -591,14 +599,14 @@ function createNonIntrusiveGlowEffect() {
             drawEnhancedGlow(
                 ctx,
                 config.color,
-                canvasData.progress,
+                ctxData.progress,
                 0.3,
                 config.width,
                 config.blur,
                 contentWidth,
                 contentHeight
             );
-        }
+        });
 
         requestAnimationFrame(animate);
     }
@@ -625,6 +633,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
