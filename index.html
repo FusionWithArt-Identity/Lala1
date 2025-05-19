@@ -485,7 +485,7 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    function buildGlowPath(w, h, startT, endT, segments = 600) {
+    function buildGlowPath(w, h, startT, endT, segments = 800) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -524,7 +524,7 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildGlowPath(w, h, start / perimeter, end / perimeter);
+        const path = buildGlowPath(w, h, start / perimeter, end / perimeter, 1000);
         ctx.stroke(path);
         ctx.restore();
     }
@@ -550,6 +550,11 @@ function createNonIntrusiveGlowEffect() {
                 height: `${height}px`
             });
         });
+    }
+
+    // Cubic easing for smoother loop
+    function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 
     let lastTimestamp = performance.now();
@@ -582,12 +587,14 @@ function createNonIntrusiveGlowEffect() {
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
 
+            // Smoothed movement
             data.progress = (data.progress + config.speed * elapsed) % 1;
+            const easedProgress = easeInOutCubic(data.progress);
 
             const drawW = styleW - (config.blur + config.width) * 2;
             const drawH = styleH - (config.blur + config.width) * 2;
 
-            drawGlow(ctx, config.color, data.progress, 0.3, config.width, config.blur, drawW, drawH);
+            drawGlow(ctx, config.color, easedProgress, 0.3, config.width, config.blur, drawW, drawH);
         });
 
         requestAnimationFrame(animate);
@@ -613,6 +620,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
