@@ -29,13 +29,7 @@
     }
 
 
-h1 {
-        color: #5e35b1;
-        margin-bottom: 20px;
-        font-size: 1.8rem;
-        text-align: center;
-        font-weight: bold;
-    }
+
         
     .cards-container {
         display: flex;
@@ -821,31 +815,29 @@ if (document.readyState === 'complete') {
 
 
 
-    <script>
-(function applyStripedHeadingEffect() {
+<script>
+(function styleHeadingAsStripedText() {
+  // Add required Google Font
+  const fontLink = document.createElement("link");
+  fontLink.rel = "stylesheet";
+  fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
+  document.head.appendChild(fontLink);
+
+  // Inject required CSS
   const style = document.createElement("style");
   style.textContent = `
     :root {
-      --stripe-size: 80px;
+      --stripe-size: 100px;
       --color1: #c44;
       --color2: #313131;
-      --duration: 3s;
+      --duration: 2s;
     }
 
-    .stripe-heading-container {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 20px;
-      height: auto;
-    }
-
-    .stripe-heading-text {
+    h1 {
+      font-size: 8rem;
       font-family: 'Anton', sans-serif;
-      font-size: 3.5rem;
-      text-align: center;
       color: transparent;
+      text-align: center;
       background: repeating-linear-gradient(
         45deg,
         var(--color1) 25%,
@@ -856,36 +848,25 @@ if (document.readyState === 'complete') {
       background-size: var(--stripe-size) var(--stripe-size);
       background-clip: text;
       -webkit-background-clip: text;
-      animation: stripeMove var(--duration) linear infinite;
+      animation: stripeBackgroundPosition var(--duration) linear infinite;
+      margin-bottom: 30px;
     }
 
-    @keyframes stripeMove {
+    @keyframes stripeBackgroundPosition {
       0% { background-position: 0 0; }
       100% { background-position: calc(var(--stripe-size) * -1) 0; }
     }
 
-    @media (max-width: 500px) {
-      .stripe-heading-text {
-        font-size: 2.2rem;
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 4rem;
       }
     }
   `;
   document.head.appendChild(style);
-
-  const originalH1 = document.querySelector('h1');
-  if (!originalH1) return;
-
-  const container = document.createElement('div');
-  container.className = 'stripe-heading-container';
-
-  const styledText = document.createElement('div');
-  styledText.className = 'stripe-heading-text';
-  styledText.textContent = originalH1.textContent;
-
-  originalH1.replaceWith(container);
-  container.appendChild(styledText);
 })();
 </script>
+
 
 
 
