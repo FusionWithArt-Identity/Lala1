@@ -29,13 +29,39 @@
     }
     
 
-         h1 {
-        color: #5e35b1;
-        margin-bottom: 20px;
-        font-size: 1.8rem;
-        text-align: center;
-        font-weight: bold;
-    }
+h1 {
+    font-family: 'Arial Black', sans-serif;
+    font-size: 4rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: transparent;
+    -webkit-text-stroke: 3px #333; /* For WebKit browsers */
+    text-stroke: 3px #333;         /* For other browsers */
+    text-align: center;
+    margin: 2rem;
+    position: relative;
+    padding: 0.5em 0;
+}
+
+/* Decorative top and bottom bars */
+h1::before,
+h1::after {
+    content: "";
+    position: absolute;
+    height: 10px;
+    background: #333;
+    left: 0;
+    right: 0;
+}
+
+h1::before {
+    top: 0;
+}
+
+h1::after {
+    bottom: 0;
+}
+
     
     .cards-container {
         display: flex;
