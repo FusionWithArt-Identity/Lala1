@@ -821,44 +821,6 @@ if (document.readyState === 'complete') {
 
 <script>
 (function () {
-    const h1 = document.querySelector("h1"); // Automatically applies to first <h1>
-    if (!h1) return;
-
-    const baseColor = "#5e35b1";
-    const glowColor = "#b388ff";
-    const blurMax = 18;
-    let glowPhase = 0;
-
-    // Ensure consistent base style (optional if already in CSS)
-    Object.assign(h1.style, {
-        color: baseColor,
-        textAlign: "center",
-        marginBottom: "20px",
-        fontSize: "1.8rem",
-        fontWeight: "bold",
-    });
-
-    function animateGlow() {
-        glowPhase += 0.06; // Controls pulse speed
-        const blur = Math.abs(Math.sin(glowPhase)) * blurMax;
-        const intensity = Math.floor(blur / 1.5);
-
-        h1.style.textShadow = `
-            0 0 ${intensity + 2}px ${glowColor},
-            0 0 ${intensity + 4}px ${glowColor},
-            0 0 ${intensity + 6}px ${glowColor},
-            0 0 ${intensity + 8}px ${glowColor}
-        `;
-
-        requestAnimationFrame(animateGlow);
-    }
-
-    animateGlow();
-})();
-</script>
-
-<script>
-(function () {
   const config = {
     text: "Your Animated Text",
     stripeSize: 80,
@@ -960,6 +922,7 @@ if (document.readyState === 'complete') {
   document.body.appendChild(container);
 })();
 </script>
+
 
 </body>
 </html>
