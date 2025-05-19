@@ -87,9 +87,13 @@
         display: none;
     }
     
-    .flip-card.active ~ h1 {
-        display: none;
-    }
+   .flip-card.active ~ .stripe-heading-container {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+}
+
     
     .flip-card.active .flip-card-inner {
         transform: rotateY(180deg);
