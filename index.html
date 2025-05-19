@@ -456,6 +456,8 @@ function createNonIntrusiveGlowEffect() {
     });
     document.body.appendChild(glowContainer);
 
+    const canvasContexts = new Map();
+
     document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
@@ -465,36 +467,17 @@ function createNonIntrusiveGlowEffect() {
             zIndex: '1',
             borderRadius: '12px'
         });
-        glowContainer.appendChild(canvas);
         canvas.dataset.cardId = card.id;
-    });
+        glowContainer.appendChild(canvas);
 
-    const canvasContexts = new Map();
-
-    document.querySelectorAll('.glow-canvas').forEach(canvas => {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
-            progress: 0
+            progress: 0,
+            lastWidth: 0,
+            lastHeight: 0,
+            pathCache: null
         });
     });
-
-    function updateGlowPositions() {
-        document.querySelectorAll('.flip-card').forEach(card => {
-            const canvas = document.querySelector(`.${card.id}-glow`);
-            if (!canvas) return;
-
-            const config = glowConfig[card.id];
-            const padding = config.blur + config.width;
-
-            const rect = card.getBoundingClientRect();
-            Object.assign(canvas.style, {
-                top: `${rect.top - padding}px`,
-                left: `${rect.left - padding}px`,
-                width: `${rect.width + padding * 2}px`,
-                height: `${rect.height + padding * 2}px`
-            });
-        });
-    }
 
     function pointAtLength(len, w, h) {
         const perimeter = 2 * (w + h);
@@ -515,101 +498,115 @@ function createNonIntrusiveGlowEffect() {
 
         let prev = pointAtLength(start, w, h);
         path.moveTo(prev.x, prev.y);
-
         for (let i = 1; i <= segments; i++) {
             const len = (start + step * i) % perimeter;
             const pt = pointAtLength(len, w, h);
             path.lineTo(pt.x, pt.y);
         }
-
         return path;
     }
 
-    function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
+    function drawGlow(ctx, config, progress, w, h, cache) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
-        const halfLen = (length * perimeter) / 2;
+        const halfLen = 0.3 * perimeter / 2;
         const start = (center - halfLen + perimeter) % perimeter;
         const end = (center + halfLen) % perimeter;
 
         ctx.save();
-        const offset = blur + width;
-        ctx.translate(offset + 0.5, offset + 0.5); // pixel-perfect alignment
+        const offset = config.blur + config.width;
+        ctx.translate(offset + 0.5, offset + 0.5);
 
-        ctx.lineWidth = width;
-        ctx.strokeStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = blur;
+        ctx.lineWidth = config.width;
+        ctx.strokeStyle = config.color;
+        ctx.shadowColor = config.color;
+        ctx.shadowBlur = config.blur;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 600);
-        ctx.stroke(path);
+        const key = `${start.toFixed(2)}-${end.toFixed(2)}-${w}-${h}`;
+        if (!cache.pathCache || cache.lastKey !== key) {
+            cache.pathCache = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 600);
+            cache.lastKey = key;
+        }
+
+        ctx.stroke(cache.pathCache);
         ctx.restore();
     }
 
-    let lastTimestamp = performance.now();
+    function updateGlowPositions() {
+        const dpr = window.devicePixelRatio || 1;
+        for (const [canvas, data] of canvasContexts.entries()) {
+            const card = document.getElementById(canvas.dataset.cardId);
+            if (!card) continue;
 
-    function animate(timestamp) {
-        const delta = (timestamp - lastTimestamp) / 1000;
-        lastTimestamp = timestamp;
+            const config = glowConfig[card.id];
+            const padding = config.blur + config.width;
+            const rect = card.getBoundingClientRect();
+
+            const styleW = rect.width + padding * 2;
+            const styleH = rect.height + padding * 2;
+            const pxW = styleW * dpr;
+            const pxH = styleH * dpr;
+
+            Object.assign(canvas.style, {
+                top: `${rect.top - padding}px`,
+                left: `${rect.left - padding}px`,
+                width: `${styleW}px`,
+                height: `${styleH}px`
+            });
+
+            if (canvas.width !== pxW || canvas.height !== pxH) {
+                canvas.width = pxW;
+                canvas.height = pxH;
+                data.lastWidth = styleW;
+                data.lastHeight = styleH;
+                data.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                data.ctx.scale(dpr, dpr);
+                data.pathCache = null;
+            }
+        }
+    }
+
+    let lastTime = performance.now();
+
+    function animate(time) {
+        const deltaTime = Math.min((time - lastTime) / 1000, 0.033);
+        lastTime = time;
 
         updateGlowPositions();
 
-        for (const canvas of document.querySelectorAll('.glow-canvas')) {
+        for (const [canvas, data] of canvasContexts.entries()) {
             const cardId = canvas.dataset.cardId;
+            const config = glowConfig[cardId];
             const card = document.getElementById(cardId);
+
             if (!card || card.classList.contains('active')) {
-                const ctx = canvasContexts.get(canvas).ctx;
-                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                data.ctx.clearRect(0, 0, canvas.width, canvas.height);
                 continue;
             }
 
-            const config = glowConfig[cardId];
-            const canvasData = canvasContexts.get(canvas);
-            canvasData.progress = (canvasData.progress + config.speed * delta) % 1;
+            data.progress = (data.progress + config.speed * deltaTime) % 1;
 
-            const dpr = window.devicePixelRatio || 1;
-            const styleWidth = parseFloat(canvas.style.width);
-            const styleHeight = parseFloat(canvas.style.height);
-            const realWidth = styleWidth * dpr;
-            const realHeight = styleHeight * dpr;
+            const contentW = data.lastWidth - (config.blur + config.width) * 2;
+            const contentH = data.lastHeight - (config.blur + config.width) * 2;
 
-            if (canvas.width !== realWidth || canvas.height !== realHeight) {
-                canvas.width = realWidth;
-                canvas.height = realHeight;
-            }
-
-            const ctx = canvasData.ctx;
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.scale(dpr, dpr);
-
-            const contentWidth = styleWidth - (config.blur + config.width) * 2;
-            const contentHeight = styleHeight - (config.blur + config.width) * 2;
-
-            drawEnhancedGlow(
-                ctx,
-                config.color,
-                canvasData.progress,
-                0.3,
-                config.width,
-                config.blur,
-                contentWidth,
-                contentHeight
-            );
+            drawGlow(data.ctx, config, data.progress, contentW, contentH, data);
         }
 
         requestAnimationFrame(animate);
     }
 
+    // Initial draw
     updateGlowPositions();
     requestAnimationFrame(animate);
 
-    let resizeTimeout;
+    // Debounced resize handler
+    let resizeTimer;
     window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(updateGlowPositions, 100);
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(updateGlowPositions, 100);
     });
 
     document.addEventListener('click', (e) => {
