@@ -27,15 +27,6 @@
         padding: 15px;
         overflow-x: hidden;
     }
-    
-
- h1 {
-        color: #5e35b1;
-        margin-bottom: 20px;
-        font-size: 1.8rem;
-        text-align: center;
-        font-weight: bold;
-    }
 
     
     .cards-container {
@@ -822,7 +813,7 @@ if (document.readyState === 'complete') {
 
 
 <script>
-(function applyStripedHeadingEffect() {
+(function applyStripedMaskedHeadingEffect() {
   const style = document.createElement("style");
   style.textContent = `
     :root {
@@ -845,18 +836,19 @@ if (document.readyState === 'complete') {
       font-family: 'Anton', sans-serif;
       font-size: 3.5rem;
       text-align: center;
-      color: transparent;
       background: repeating-linear-gradient(
         45deg,
-        var(--color1) 25%,
+        var(--color1) 0%,
         var(--color1) 50%,
         var(--color2) 50%,
-        var(--color2) 75%
+        var(--color2) 100%
       );
       background-size: var(--stripe-size) var(--stripe-size);
-      background-clip: text;
       -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
       animation: stripeMove var(--duration) linear infinite;
+      -webkit-text-fill-color: transparent;
     }
 
     @keyframes stripeMove {
@@ -886,6 +878,7 @@ if (document.readyState === 'complete') {
   container.appendChild(styledText);
 })();
 </script>
+
 
 
 
