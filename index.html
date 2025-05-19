@@ -807,6 +807,93 @@ if (document.readyState === 'complete') {
 </script>
 
 
+<script>
+(function AnimationOptimizer() {
+    'use strict';
+
+    // 🚀 Set high-performance rendering environment
+    document.documentElement.style.willChange = 'transform, opacity';
+
+    // 🧠 Throttle resize & scroll handlers
+    const throttle = (fn, limit) => {
+        let inThrottle;
+        return (...args) => {
+            if (!inThrottle) {
+                fn(...args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    };
+
+    // 🔁 Sync animation frames with reduced load
+    let lastTime = performance.now();
+    const rafBoost = (callback, fps = 60) => {
+        const interval = 1000 / fps;
+        function frameLoop(now) {
+            const delta = now - lastTime;
+            if (delta >= interval) {
+                lastTime = now - (delta % interval);
+                callback(now);
+            }
+            requestAnimationFrame(frameLoop);
+        }
+        requestAnimationFrame(frameLoop);
+    };
+
+    // 💡 Defer layout recalculations
+    const deferDOMRead = callback => {
+        requestIdleCallback
+            ? requestIdleCallback(callback, { timeout: 200 })
+            : setTimeout(callback, 32);
+    };
+
+    // 🌀 Dynamic GPU-friendly promotion
+    const promoteElement = el => {
+        el.style.transform = 'translateZ(0)';
+        el.style.backfaceVisibility = 'hidden';
+    };
+
+    // ✨ Apply to common animated elements
+    deferDOMRead(() => {
+        document.querySelectorAll('.flip-card, canvas, .glow-canvas').forEach(el => {
+            promoteElement(el);
+            el.style.willChange = 'transform, opacity';
+        });
+    });
+
+    // 🎯 Use high-precision animation loop globally
+    window.optimizedRAF = function(callback, fps = 60) {
+        let last = performance.now();
+        const tick = (now) => {
+            const delta = now - last;
+            if (delta >= 1000 / fps) {
+                last = now;
+                callback(now);
+            }
+            requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    };
+
+    // 🛠 Global resize & scroll optimization
+    const resizeHandlers = [];
+    const scrollHandlers = [];
+
+    window.addOptimizedResizeListener = fn => resizeHandlers.push(throttle(fn, 100));
+    window.addOptimizedScrollListener = fn => scrollHandlers.push(throttle(fn, 100));
+
+    window.addEventListener('resize', () => resizeHandlers.forEach(fn => fn()));
+    window.addEventListener('scroll', () => scrollHandlers.forEach(fn => fn()));
+
+    // 🧼 Memory cleanup suggestion
+    window.addEventListener('beforeunload', () => {
+        cancelAnimationFrame(rafBoost);
+        resizeHandlers.length = 0;
+        scrollHandlers.length = 0;
+    });
+})();
+</script>
 
 
 </body>
