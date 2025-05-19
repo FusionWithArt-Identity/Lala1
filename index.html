@@ -470,7 +470,6 @@ function createNonIntrusiveGlowEffect() {
     });
 
     const canvasContexts = new Map();
-    let lastTime = performance.now();
 
     document.querySelectorAll('.glow-canvas').forEach(canvas => {
         canvasContexts.set(canvas, {
@@ -497,7 +496,6 @@ function createNonIntrusiveGlowEffect() {
         });
     }
 
-    // Returns point along perimeter length (linear, no easing)
     function pointAtLength(len, w, h) {
         const perimeter = 2 * (w + h);
         len = (len + perimeter) % perimeter;
@@ -507,8 +505,7 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    // Build linear path with many segments for smoothness
-    function buildUniformGlowPath(w, h, startT, endT, segments = 500) {
+    function buildUniformGlowPath(w, h, startT, endT, segments = 600) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -538,7 +535,7 @@ function createNonIntrusiveGlowEffect() {
 
         ctx.save();
         const offset = blur + width;
-        ctx.translate(offset + 0.5, offset + 0.5); // align to pixel grid
+        ctx.translate(offset + 0.5, offset + 0.5); // pixel-perfect alignment
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
@@ -547,49 +544,52 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 500);
+        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 600);
         ctx.stroke(path);
         ctx.restore();
     }
 
-    function animate(currentTime) {
-        const deltaTime = Math.min(currentTime - lastTime, 33);
-        lastTime = currentTime;
+    let lastTimestamp = performance.now();
+
+    function animate(timestamp) {
+        const delta = (timestamp - lastTimestamp) / 1000;
+        lastTimestamp = timestamp;
 
         updateGlowPositions();
 
-        document.querySelectorAll('.glow-canvas').forEach(canvas => {
+        for (const canvas of document.querySelectorAll('.glow-canvas')) {
             const cardId = canvas.dataset.cardId;
+            const card = document.getElementById(cardId);
+            if (!card || card.classList.contains('active')) {
+                const ctx = canvasContexts.get(canvas).ctx;
+                ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                continue;
+            }
+
             const config = glowConfig[cardId];
             const canvasData = canvasContexts.get(canvas);
-            const card = document.getElementById(cardId);
-
-            if (!card || card.classList.contains('active')) {
-                canvasData.ctx.clearRect(0, 0, canvas.width, canvas.height);
-                return;
-            }
+            canvasData.progress = (canvasData.progress + config.speed * delta) % 1;
 
             const dpr = window.devicePixelRatio || 1;
-            const styleWidth = parseInt(canvas.style.width);
-            const styleHeight = parseInt(canvas.style.height);
+            const styleWidth = parseFloat(canvas.style.width);
+            const styleHeight = parseFloat(canvas.style.height);
+            const realWidth = styleWidth * dpr;
+            const realHeight = styleHeight * dpr;
 
-            if (canvas.width !== styleWidth * dpr || canvas.height !== styleHeight * dpr) {
-                canvas.width = styleWidth * dpr;
-                canvas.height = styleHeight * dpr;
-                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                canvasData.ctx.scale(dpr, dpr);
-            } else {
-                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                canvasData.ctx.scale(dpr, dpr);
+            if (canvas.width !== realWidth || canvas.height !== realHeight) {
+                canvas.width = realWidth;
+                canvas.height = realHeight;
             }
 
-            canvasData.progress = (canvasData.progress + config.speed * (deltaTime / 1000)) % 1;
+            const ctx = canvasData.ctx;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
 
             const contentWidth = styleWidth - (config.blur + config.width) * 2;
             const contentHeight = styleHeight - (config.blur + config.width) * 2;
 
             drawEnhancedGlow(
-                canvasData.ctx,
+                ctx,
                 config.color,
                 canvasData.progress,
                 0.3,
@@ -598,7 +598,7 @@ function createNonIntrusiveGlowEffect() {
                 contentWidth,
                 contentHeight
             );
-        });
+        }
 
         requestAnimationFrame(animate);
     }
