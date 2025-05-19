@@ -866,10 +866,14 @@ if (document.readyState === 'complete') {
     }
 
     .stripe-heading-text {
-      font-family: 'Anton', sans-serif;
-      font-size: 3.5rem;
+      font-family: 'Arial Black', 'Anton', sans-serif;
+      font-size: 4rem;
+      font-weight: bold;
+      text-transform: uppercase;
       text-align: center;
       color: transparent;
+      -webkit-text-stroke: 3px #333;
+      text-stroke: 3px #333;
       background: repeating-linear-gradient(
         45deg,
         var(--color1) 25%,
@@ -881,6 +885,26 @@ if (document.readyState === 'complete') {
       background-clip: text;
       -webkit-background-clip: text;
       animation: stripeMove var(--duration) linear infinite;
+      position: relative;
+      padding: 0.5em 0;
+    }
+
+    .stripe-heading-text::before,
+    .stripe-heading-text::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 10px;
+      background: #333;
+    }
+
+    .stripe-heading-text::before {
+      top: 0;
+    }
+
+    .stripe-heading-text::after {
+      bottom: 0;
     }
 
     @keyframes stripeMove {
@@ -910,6 +934,7 @@ if (document.readyState === 'complete') {
   container.appendChild(styledText);
 })();
 </script>
+
 
 
 </body>
