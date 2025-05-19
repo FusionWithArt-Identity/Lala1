@@ -241,7 +241,6 @@
     <h1>Clown Vs Joker Vs Jester</h1>
     
     <div class="cards-container">
-        <!-- Clown Card -->
         <div class="flip-card" id="clown-card" onclick="toggleCard(this)">
             <div class="flip-card-inner">
                 <div class="flip-card-front">
@@ -250,7 +249,7 @@
                     </div>
                 </div>
                 <div class="flip-card-back">
-                    <div class="character-title">🤡 Clown</div>
+                    <div class="character-title">､｡ Clown</div>
                     <div class="aspect-item" data-order="1">
                         <div class="aspect-title">Purpose</div>
                         <div class="aspect-content">
@@ -279,7 +278,6 @@
             </div>
         </div>
         
-        <!-- Joker Card -->
         <div class="flip-card" id="joker-card" onclick="toggleCard(this)">
             <div class="flip-card-inner">
                 <div class="flip-card-front">
@@ -288,7 +286,7 @@
                     </div>
                 </div>
                 <div class="flip-card-back">
-                    <div class="character-title">🃏 Joker</div>
+                    <div class="character-title">ワ Joker</div>
                     <div class="aspect-item" data-order="1">
                         <div class="aspect-title">Purpose</div>
                         <div class="aspect-content">
@@ -317,7 +315,6 @@
             </div>
         </div>
         
-        <!-- Jester Card -->
         <div class="flip-card" id="jester-card" onclick="toggleCard(this)">
             <div class="flip-card-inner">
                 <div class="flip-card-front">
@@ -326,7 +323,7 @@
                     </div>
                 </div>
                 <div class="flip-card-back">
-                    <div class="character-title">🎭 Jester</div>
+                    <div class="character-title">鹿 Jester</div>
                     <div class="aspect-item" data-order="1">
                         <div class="aspect-title">Purpose</div>
                         <div class="aspect-content">
@@ -435,165 +432,7 @@
         });
     </script>
 
-<script>
-(function createDynamicBackgroundGlow() {
-    const colors = {
-        default: '#666666',
-        'clown-card': '#00a8ff',
-        'joker-card': '#ff3333',
-        'jester-card': '#00cc66'
-    };
-
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const glowWidth = isMobile ? 4 : 6;
-    const glowBlur = isMobile ? 25 : 40;
-    const glowSpeed = 0.3; // Increased speed for smoother look
-    const glowLength = isMobile ? 0.2 : 0.25;
-    const frameRate = 60;
-    const frameInterval = 1000 / frameRate;
-
-    let progress = 0;
-    let lastTime = performance.now();
-    let timeAccumulator = 0;
-
-    const bgCanvas = document.createElement('canvas');
-    const bgCtx = bgCanvas.getContext('2d');
-    Object.assign(bgCanvas.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100vw',
-        height: '100vh',
-        pointerEvents: 'none',
-        zIndex: '0',
-        willChange: 'transform',
-        contain: 'strict',
-        backfaceVisibility: 'hidden'
-    });
-    document.body.appendChild(bgCanvas);
-
-    function resizeCanvas() {
-        const dpr = window.devicePixelRatio || 1;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        bgCanvas.width = width * dpr;
-        bgCanvas.height = height * dpr;
-        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-        bgCtx.scale(dpr, dpr);
-    }
-
-    function getActiveCardColor() {
-        const activeCard = document.querySelector('.flip-card.active');
-        return activeCard ? colors[activeCard.id] || colors.default : colors.default;
-    }
-
-    function drawGlowSegment(progressPoint, color) {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        const perimeter = 2 * (w + h);
-        const center = progressPoint * perimeter;
-        const halfLen = (glowLength * perimeter) / 2;
-        const start = (center - halfLen + perimeter) % perimeter;
-        const end = (center + halfLen) % perimeter;
-
-        const step = isMobile ? 1.5 : 1; // Slightly smaller step for more points
-        const points = [];
-
-        function addPoint(pos) {
-            if (pos < w) {
-                points.push({ x: pos, y: 0 });
-            } else if (pos < w + h) {
-                points.push({ x: w, y: pos - w });
-            } else if (pos < 2 * w + h) {
-                points.push({ x: w - (pos - w - h), y: h });
-            } else {
-                points.push({ x: 0, y: h - (pos - 2 * w - h) });
-            }
-        }
-
-        function trace(from, to) {
-            for (let pos = from; pos < to; pos += step) {
-                addPoint(pos);
-            }
-        }
-
-        if (start < end) {
-            trace(start, end);
-        } else {
-            trace(start, perimeter);
-            trace(0, end);
-        }
-
-        if (points.length > 1) {
-            bgCtx.beginPath();
-            bgCtx.moveTo(points[0].x, points[0].y);
-
-            for (let i = 1; i < points.length; i++) {
-                const prev = points[i - 1];
-                const curr = points[i];
-                const cx = (prev.x + curr.x) / 2;
-                const cy = (prev.y + curr.y) / 2;
-                bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
-            }
-
-            bgCtx.lineWidth = glowWidth;
-            bgCtx.strokeStyle = color;
-            bgCtx.shadowColor = color;
-            bgCtx.shadowBlur = glowBlur;
-            bgCtx.lineCap = 'round';
-            bgCtx.stroke();
-        }
-    }
-
-    function animate(timestamp) {
-        const deltaTime = timestamp - lastTime;
-        lastTime = timestamp;
-        timeAccumulator += deltaTime;
-
-        while (timeAccumulator >= frameInterval) {
-            timeAccumulator -= frameInterval;
-
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            if (document.visibilityState !== 'visible') return;
-
-            const color = getActiveCardColor();
-            progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
-
-            bgCtx.clearRect(0, 0, w, h);
-
-            drawGlowSegment(progress, color);
-            drawGlowSegment((progress + 0.5) % 1, color);
-        }
-
-        requestAnimationFrame(animate);
-    }
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas, { passive: true });
-
-    const observer = new MutationObserver(() => {});
-    document.querySelectorAll('.flip-card').forEach(card => {
-        observer.observe(card, {
-            attributes: true,
-            attributeFilter: ['class']
-        });
-    });
-
-    if (document.visibilityState === 'visible') {
-        requestAnimationFrame(animate);
-    } else {
-        const resumeOnVisible = () => {
-            if (document.visibilityState === 'visible') {
-                requestAnimationFrame(animate);
-                document.removeEventListener('visibilitychange', resumeOnVisible);
-            }
-        };
-        document.addEventListener('visibilitychange', resumeOnVisible);
-    }
-})();
-</script>
-
+    
 
 <script>
 (function createDynamicBackgroundGlow() {
@@ -613,11 +452,11 @@
     const frameInterval = 1000 / frameRate;
 
     let progress = 0;
-    let lastTime = performance.now();
+    let lastTime = 0;
     let timeAccumulator = 0;
 
     const bgCanvas = document.createElement('canvas');
-    const bgCtx = bgCanvas.getContext('2d');
+    const bgCtx = bgCanvas.getContext('2d', { alpha: true });
     Object.assign(bgCanvas.style, {
         position: 'fixed',
         top: '0',
@@ -627,24 +466,31 @@
         pointerEvents: 'none',
         zIndex: '0',
         willChange: 'transform',
-        contain: 'strict',
         backfaceVisibility: 'hidden'
     });
     document.body.appendChild(bgCanvas);
 
+    let resizeTimeout;
     function resizeCanvas() {
-        const dpr = window.devicePixelRatio || 1;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        bgCanvas.width = width * dpr;
-        bgCanvas.height = height * dpr;
-        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-        bgCtx.scale(dpr, dpr);
+        if (resizeTimeout) clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            const dpr = window.devicePixelRatio || 1;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            bgCanvas.style.width = `${w}px`;
+            bgCanvas.style.height = `${h}px`;
+            bgCanvas.width = w * dpr;
+            bgCanvas.height = h * dpr;
+            bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+            bgCtx.scale(dpr, dpr);
+            bgCtx.clearRect(0, 0, w, h);
+        }, 100);
     }
 
     function getActiveCardColor() {
         const activeCard = document.querySelector('.flip-card.active');
-        return activeCard ? colors[activeCard.id] || colors.default : colors.default;
+        if (!activeCard) return colors.default;
+        return colors[activeCard.id] || colors.default;
     }
 
     function drawGlowSegment(progressPoint, color) {
@@ -659,7 +505,7 @@
         const step = isMobile ? 2 : 1.2;
         const points = [];
 
-        function addPoint(pos) {
+        const addPoint = (pos) => {
             if (pos < w) {
                 points.push({ x: pos, y: 0 });
             } else if (pos < w + h) {
@@ -669,13 +515,15 @@
             } else {
                 points.push({ x: 0, y: h - (pos - 2 * w - h) });
             }
-        }
+        };
 
-        function trace(from, to) {
-            for (let pos = from; pos < to; pos += step) {
+        const trace = (from, to) => {
+            let pos = from;
+            while (pos < to) {
                 addPoint(pos);
+                pos += step;
             }
-        }
+        };
 
         if (start < end) {
             trace(start, end);
@@ -688,12 +536,18 @@
             bgCtx.beginPath();
             bgCtx.moveTo(points[0].x, points[0].y);
 
-            for (let i = 1; i < points.length; i++) {
-                const prev = points[i - 1];
-                const curr = points[i];
-                const cx = (prev.x + curr.x) / 2;
-                const cy = (prev.y + curr.y) / 2;
-                bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
+            if (isMobile) {
+                for (let i = 1; i < points.length; i++) {
+                    bgCtx.lineTo(points[i].x, points[i].y);
+                }
+            } else {
+                for (let i = 1; i < points.length; i++) {
+                    const prev = points[i - 1];
+                    const curr = points[i];
+                    const cx = (prev.x + curr.x) / 2;
+                    const cy = (prev.y + curr.y) / 2;
+                    bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
+                }
             }
 
             bgCtx.lineWidth = glowWidth;
@@ -705,7 +559,8 @@
         }
     }
 
-    function animate(timestamp) {
+    function draw(timestamp) {
+        if (!lastTime) lastTime = timestamp;
         const deltaTime = timestamp - lastTime;
         lastTime = timestamp;
         timeAccumulator += deltaTime;
@@ -715,18 +570,22 @@
 
             const w = window.innerWidth;
             const h = window.innerHeight;
-            if (document.visibilityState !== 'visible') return;
-
             const color = getActiveCardColor();
+
             progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
 
             bgCtx.clearRect(0, 0, w, h);
+
+            if (document.visibilityState === 'hidden') {
+                requestAnimationFrame(draw);
+                return;
+            }
 
             drawGlowSegment(progress, color);
             drawGlowSegment((progress + 0.5) % 1, color);
         }
 
-        requestAnimationFrame(animate);
+        requestAnimationFrame(draw);
     }
 
     resizeCanvas();
@@ -736,36 +595,26 @@
     document.querySelectorAll('.flip-card').forEach(card => {
         observer.observe(card, {
             attributes: true,
-            attributeFilter: ['class']
+            attributeFilter: ['class'],
+            subtree: false,
+            childList: false,
+            characterData: false
         });
     });
 
     if (document.visibilityState === 'visible') {
-        requestAnimationFrame(animate);
+        requestAnimationFrame(draw);
     } else {
-        const resumeOnVisible = () => {
+        const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
-                requestAnimationFrame(animate);
-                document.removeEventListener('visibilitychange', resumeOnVisible);
+                requestAnimationFrame(draw);
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
             }
         };
-        document.addEventListener('visibilitychange', resumeOnVisible);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
     }
 })();
 </script>
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
