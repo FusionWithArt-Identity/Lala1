@@ -473,12 +473,12 @@ function createNonIntrusiveGlowEffect() {
         return { x: 0, y: p - len, dx: 0, dy: -1 };
     }
 
-    function buildCurvedPath(w, h, startT, endT, segments = 800, radius = 6) {
+    function buildSmoothedPath(w, h, startT, endT, segments = 1000, cornerRadius = 8) {
         const path = new Path2D();
         const p = 2 * (w + h);
         const start = startT * p;
         const end = endT * p;
-        const totalLen = end >= start ? end - start : p - start + end;
+        const totalLen = (end >= start) ? end - start : p - start + end;
         const step = totalLen / segments;
 
         let prev = pointAtLength(start, w, h);
@@ -486,19 +486,28 @@ function createNonIntrusiveGlowEffect() {
 
         for (let i = 1; i <= segments; i++) {
             const len = (start + i * step) % p;
-            const pt = pointAtLength(len, w, h);
+            const curr = pointAtLength(len, w, h);
 
-            if (pt.dx !== prev.dx || pt.dy !== prev.dy) {
-                const cornerX = prev.x;
-                const cornerY = prev.y;
-                const cx = cornerX + pt.dx * radius;
-                const cy = cornerY + pt.dy * radius;
-                path.quadraticCurveTo(cornerX, cornerY, cx, cy);
+            if (curr.dx !== prev.dx || curr.dy !== prev.dy) {
+                // Eased corner
+                const from = prev;
+                const to = curr;
+
+                const cornerX = from.x;
+                const cornerY = from.y;
+
+                const ctrlX = cornerX + from.dx * cornerRadius;
+                const ctrlY = cornerY + from.dy * cornerRadius;
+                const endX = cornerX + from.dx * cornerRadius + to.dx * cornerRadius;
+                const endY = cornerY + from.dy * cornerRadius + to.dy * cornerRadius;
+
+                path.lineTo(ctrlX, ctrlY);
+                path.quadraticCurveTo(cornerX, cornerY, endX, endY);
             } else {
-                path.lineTo(pt.x, pt.y);
+                path.lineTo(curr.x, curr.y);
             }
 
-            prev = pt;
+            prev = curr;
         }
 
         return path;
@@ -521,7 +530,7 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildCurvedPath(w, h, start / perimeter, end / perimeter);
+        const path = buildSmoothedPath(w, h, start / perimeter, end / perimeter);
         ctx.stroke(path);
         ctx.restore();
     }
@@ -584,6 +593,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
