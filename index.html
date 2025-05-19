@@ -472,7 +472,8 @@ function createNonIntrusiveGlowEffect() {
         glowContainer.appendChild(canvas);
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
-            progress: 0
+            progress: 0,
+            lastDrawnPos: { x: 0, y: 0 }
         });
     });
 
@@ -485,7 +486,7 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    function buildGlowPath(w, h, startT, endT, segments = 600) {
+    function buildGlowPath(w, h, startT, endT, segments = 300) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -529,7 +530,7 @@ function createNonIntrusiveGlowEffect() {
         ctx.restore();
     }
 
-    function updateCanvasPositions() {
+    function updateCanvasPositions(rectCache = null) {
         document.querySelectorAll('.flip-card').forEach(card => {
             const canvas = document.querySelector(`.${card.id}-glow`);
             if (!canvas) return;
@@ -537,7 +538,7 @@ function createNonIntrusiveGlowEffect() {
             const config = glowConfig[card.id];
             const pad = config.blur + config.width;
 
-            const rect = card.getBoundingClientRect();
+            const rect = rectCache?.[card.id] || card.getBoundingClientRect();
             const top = rect.top - pad;
             const left = rect.left - pad;
             const width = rect.width + pad * 2;
@@ -554,17 +555,21 @@ function createNonIntrusiveGlowEffect() {
 
     let lastTimestamp = performance.now();
     function animate(timestamp) {
-        const elapsed = Math.min((timestamp - lastTimestamp) / 1000, 1 / 30); // Cap delta to avoid jumps
+        const elapsed = Math.min((timestamp - lastTimestamp) / 1000, 1 / 30);
         lastTimestamp = timestamp;
 
-        updateCanvasPositions();
+        // Cache all bounding boxes once per frame
+        const rectCache = {};
+        document.querySelectorAll('.flip-card').forEach(card => {
+            rectCache[card.id] = card.getBoundingClientRect();
+        });
+        updateCanvasPositions(rectCache);
 
         canvasContexts.forEach((data, canvas) => {
             const cardId = canvas.dataset.cardId;
             const config = glowConfig[cardId];
             const ctx = data.ctx;
             const card = document.getElementById(cardId);
-
             if (!card || card.classList.contains('active')) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
@@ -574,9 +579,11 @@ function createNonIntrusiveGlowEffect() {
             const styleW = parseFloat(canvas.style.width);
             const styleH = parseFloat(canvas.style.height);
 
-            if (canvas.width !== styleW * dpr || canvas.height !== styleH * dpr) {
-                canvas.width = styleW * dpr;
-                canvas.height = styleH * dpr;
+            const targetWidth = Math.round(styleW * dpr);
+            const targetHeight = Math.round(styleH * dpr);
+            if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+                canvas.width = targetWidth;
+                canvas.height = targetHeight;
             }
 
             ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -613,6 +620,7 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
+
 
 
 
