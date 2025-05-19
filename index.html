@@ -820,37 +820,29 @@ if (document.readyState === 'complete') {
 
 
 <script>
-(function() {
-  // Inject CSS dynamically
+(function applyStripedHeadingEffect() {
   const style = document.createElement("style");
   style.textContent = `
     :root {
-      --stripe-size: 100px;
+      --stripe-size: 80px;
       --color1: #c44;
       --color2: #313131;
-      --duration: 2s;
+      --duration: 3s;
     }
 
-    .stripe {
+    .stripe-heading-container {
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
-      width: 100%;
-      height: 100vh;
-      overflow: hidden;
+      margin-bottom: 20px;
+      height: auto;
     }
 
-    .stripe_inner {
-      position: relative;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      width: 100%;
-      height: 100%;
-      font-size: 8rem;
-      text-align: center;
+    .stripe-heading-text {
       font-family: 'Anton', sans-serif;
+      font-size: 3.5rem;
+      text-align: center;
       color: transparent;
       background: repeating-linear-gradient(
         45deg,
@@ -862,65 +854,37 @@ if (document.readyState === 'complete') {
       background-size: var(--stripe-size) var(--stripe-size);
       background-clip: text;
       -webkit-background-clip: text;
-      animation: stripeBackgroundPosition var(--duration) linear infinite;
+      animation: stripeMove var(--duration) linear infinite;
     }
 
-    .stripe::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: calc(100% + var(--stripe-size));
-      height: 100%;
-      background: repeating-linear-gradient(
-        45deg,
-        var(--color2) 25%,
-        var(--color2) 50%,
-        var(--color1) 50%,
-        var(--color1) 75%
-      );
-      background-size: var(--stripe-size) var(--stripe-size);
-      animation: stripeTransform var(--duration) linear infinite;
-      z-index: -2;
-    }
-
-    .stripe::after {
-      content: '';
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(ellipse at center, rgba(27, 39, 53, 0) 0%, #090a0f 100%);
-      z-index: -1;
-    }
-
-    @keyframes stripeTransform {
-      0% { transform: translateX(0); }
-      100% { transform: translateX(calc(var(--stripe-size) * -1)); }
-    }
-
-    @keyframes stripeBackgroundPosition {
+    @keyframes stripeMove {
       0% { background-position: 0 0; }
       100% { background-position: calc(var(--stripe-size) * -1) 0; }
+    }
+
+    @media (max-width: 500px) {
+      .stripe-heading-text {
+        font-size: 2.2rem;
+      }
     }
   `;
   document.head.appendChild(style);
 
-  // Target and wrap the existing <h1>
-  const h1 = document.querySelector("h1");
-  if (!h1) return;
+  const originalH1 = document.querySelector('h1');
+  if (!originalH1) return;
 
-  const wrapper = document.createElement("div");
-  wrapper.className = "stripe";
+  const container = document.createElement('div');
+  container.className = 'stripe-heading-container';
 
-  const inner = document.createElement("div");
-  inner.className = "stripe_inner";
-  inner.textContent = h1.textContent;
+  const styledText = document.createElement('div');
+  styledText.className = 'stripe-heading-text';
+  styledText.textContent = originalH1.textContent;
 
-  // Replace the original <h1> with the new styled wrapper
-  h1.replaceWith(wrapper);
-  wrapper.appendChild(inner);
+  originalH1.replaceWith(container);
+  container.appendChild(styledText);
 })();
 </script>
+
 
 </body>
 </html>
