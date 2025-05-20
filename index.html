@@ -828,25 +828,32 @@ if (document.readyState === 'complete') {
 
 
 
-
-<canvas id="stripeCanvas" style="display:none;"></canvas>
 <script>
-(function applyStripedHeadingWithCanvas() {
-  // Load Anton font
+(function applyResponsiveStripedHeading() {
+  // Load Google Font (Anton)
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
   fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
   document.head.appendChild(fontLink);
 
+  // Inject Styling
   const style = document.createElement("style");
   style.textContent = `
+    :root {
+      --stripe-size: 100px;
+      --color1: #c44;
+      --color2: #313131;
+      --duration: 2s;
+    }
+
     .stripe-heading-container {
       width: 100%;
+      max-width: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
       margin-bottom: 30px;
-      min-height: 120px;
+      min-height: 120px; /* Reserve space to prevent bounce */
       position: relative;
       transition: opacity 0.3s ease, visibility 0.3s ease;
     }
@@ -854,13 +861,28 @@ if (document.readyState === 'complete') {
     .stripe-heading-text {
       font-size: 8rem;
       font-family: 'Anton', sans-serif;
+      text-align: center;
       color: transparent;
+      background: repeating-linear-gradient(
+        45deg,
+        var(--color1) 25%,
+        var(--color1) 50%,
+        var(--color2) 50%,
+        var(--color2) 75%
+      );
+      background-size: var(--stripe-size) var(--stripe-size);
       background-clip: text;
       -webkit-background-clip: text;
-      background-size: auto;
+      animation: stripeBackgroundPosition var(--duration) linear infinite;
       line-height: 1.1;
     }
 
+    @keyframes stripeBackgroundPosition {
+      0% { background-position: 0 0; }
+      100% { background-position: calc(var(--stripe-size) * -1) 0; }
+    }
+
+    /* Responsive scaling */
     @media (max-width: 768px) {
       .stripe-heading-text { font-size: 4rem; }
     }
@@ -869,6 +891,7 @@ if (document.readyState === 'complete') {
       .stripe-heading-text { font-size: 3rem; }
     }
 
+    /* Prevent heading from jumping on card flip */
     .flip-card.active ~ .stripe-heading-container {
       visibility: hidden;
       opacity: 0;
@@ -878,6 +901,7 @@ if (document.readyState === 'complete') {
   `;
   document.head.appendChild(style);
 
+  // Replace original <h1> with styled container
   const h1 = document.querySelector('h1');
   if (!h1) return;
 
@@ -887,52 +911,11 @@ if (document.readyState === 'complete') {
   const styledText = document.createElement('h1');
   styledText.className = 'stripe-heading-text';
   styledText.textContent = h1.textContent;
+
   container.appendChild(styledText);
   h1.replaceWith(container);
-
-  // Canvas to generate repeating background
-  const canvas = document.getElementById('stripeCanvas');
-  const ctx = canvas.getContext('2d');
-  const stripeSize = 80;
-  const totalSize = stripeSize * 2;
-  canvas.width = totalSize;
-  canvas.height = totalSize;
-
-  function drawStripes(offset = 0) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.translate(offset, offset);
-    ctx.rotate((45 * Math.PI) / 180);
-    for (let i = -totalSize; i < totalSize * 2; i += stripeSize) {
-      ctx.fillStyle = '#c44';
-      ctx.fillRect(i, 0, stripeSize / 2, totalSize * 2);
-      ctx.fillStyle = '#313131';
-      ctx.fillRect(i + stripeSize / 2, 0, stripeSize / 2, totalSize * 2);
-    }
-    ctx.restore();
-  }
-
-  let offset = 0;
-  const speed = 0.6;
-
-  function animate() {
-    offset = (offset + speed) % stripeSize;
-    drawStripes(offset);
-    const dataURL = canvas.toDataURL();
-    styledText.style.backgroundImage = `url(${dataURL})`;
-    requestAnimationFrame(animate);
-  }
-
-  drawStripes();
-  requestAnimationFrame(animate);
 })();
 </script>
-
-
-
-
-
-
 
 
 
