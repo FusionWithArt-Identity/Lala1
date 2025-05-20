@@ -48,6 +48,7 @@
     perspective: 1000px;
     transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
+    overflow: hidden; /* Prevent unwanted scrollbars on outer card */
 }
 
 .flip-card-inner {
@@ -96,7 +97,8 @@
 }
 
 /* Card Faces */
-.flip-card-front, .flip-card-back {
+.flip-card-front,
+.flip-card-back {
     position: absolute;
     width: 100%;
     height: 100%;
@@ -115,18 +117,23 @@
 .flip-card-back {
     background-color: #fff;
     transform: rotateY(180deg);
+    border-radius: 12px;
+    padding: 0;
+    overflow: hidden; /* Prevent overflow of scrollbar itself */
+    position: relative;
+}
+
+/* Scrollable content container inside back face */
+.flip-card-back .content-scroll {
+    flex: 1;
     overflow-y: auto;
     padding: 25px;
+    scrollbar-width: none; /* Firefox */
 }
 
-/* Hide Scrollbar Only on Active Card */
-.flip-card.active .flip-card-back {
-    scrollbar-width: none;         /* Firefox */
-    -ms-overflow-style: none;      /* IE and Edge */
-}
-
-.flip-card.active .flip-card-back::-webkit-scrollbar {
-    display: none;                 /* Chrome, Safari, Opera */
+/* Hide scrollbar in WebKit browsers */
+.flip-card-back .content-scroll::-webkit-scrollbar {
+    display: none;
 }
 
 /* Solid Neon Backgrounds for Active Cards */
