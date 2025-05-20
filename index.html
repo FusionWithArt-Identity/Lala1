@@ -729,8 +729,8 @@ if (document.readyState === 'complete') {
     const glowBlur = isMobile ? 25 : 40;
     const glowSpeed = 0.2;
     const glowLength = isMobile ? 0.2 : 0.25;
-    const frameRate = 60;
-    const frameInterval = 1000 / frameRate;
+    const targetFPS = 60;
+    const frameInterval = 1000 / targetFPS;
 
     let progress = 0;
     let lastTime = 0;
@@ -747,7 +747,9 @@ if (document.readyState === 'complete') {
         pointerEvents: 'none',
         zIndex: '0',
         willChange: 'transform',
-        backfaceVisibility: 'hidden'
+        backfaceVisibility: 'hidden',
+        // add hardware acceleration hint
+        transform: 'translateZ(0)'
     });
     document.body.appendChild(bgCanvas);
 
@@ -758,14 +760,18 @@ if (document.readyState === 'complete') {
             const dpr = window.devicePixelRatio || 1;
             const w = window.innerWidth;
             const h = window.innerHeight;
+            // set CSS sizes
             bgCanvas.style.width = `${w}px`;
             bgCanvas.style.height = `${h}px`;
-            bgCanvas.width = w * dpr;
-            bgCanvas.height = h * dpr;
-            bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-            bgCtx.scale(dpr, dpr);
+            // set actual canvas resolution for sharpness
+            if (bgCanvas.width !== w * dpr || bgCanvas.height !== h * dpr) {
+                bgCanvas.width = w * dpr;
+                bgCanvas.height = h * dpr;
+                bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+                bgCtx.scale(dpr, dpr);
+            }
             bgCtx.clearRect(0, 0, w, h);
-        }, 100);
+        }, 150); // slightly longer debounce for resize events
     }
 
     function getActiveCardColor() {
@@ -818,10 +824,12 @@ if (document.readyState === 'complete') {
             bgCtx.moveTo(points[0].x, points[0].y);
 
             if (isMobile) {
+                // On mobile: simpler lines for performance
                 for (let i = 1; i < points.length; i++) {
                     bgCtx.lineTo(points[i].x, points[i].y);
                 }
             } else {
+                // On desktop: smooth quadratic curves for aesthetics
                 for (let i = 1; i < points.length; i++) {
                     const prev = points[i - 1];
                     const curr = points[i];
@@ -846,18 +854,23 @@ if (document.readyState === 'complete') {
         lastTime = timestamp;
         timeAccumulator += deltaTime;
 
-        while (timeAccumulator >= frameInterval) {
-            timeAccumulator -= frameInterval;
+        // Only update when enough time has passed (throttling to 60fps)
+        if (timeAccumulator >= frameInterval) {
+            // Calculate how many frames to catch up (usually 1)
+            const framesToUpdate = Math.floor(timeAccumulator / frameInterval);
+            timeAccumulator -= framesToUpdate * frameInterval;
 
             const w = window.innerWidth;
             const h = window.innerHeight;
             const color = getActiveCardColor();
 
-            progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
+            // Update progress with frame count considered for smoothness
+            progress = (progress + glowSpeed * (framesToUpdate * frameInterval / 1000)) % 1;
 
             bgCtx.clearRect(0, 0, w, h);
 
             if (document.visibilityState === 'hidden') {
+                // Skip drawing if not visible
                 requestAnimationFrame(draw);
                 return;
             }
@@ -869,33 +882,33 @@ if (document.readyState === 'complete') {
         requestAnimationFrame(draw);
     }
 
+    // Initial setup
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas, { passive: true });
 
-    const observer = new MutationObserver(() => {});
+    // Use MutationObserver efficiently — observe only once on container or document.body
+    const observer = new MutationObserver(() => {
+        // No need to do anything extra here since getActiveCardColor reads live class list
+    });
     document.querySelectorAll('.flip-card').forEach(card => {
-        observer.observe(card, {
-            attributes: true,
-            attributeFilter: ['class'],
-            subtree: false,
-            childList: false,
-            characterData: false
-        });
+        observer.observe(card, { attributes: true, attributeFilter: ['class'] });
     });
 
+    // Start animation only when visible to save CPU
     if (document.visibilityState === 'visible') {
         requestAnimationFrame(draw);
     } else {
-        const handleVisibilityChange = () => {
+        const onVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
                 requestAnimationFrame(draw);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                document.removeEventListener('visibilitychange', onVisibilityChange);
             }
         };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('visibilitychange', onVisibilityChange);
     }
 })();
 </script>
+
 
 
 
