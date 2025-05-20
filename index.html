@@ -831,21 +831,16 @@ if (document.readyState === 'complete') {
 
 <script>
 (function applyStripedHeadingWithJSAnimation() {
-  // Load Verdana font (actually Verdana is a system font, so no need to load)
-  // But let's keep font stack with fallback
-  // Remove Anton font loading
+  // Load Anton font
+  const fontLink = document.createElement("link");
+  fontLink.rel = "stylesheet";
+  fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
+  document.head.appendChild(fontLink);
 
   // Inject styles
   const style = document.createElement("style");
-  style.textContent = `
-    body {
-      background-color: #c4c4c4;
-    }
+  style.textContent = 
     .stripe-heading-container {
-      position: absolute;
-      top: 50%;
-      right: 50%;
-      transform: translate(50%, -50%);
       width: 100%;
       max-width: 100%;
       display: flex;
@@ -853,45 +848,30 @@ if (document.readyState === 'complete') {
       align-items: center;
       margin-bottom: 30px;
       min-height: 120px;
+      position: relative;
       transition: opacity 0.3s ease, visibility 0.3s ease;
     }
 
     .stripe-heading-text {
-      font-size: 12em;
-      font-family: Verdana, Geneva, Tahoma, sans-serif;
+      font-size: 8rem;
+      font-family: 'Anton', sans-serif;
       text-align: center;
-      text-transform: uppercase;
-      color: #f5f5f5; /* fallback color */
-      text-shadow:
-        1px 1px 1px #919191,
-        1px 2px 1px #919191,
-        1px 3px 1px #919191,
-        1px 4px 1px #919191,
-        1px 5px 1px #919191,
-        1px 6px 1px #919191,
-        1px 7px 1px #919191,
-        1px 8px 1px #919191,
-        1px 9px 1px #919191,
-        1px 10px 1px #919191,
-        1px 18px 6px rgba(16,16,16,0.4),
-        1px 22px 10px rgba(16,16,16,0.2),
-        1px 25px 35px rgba(16,16,16,0.2),
-        1px 30px 60px rgba(16,16,16,0.4);
+      color: transparent;
+      line-height: 1.1;
       background-clip: text;
       -webkit-background-clip: text;
       background-repeat: repeat;
       background-size: 100px 100px;
-      color: transparent; /* important for background-clip to show */
       transform: translateZ(0);
       will-change: background-position;
     }
 
     @media (max-width: 768px) {
-      .stripe-heading-text { font-size: 6em; }
+      .stripe-heading-text { font-size: 4rem; }
     }
 
     @media (max-width: 480px) {
-      .stripe-heading-text { font-size: 4em; }
+      .stripe-heading-text { font-size: 3rem; }
     }
 
     .flip-card.active ~ .stripe-heading-container {
@@ -900,7 +880,7 @@ if (document.readyState === 'complete') {
       pointer-events: none;
       position: absolute;
     }
-  `;
+  ;
   document.head.appendChild(style);
 
   // Replace <h1> with animated version
@@ -932,7 +912,7 @@ if (document.readyState === 'complete') {
 
     offset = (offset - delta * speed) % stripeSize;
 
-    styledText.style.backgroundImage = `
+    styledText.style.backgroundImage = 
       repeating-linear-gradient(
         45deg,
         ${color1} 25%,
@@ -940,8 +920,8 @@ if (document.readyState === 'complete') {
         ${color2} 50%,
         ${color2} 75%
       )
-    `;
-    styledText.style.backgroundPosition = `${offset}px 0px`;
+    ;
+    styledText.style.backgroundPosition = ${offset}px 0px;
 
     requestAnimationFrame(animateStripe);
   }
