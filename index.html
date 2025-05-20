@@ -913,6 +913,7 @@ if (document.readyState === 'complete') {
       min-height: 120px;
       position: relative;
       transition: opacity 0.3s ease, visibility 0.3s ease;
+      overflow: hidden; /* clip overflow */
     }
 
     .stripe-heading-text {
@@ -934,6 +935,7 @@ if (document.readyState === 'complete') {
       );
       will-change: background-position;
       transform: translateZ(0);
+      display: inline-block; /* confine width to text */
     }
 
     @media (max-width: 768px) {
@@ -969,8 +971,8 @@ if (document.readyState === 'complete') {
 
   // Animation
   let offset = 0;
-  const speed = 60; // reduced for better perf
-  const stripeSize = 60; // smaller pattern size
+  const speed = 60; // pixels per second
+  const stripeSize = 60; // matches background-size
   let lastTime = performance.now();
 
   function animate(time) {
@@ -986,6 +988,7 @@ if (document.readyState === 'complete') {
   requestAnimationFrame(animate);
 })();
 </script>
+
 
 
 
