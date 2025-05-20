@@ -830,7 +830,7 @@ if (document.readyState === 'complete') {
 
 
 <script>
-(function apply3DRaisedStripedHeading() {
+(function applyRaised3DStripedHeading() {
   // Load Anton font
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
@@ -857,20 +857,30 @@ if (document.readyState === 'complete') {
       font-family: 'Anton', sans-serif;
       text-align: center;
       color: transparent;
+      line-height: 1.1;
       background-clip: text;
       -webkit-background-clip: text;
       background-repeat: repeat;
       background-size: 100px 100px;
       transform: translateZ(0);
       will-change: background-position;
-      
-      /* 3D Raised Look */
+
+      /* 3D realistic shadow (from your sample) */
       text-shadow:
-        1px 1px 1px rgba(0, 0, 0, 0.3),
-        2px 2px 2px rgba(0, 0, 0, 0.25),
-        3px 3px 3px rgba(0, 0, 0, 0.2),
-        4px 4px 4px rgba(0, 0, 0, 0.15),
-        5px 5px 5px rgba(0, 0, 0, 0.1);
+        1px 1px 1px #919191,
+        1px 2px 1px #919191,
+        1px 3px 1px #919191,
+        1px 4px 1px #919191,
+        1px 5px 1px #919191,
+        1px 6px 1px #919191,
+        1px 7px 1px #919191,
+        1px 8px 1px #919191,
+        1px 9px 1px #919191,
+        1px 10px 1px #919191,
+        1px 18px 6px rgba(16,16,16,0.4),
+        1px 22px 10px rgba(16,16,16,0.2),
+        1px 25px 35px rgba(16,16,16,0.2),
+        1px 30px 60px rgba(16,16,16,0.4);
     }
 
     @media (max-width: 768px) {
@@ -904,11 +914,11 @@ if (document.readyState === 'complete') {
   container.appendChild(styledText);
   h1.replaceWith(container);
 
-  // JS-animated striped background
-  const color1 = "#facf5a";
+  // Stripe background animation
+  const color1 = "#c44";
   const color2 = "#313131";
   const stripeSize = 100;
-  const speed = 80; // pixels/second
+  const speed = 80; // px per second
   let offset = 0;
   let lastTime = performance.now();
 
@@ -925,7 +935,7 @@ if (document.readyState === 'complete') {
         ${color2} 75%
       )
     `;
-    styledText.style.backgroundPosition = `${offset}px 0px`;
+    styledText.style.backgroundPosition = \`\${offset}px 0px\`;
     requestAnimationFrame(animateStripe);
   }
 
