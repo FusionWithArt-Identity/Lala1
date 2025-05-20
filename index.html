@@ -830,7 +830,7 @@ if (document.readyState === 'complete') {
 
 
 <script>
-(function applyStripedHeadingWithJSAnimation() {
+(function apply3DRaisedStripedHeading() {
   // Load Anton font
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
@@ -857,13 +857,20 @@ if (document.readyState === 'complete') {
       font-family: 'Anton', sans-serif;
       text-align: center;
       color: transparent;
-      line-height: 1.1;
       background-clip: text;
       -webkit-background-clip: text;
       background-repeat: repeat;
       background-size: 100px 100px;
       transform: translateZ(0);
       will-change: background-position;
+      
+      /* 3D Raised Look */
+      text-shadow:
+        1px 1px 1px rgba(0, 0, 0, 0.3),
+        2px 2px 2px rgba(0, 0, 0, 0.25),
+        3px 3px 3px rgba(0, 0, 0, 0.2),
+        4px 4px 4px rgba(0, 0, 0, 0.15),
+        5px 5px 5px rgba(0, 0, 0, 0.1);
     }
 
     @media (max-width: 768px) {
@@ -897,21 +904,18 @@ if (document.readyState === 'complete') {
   container.appendChild(styledText);
   h1.replaceWith(container);
 
-  // Set animated gradient background
-  const color1 = "#facf5a";
+  // JS-animated striped background
+  const color1 = "#c44";
   const color2 = "#313131";
   const stripeSize = 100;
-  const speed = 80; // pixels per second
-
+  const speed = 80; // pixels/second
   let offset = 0;
   let lastTime = performance.now();
 
   function animateStripe(time) {
     const delta = (time - lastTime) / 1000;
     lastTime = time;
-
     offset = (offset - delta * speed) % stripeSize;
-
     styledText.style.backgroundImage = `
       repeating-linear-gradient(
         45deg,
@@ -922,13 +926,13 @@ if (document.readyState === 'complete') {
       )
     `;
     styledText.style.backgroundPosition = `${offset}px 0px`;
-
     requestAnimationFrame(animateStripe);
   }
 
   requestAnimationFrame(animateStripe);
 })();
 </script>
+
 
 
 
