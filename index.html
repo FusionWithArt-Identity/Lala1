@@ -935,7 +935,7 @@ if (document.readyState === 'complete') {
       min-height: 120px;
       position: relative;
       transition: opacity 0.3s ease, visibility 0.3s ease;
-      overflow: hidden; /* clip overflow */
+      overflow: hidden;
     }
 
     .stripe-heading-text {
@@ -957,7 +957,7 @@ if (document.readyState === 'complete') {
       );
       will-change: background-position;
       transform: translateZ(0);
-      display: inline-block; /* confine width to text */
+      display: inline-block;
     }
 
     @media (max-width: 768px) {
@@ -994,24 +994,33 @@ if (document.readyState === 'complete') {
   // Animation
   let offset = 0;
   const speed = 60; // pixels per second
-  const stripeSize = 60; // matches background-size
+  const stripeSize = 60;
   let lastTime = performance.now();
+  let animationFrame;
 
-  function animate(time) {
+  const animate = (time) => {
     const delta = (time - lastTime) / 1000;
     lastTime = time;
+    offset = (offset - speed * delta) % stripeSize;
+    styledText.style.backgroundPosition = `${offset}px 0px`;
+    animationFrame = requestAnimationFrame(animate);
+  };
 
-    offset -= delta * speed;
-    // Normalize offset to a positive value within [0, stripeSize)
-    const normalizedOffset = ((offset % stripeSize) + stripeSize) % stripeSize;
-    styledText.style.backgroundPosition = `${normalizedOffset}px 0px`;
+  // Pause/resume on visibility change (battery+CPU optimization)
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      cancelAnimationFrame(animationFrame);
+    } else {
+      lastTime = performance.now();
+      animationFrame = requestAnimationFrame(animate);
+    }
+  };
 
-    requestAnimationFrame(animate);
-  }
-
-  requestAnimationFrame(animate);
+  document.addEventListener('visibilitychange', handleVisibilityChange, { passive: true });
+  animationFrame = requestAnimationFrame(animate);
 })();
 </script>
+
 
 
 
