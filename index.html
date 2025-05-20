@@ -988,8 +988,10 @@ if (document.readyState === 'complete') {
     const delta = (time - lastTime) / 1000;
     lastTime = time;
 
-    offset = (offset - delta * speed) % stripeSize;
-    styledText.style.backgroundPosition = `${offset}px 0px`;
+    offset -= delta * speed;
+    // Normalize offset to a positive value within [0, stripeSize)
+    const normalizedOffset = ((offset % stripeSize) + stripeSize) % stripeSize;
+    styledText.style.backgroundPosition = `${normalizedOffset}px 0px`;
 
     requestAnimationFrame(animate);
   }
@@ -997,6 +999,7 @@ if (document.readyState === 'complete') {
   requestAnimationFrame(animate);
 })();
 </script>
+
 
 
 
