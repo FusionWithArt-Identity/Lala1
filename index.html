@@ -27,40 +27,6 @@
         padding: 15px;
         overflow-x: hidden;
     }
-    
-
-h1 {
-    font-family: 'Arial Black', sans-serif;
-    font-size: 4rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    color: transparent;
-    -webkit-text-stroke: 3px #333; /* For WebKit browsers */
-    text-stroke: 3px #333;         /* For other browsers */
-    text-align: center;
-    margin: 2rem;
-    position: relative;
-    padding: 0.5em 0;
-}
-
-/* Decorative top and bottom bars */
-h1::before,
-h1::after {
-    content: "";
-    position: absolute;
-    height: 10px;
-    background: #333;
-    left: 0;
-    right: 0;
-}
-
-h1::before {
-    top: 0;
-}
-
-h1::after {
-    bottom: 0;
-}
 
     
     .cards-container {
@@ -845,8 +811,9 @@ if (document.readyState === 'complete') {
 </script>
 
 
+
 <script>
-(function applyStripedHeadingEffect() {
+(function applyStripedMaskedHeadingEffect() {
   const style = document.createElement("style");
   style.textContent = `
     :root {
@@ -866,45 +833,22 @@ if (document.readyState === 'complete') {
     }
 
     .stripe-heading-text {
-      font-family: 'Arial Black', 'Anton', sans-serif;
-      font-size: 4rem;
-      font-weight: bold;
-      text-transform: uppercase;
+      font-family: 'Anton', sans-serif;
+      font-size: 3.5rem;
       text-align: center;
-      color: transparent;
-      -webkit-text-stroke: 3px #333;
-      text-stroke: 3px #333;
       background: repeating-linear-gradient(
         45deg,
-        var(--color1) 25%,
+        var(--color1) 0%,
         var(--color1) 50%,
         var(--color2) 50%,
-        var(--color2) 75%
+        var(--color2) 100%
       );
       background-size: var(--stripe-size) var(--stripe-size);
-      background-clip: text;
       -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
       animation: stripeMove var(--duration) linear infinite;
-      position: relative;
-      padding: 0.5em 0;
-    }
-
-    .stripe-heading-text::before,
-    .stripe-heading-text::after {
-      content: "";
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 10px;
-      background: #333;
-    }
-
-    .stripe-heading-text::before {
-      top: 0;
-    }
-
-    .stripe-heading-text::after {
-      bottom: 0;
+      -webkit-text-fill-color: transparent;
     }
 
     @keyframes stripeMove {
@@ -934,6 +878,9 @@ if (document.readyState === 'complete') {
   container.appendChild(styledText);
 })();
 </script>
+
+
+
 
 
 
