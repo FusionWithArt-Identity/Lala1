@@ -829,24 +829,17 @@ if (document.readyState === 'complete') {
 
 
 
-    <script>
-(function applyOptimizedStripedHeading() {
+<script>
+(function applyStripedHeadingWithJSAnimation() {
   // Load Anton font
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
   fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
   document.head.appendChild(fontLink);
 
-  // Inject optimized style
+  // Inject styles
   const style = document.createElement("style");
   style.textContent = `
-    :root {
-      --stripe-size: 100px;
-      --color1: #facf5a;
-      --color2: #313131;
-      --duration: 2s;
-    }
-
     .stripe-heading-container {
       width: 100%;
       max-width: 100%;
@@ -864,25 +857,13 @@ if (document.readyState === 'complete') {
       font-family: 'Anton', sans-serif;
       text-align: center;
       color: transparent;
-      background: repeating-linear-gradient(
-        45deg,
-        var(--color1) 25%,
-        var(--color1) 50%,
-        var(--color2) 50%,
-        var(--color2) 75%
-      );
-      background-size: var(--stripe-size) var(--stripe-size);
+      line-height: 1.1;
       background-clip: text;
       -webkit-background-clip: text;
-      animation: stripeBackgroundPosition var(--duration) linear infinite;
-      line-height: 1.1;
-      transform: translateZ(0); /* force GPU compositing */
+      background-repeat: repeat;
+      background-size: 100px 100px;
+      transform: translateZ(0);
       will-change: background-position;
-    }
-
-    @keyframes stripeBackgroundPosition {
-      0% { background-position: 0 0; }
-      100% { background-position: calc(var(--stripe-size) * -1) 0; }
     }
 
     @media (max-width: 768px) {
@@ -902,6 +883,7 @@ if (document.readyState === 'complete') {
   `;
   document.head.appendChild(style);
 
+  // Replace <h1> with animated version
   const h1 = document.querySelector('h1');
   if (!h1) return;
 
@@ -914,8 +896,40 @@ if (document.readyState === 'complete') {
 
   container.appendChild(styledText);
   h1.replaceWith(container);
+
+  // Set animated gradient background
+  const color1 = "#facf5a";
+  const color2 = "#313131";
+  const stripeSize = 100;
+  const speed = 80; // pixels per second
+
+  let offset = 0;
+  let lastTime = performance.now();
+
+  function animateStripe(time) {
+    const delta = (time - lastTime) / 1000;
+    lastTime = time;
+
+    offset = (offset - delta * speed) % stripeSize;
+
+    styledText.style.backgroundImage = `
+      repeating-linear-gradient(
+        45deg,
+        ${color1} 25%,
+        ${color1} 50%,
+        ${color2} 50%,
+        ${color2} 75%
+      )
+    `;
+    styledText.style.backgroundPosition = `${offset}px 0px`;
+
+    requestAnimationFrame(animateStripe);
+  }
+
+  requestAnimationFrame(animateStripe);
 })();
 </script>
+
 
 
 
