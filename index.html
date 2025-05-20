@@ -172,7 +172,7 @@
 
 
 
-  /* Content Styling */
+ /* Content Styling */
 .image-container {
     width: 100%;
     height: 100%;
@@ -181,9 +181,8 @@
     align-items: center;
     overflow: hidden;
 
-    /* Enable GPU acceleration */
+    /* Promote to own layer for better GPU performance */
     will-change: transform;
-    perspective: 800px; /* Needed for 3D effect on children */
 }
 
 .character-image {
@@ -192,22 +191,9 @@
     object-fit: cover;
     object-position: center;
 
-    /* 3D look */
-    transform-style: preserve-3d;
+    /* GPU acceleration for smoother rendering */
+    will-change: transform;
     transform: translateZ(0);
-    will-change: transform, filter;
-
-    /* Subtle 3D tilt and shadow */
-    transition: transform 0.4s ease, filter 0.4s ease;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-    border-radius: 12px;
-}
-
-/* Optional: Slight hover tilt for 3D effect */
-.image-container:hover .character-image,
-.flip-card.lifted .character-image {
-    transform: rotateY(10deg) rotateX(5deg) translateZ(20px);
-    filter: drop-shadow(0 8px 10px rgba(0,0,0,0.2));
 }
 
 .character-title {
@@ -217,8 +203,8 @@
     font-size: 2rem;
     text-align: center;
 
-    /* GPU optimize */
-    will-change: opacity, transform;
+    /* Promote for smoother animations if any */
+    will-change: color, opacity, transform;
 }
 
 /* Active Card Text Contrast */
@@ -229,16 +215,17 @@
     text-shadow: none !important;
 }
 
+/* Aspect items with smooth transition */
 .aspect-item {
     margin-bottom: 25px;
     text-align: left;
     width: 100%;
     opacity: 0;
     transform: translateX(-30px);
-    transition: all 0.6s ease;
 
-    /* GPU optimize */
+    /* GPU acceleration and smooth transition */
     will-change: opacity, transform;
+    transition: all 0.6s ease;
 }
 
 .aspect-item.visible {
@@ -252,8 +239,7 @@
     font-size: 1.5rem;
     margin-bottom: 10px;
 
-    /* GPU optimize */
-    will-change: opacity, transform;
+    will-change: color, opacity, transform;
 }
 
 .aspect-content {
@@ -265,8 +251,7 @@
     color: #222;
     font-weight: 500;
 
-    /* GPU optimize */
-    will-change: opacity, transform;
+    will-change: opacity, transform, color;
 }
 
 .aspect-content.visible {
@@ -295,6 +280,8 @@
     }
     .flip-card-back {
         padding: 20px;
+        /* Enable smooth scrolling on iOS */
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -315,6 +302,7 @@
         font-size: 1.2rem;
     }
 }
+
 
 
 </style>
