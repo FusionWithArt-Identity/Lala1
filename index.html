@@ -860,10 +860,17 @@ if (document.readyState === 'complete') {
       line-height: 1.1;
       background-clip: text;
       -webkit-background-clip: text;
+      background-size: 60px 60px;
       background-repeat: repeat;
-      background-size: 100px 100px;
-      transform: translateZ(0);
+      background-image: repeating-linear-gradient(
+        45deg,
+        #c44 0%,
+        #c44 25%,
+        #313131 25%,
+        #313131 50%
+      );
       will-change: background-position;
+      transform: translateZ(0);
     }
 
     @media (max-width: 768px) {
@@ -897,36 +904,23 @@ if (document.readyState === 'complete') {
   container.appendChild(styledText);
   h1.replaceWith(container);
 
-  // Set animated gradient background
-  const color1 = "#c44";
-  const color2 = "#313131";
-  const stripeSize = 100;
-  const speed = 80; // pixels per second
-
+  // Animation
   let offset = 0;
+  const speed = 60; // reduced for better perf
+  const stripeSize = 60; // smaller pattern size
   let lastTime = performance.now();
 
-  function animateStripe(time) {
+  function animate(time) {
     const delta = (time - lastTime) / 1000;
     lastTime = time;
 
     offset = (offset - delta * speed) % stripeSize;
-
-    styledText.style.backgroundImage = `
-      repeating-linear-gradient(
-        45deg,
-        ${color1} 25%,
-        ${color1} 50%,
-        ${color2} 50%,
-        ${color2} 75%
-      )
-    `;
     styledText.style.backgroundPosition = `${offset}px 0px`;
 
-    requestAnimationFrame(animateStripe);
+    requestAnimationFrame(animate);
   }
 
-  requestAnimationFrame(animateStripe);
+  requestAnimationFrame(animate);
 })();
 </script>
 
