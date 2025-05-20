@@ -830,21 +830,21 @@ if (document.readyState === 'complete') {
 
 
 <script>
-(function applyFluidStripedHeading() {
+(function applyUltraSmoothNarrowStripedHeading() {
   // Load Anton font
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
   fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
   document.head.appendChild(fontLink);
 
-  // Inject styles
+  // Inject style
   const style = document.createElement("style");
   style.textContent = `
     :root {
-      --stripe-size: 30px; /* Even narrower stripes */
-      --color1: #facf5a;    /* Gold-yellow stripe */
+      --stripe-size: 30px; /* Ultra-narrow stripes */
+      --color1: #facf5a;
       --color2: #313131;
-      --duration: 5s;       /* Slower = more fluid */
+      --duration: 3.5s;
     }
 
     .stripe-heading-container {
@@ -867,29 +867,28 @@ if (document.readyState === 'complete') {
       text-align: center;
       color: transparent;
       background: repeating-linear-gradient(
-        135deg,
-        var(--color1) 0px,
-        var(--color1) var(--stripe-size),
-        var(--color2) var(--stripe-size),
-        var(--color2) calc(var(--stripe-size) * 2)
+        45deg,
+        var(--color1) 25%,
+        var(--color1) 50%,
+        var(--color2) 50%,
+        var(--color2) 75%
       );
-      background-size: 200% auto;
+      background-size: var(--stripe-size) var(--stripe-size);
       background-clip: text;
       -webkit-background-clip: text;
-      animation: fluidStripes var(--duration) ease-in-out infinite;
+      animation: stripeBackgroundPosition var(--duration) cubic-bezier(0.4, 0, 0.2, 1) infinite;
       line-height: 1.1;
       transform: translateZ(0);
       will-change: background-position;
       contain: paint style layout;
     }
 
-    @keyframes fluidStripes {
-      0% { background-position: 0% 0; }
-      50% { background-position: 100% 0; }
-      100% { background-position: 0% 0; }
+    @keyframes stripeBackgroundPosition {
+      0%   { background-position: 0 0; }
+      100% { background-position: calc(var(--stripe-size) * -1) 0; }
     }
 
-    /* Mobile scaling */
+    /* Responsive font scaling */
     @media (max-width: 768px) {
       .stripe-heading-text { font-size: 4rem; }
     }
@@ -898,7 +897,7 @@ if (document.readyState === 'complete') {
       .stripe-heading-text { font-size: 3rem; }
     }
 
-    /* Prevent bounce */
+    /* Preserve space and avoid jumps on flip */
     .flip-card.active ~ .stripe-heading-container {
       visibility: hidden;
       opacity: 0;
@@ -923,6 +922,7 @@ if (document.readyState === 'complete') {
   h1.replaceWith(container);
 })();
 </script>
+
 
 
 
