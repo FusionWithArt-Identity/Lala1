@@ -829,20 +829,20 @@ if (document.readyState === 'complete') {
 
 
 
-    <script>
-(function applyStableStripedHeading() {
-  // Load Google Font
+<script>
+(function applyUltraSmoothStripedHeading() {
+  // Load Anton font
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
   fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
   document.head.appendChild(fontLink);
 
-  // Inject Style
+  // Inject styles
   const style = document.createElement("style");
   style.textContent = `
     :root {
-      --stripe-size: 60px; /* Narrower stripes */
-      --color1: #c44;
+      --stripe-size: 60px; /* Narrow stripe */
+      --color1: #facf5a;    /* Updated golden-yellow */
       --color2: #313131;
       --duration: 2s;
     }
@@ -858,6 +858,7 @@ if (document.readyState === 'complete') {
       position: relative;
       transition: opacity 0.3s ease, visibility 0.3s ease;
       will-change: opacity, transform;
+      contain: layout style paint; /* Prevent reflow/jump */
     }
 
     .stripe-heading-text {
@@ -877,8 +878,9 @@ if (document.readyState === 'complete') {
       -webkit-background-clip: text;
       animation: stripeBackgroundPosition var(--duration) linear infinite;
       line-height: 1.1;
-      transform: translateZ(0); /* GPU promote to prevent flicker */
+      transform: translateZ(0);
       will-change: background-position;
+      contain: paint style layout;
     }
 
     @keyframes stripeBackgroundPosition {
@@ -886,7 +888,7 @@ if (document.readyState === 'complete') {
       100% { background-position: calc(var(--stripe-size) * -1) 0; }
     }
 
-    /* Responsive scaling */
+    /* Mobile scaling */
     @media (max-width: 768px) {
       .stripe-heading-text { font-size: 4rem; }
     }
@@ -895,7 +897,7 @@ if (document.readyState === 'complete') {
       .stripe-heading-text { font-size: 3rem; }
     }
 
-    /* Prevent h1 bounce on flip */
+    /* No bounce on flip */
     .flip-card.active ~ .stripe-heading-container {
       visibility: hidden;
       opacity: 0;
@@ -920,6 +922,7 @@ if (document.readyState === 'complete') {
   h1.replaceWith(container);
 })();
 </script>
+
 
 
 
