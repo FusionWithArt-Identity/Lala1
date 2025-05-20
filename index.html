@@ -839,7 +839,7 @@ if (document.readyState === 'complete') {
 
   // Inject styles
   const style = document.createElement("style");
-  style.textContent = 
+  style.textContent = `
     .stripe-heading-container {
       width: 100%;
       max-width: 100%;
@@ -880,7 +880,7 @@ if (document.readyState === 'complete') {
       pointer-events: none;
       position: absolute;
     }
-  ;
+  `;
   document.head.appendChild(style);
 
   // Replace <h1> with animated version
@@ -912,7 +912,7 @@ if (document.readyState === 'complete') {
 
     offset = (offset - delta * speed) % stripeSize;
 
-    styledText.style.backgroundImage = 
+    styledText.style.backgroundImage = `
       repeating-linear-gradient(
         45deg,
         ${color1} 25%,
@@ -920,8 +920,8 @@ if (document.readyState === 'complete') {
         ${color2} 50%,
         ${color2} 75%
       )
-    ;
-    styledText.style.backgroundPosition = ${offset}px 0px;
+    `;
+    styledText.style.backgroundPosition = `${offset}px 0px`;
 
     requestAnimationFrame(animateStripe);
   }
@@ -929,6 +929,7 @@ if (document.readyState === 'complete') {
   requestAnimationFrame(animateStripe);
 })();
 </script>
+
 
 
 
