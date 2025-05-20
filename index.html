@@ -648,15 +648,16 @@ if (document.readyState === 'complete') {
     const glowBlur = isMobile ? 25 : 40;
     const glowSpeed = 0.2;
     const glowLength = isMobile ? 0.2 : 0.25;
-    const frameRate = 60;
-    const frameInterval = 1000 / frameRate;
+    const frameInterval = 1000 / 60;
 
     let progress = 0;
-    let lastTime = 0;
+    let lastTimestamp = 0;
     let timeAccumulator = 0;
 
     const bgCanvas = document.createElement('canvas');
-    const bgCtx = bgCanvas.getContext('2d', { alpha: true });
+    const bgCtx = bgCanvas.getContext('2d');
+    document.body.appendChild(bgCanvas);
+
     Object.assign(bgCanvas.style, {
         position: 'fixed',
         top: '0',
@@ -668,35 +669,36 @@ if (document.readyState === 'complete') {
         willChange: 'transform',
         backfaceVisibility: 'hidden'
     });
-    document.body.appendChild(bgCanvas);
 
-    let resizeTimeout;
-    function resizeCanvas() {
-        if (resizeTimeout) clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            const dpr = window.devicePixelRatio || 1;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            bgCanvas.style.width = `${w}px`;
-            bgCanvas.style.height = `${h}px`;
-            bgCanvas.width = w * dpr;
-            bgCanvas.height = h * dpr;
-            bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-            bgCtx.scale(dpr, dpr);
-            bgCtx.clearRect(0, 0, w, h);
-        }, 100);
-    }
-
-    function getActiveCardColor() {
-        const activeCard = document.querySelector('.flip-card.active');
-        if (!activeCard) return colors.default;
-        return colors[activeCard.id] || colors.default;
-    }
-
-    function drawGlowSegment(progressPoint, color) {
+    const setCanvasSize = () => {
+        const dpr = window.devicePixelRatio || 1;
         const w = window.innerWidth;
         const h = window.innerHeight;
-        const perimeter = 2 * (w + h);
+        bgCanvas.width = w * dpr;
+        bgCanvas.height = h * dpr;
+        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+        bgCtx.scale(dpr, dpr);
+    };
+
+    let resizeScheduled = false;
+    window.addEventListener('resize', () => {
+        if (!resizeScheduled) {
+            resizeScheduled = true;
+            requestAnimationFrame(() => {
+                setCanvasSize();
+                resizeScheduled = false;
+            });
+        }
+    });
+
+    setCanvasSize();
+
+    const getActiveCardColor = () => {
+        const card = document.querySelector('.flip-card.active');
+        return card ? colors[card.id] || colors.default : colors.default;
+    };
+
+    const drawGlowSegment = (progressPoint, color, width, height, perimeter) => {
         const center = progressPoint * perimeter;
         const halfLen = (glowLength * perimeter) / 2;
         const start = (center - halfLen + perimeter) % perimeter;
@@ -706,23 +708,14 @@ if (document.readyState === 'complete') {
         const points = [];
 
         const addPoint = (pos) => {
-            if (pos < w) {
-                points.push({ x: pos, y: 0 });
-            } else if (pos < w + h) {
-                points.push({ x: w, y: pos - w });
-            } else if (pos < 2 * w + h) {
-                points.push({ x: w - (pos - w - h), y: h });
-            } else {
-                points.push({ x: 0, y: h - (pos - 2 * w - h) });
-            }
+            if (pos < width) points.push({ x: pos, y: 0 });
+            else if (pos < width + height) points.push({ x: width, y: pos - width });
+            else if (pos < 2 * width + height) points.push({ x: width - (pos - width - height), y: height });
+            else points.push({ x: 0, y: height - (pos - 2 * width - height) });
         };
 
         const trace = (from, to) => {
-            let pos = from;
-            while (pos < to) {
-                addPoint(pos);
-                pos += step;
-            }
+            for (let pos = from; pos < to; pos += step) addPoint(pos);
         };
 
         if (start < end) {
@@ -735,7 +728,6 @@ if (document.readyState === 'complete') {
         if (points.length > 1) {
             bgCtx.beginPath();
             bgCtx.moveTo(points[0].x, points[0].y);
-
             if (isMobile) {
                 for (let i = 1; i < points.length; i++) {
                     bgCtx.lineTo(points[i].x, points[i].y);
@@ -757,64 +749,47 @@ if (document.readyState === 'complete') {
             bgCtx.lineCap = 'round';
             bgCtx.stroke();
         }
-    }
+    };
 
-    function draw(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const deltaTime = timestamp - lastTime;
-        lastTime = timestamp;
-        timeAccumulator += deltaTime;
+    const draw = (timestamp) => {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const delta = timestamp - lastTimestamp;
+        lastTimestamp = timestamp;
+        timeAccumulator += delta;
 
         while (timeAccumulator >= frameInterval) {
             timeAccumulator -= frameInterval;
 
             const w = window.innerWidth;
             const h = window.innerHeight;
+            const perimeter = 2 * (w + h);
             const color = getActiveCardColor();
 
             progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
 
             bgCtx.clearRect(0, 0, w, h);
 
-            if (document.visibilityState === 'hidden') {
-                requestAnimationFrame(draw);
-                return;
-            }
-
-            drawGlowSegment(progress, color);
-            drawGlowSegment((progress + 0.5) % 1, color);
+            drawGlowSegment(progress, color, w, h, perimeter);
+            drawGlowSegment((progress + 0.5) % 1, color, w, h, perimeter);
         }
 
         requestAnimationFrame(draw);
-    }
+    };
 
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas, { passive: true });
-
-    const observer = new MutationObserver(() => {});
-    document.querySelectorAll('.flip-card').forEach(card => {
-        observer.observe(card, {
-            attributes: true,
-            attributeFilter: ['class'],
-            subtree: false,
-            childList: false,
-            characterData: false
-        });
-    });
-
+    // MutationObserver removed for performance — not needed since we poll activeCard
     if (document.visibilityState === 'visible') {
         requestAnimationFrame(draw);
     } else {
-        const handleVisibilityChange = () => {
+        document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
+                lastTimestamp = 0;
                 requestAnimationFrame(draw);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
             }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        }, { once: true });
     }
 })();
 </script>
+
 
 
 
