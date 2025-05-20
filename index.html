@@ -31,7 +31,7 @@
 
 
         
-.cards-container {
+  .cards-container {
     display: flex;
     flex-direction: row;
     justify-content: center;
@@ -39,8 +39,6 @@
     gap: 25px;
     width: 100%;
     height: 60%;
-    /* Add for smoother scrolling on mobile */
-    -webkit-overflow-scrolling: touch;
 }
 
 .flip-card {
@@ -48,9 +46,6 @@
     width: 30%;
     height: 200px;
     perspective: 1000px;
-
-    /* Promote to own layer for better GPU acceleration */
-    will-change: transform;
     transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
     position: relative;
 }
@@ -60,15 +55,10 @@
     width: 100%;
     height: 100%;
     text-align: center;
-
-    /* Promote to own layer */
-    will-change: transform;
     transition: transform 2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     transform-style: preserve-3d;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* Slightly lighter for perf */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
     border-radius: 12px;
-    /* Add transform for hardware acceleration */
-    transform: translateZ(0);
 }
 
 /* Card States */
@@ -86,9 +76,6 @@
     padding: 25px;
     transform: none !important;
     overflow-y: auto;
-
-    /* Enable smooth scrolling on mobile */
-    -webkit-overflow-scrolling: touch;
 }
 
 .flip-card.active .flip-card-inner {
@@ -119,16 +106,6 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-
-    /* Hide scrollbars */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    will-change: scroll-position; /* Hint for smooth scrolling */
-}
-
-.flip-card-front::-webkit-scrollbar,
-.flip-card-back::-webkit-scrollbar {
-    display: none;
 }
 
 .flip-card-front {
@@ -140,181 +117,129 @@
     transform: rotateY(180deg);
     overflow-y: auto;
     padding: 25px;
+}
 
-    /* Smooth scrolling */
-    -webkit-overflow-scrolling: touch;
+/* Hide Scrollbar Only on Active Card */
+.flip-card.active .flip-card-back {
+    scrollbar-width: none;         /* Firefox */
+    -ms-overflow-style: none;      /* IE and Edge */
+}
+
+.flip-card.active .flip-card-back::-webkit-scrollbar {
+    display: none;                 /* Chrome, Safari, Opera */
 }
 
 /* Solid Neon Backgrounds for Active Cards */
 #clown-card.active .flip-card-back {
     background: #0a1a2a !important;
-    box-shadow: 0 0 20px rgba(0, 150, 255, 0.6),
-                inset 0 0 10px rgba(0, 200, 255, 0.3);
+    box-shadow: 0 0 30px rgba(0, 150, 255, 0.7),
+                inset 0 0 15px rgba(0, 200, 255, 0.4);
     border: 2px solid #00a8ff !important;
 }
 
 #joker-card.active .flip-card-back {
     background: #2a0a0a !important;
-    box-shadow: 0 0 20px rgba(255, 50, 50, 0.6),
-                inset 0 0 10px rgba(255, 100, 100, 0.3);
+    box-shadow: 0 0 30px rgba(255, 50, 50, 0.7),
+                inset 0 0 15px rgba(255, 100, 100, 0.4);
     border: 2px solid #ff3333 !important;
 }
 
 #jester-card.active .flip-card-back {
     background: #0a2a0a !important;
-    box-shadow: 0 0 20px rgba(50, 255, 50, 0.6),
-                inset 0 0 10px rgba(100, 255, 100, 0.3);
+    box-shadow: 0 0 30px rgba(50, 255, 50, 0.7),
+                inset 0 0 15px rgba(100, 255, 100, 0.4);
     border: 2px solid #00cc66 !important;
 }
 
 
 
 
-
-
-  /* Content Styling */
-.image-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-
-    /* Enable GPU acceleration */
-    will-change: transform;
-    perspective: 800px; /* Needed for 3D effect on children */
-}
-
-.character-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-
-    /* 3D look */
-    transform-style: preserve-3d;
-    transform: translateZ(0);
-    will-change: transform, filter;
-
-    /* Subtle 3D tilt and shadow */
-    transition: transform 0.4s ease, filter 0.4s ease;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-    border-radius: 12px;
-}
-
-/* Optional: Slight hover tilt for 3D effect */
-.image-container:hover .character-image,
-.flip-card.lifted .character-image {
-    transform: rotateY(10deg) rotateX(5deg) translateZ(20px);
-    filter: drop-shadow(0 8px 10px rgba(0,0,0,0.2));
-}
-
-.character-title {
-    color: #5e35b1;
-    font-weight: bold;
-    margin-bottom: 25px;
-    font-size: 2rem;
-    text-align: center;
-
-    /* GPU optimize */
-    will-change: opacity, transform;
-}
-
-/* Active Card Text Contrast */
-.flip-card.active .flip-card-back .character-title,
-.flip-card.active .flip-card-back .aspect-title,
-.flip-card.active .flip-card-back .aspect-content {
-    color: #ffffff !important;
-    text-shadow: none !important;
-}
-
-.aspect-item {
-    margin-bottom: 25px;
-    text-align: left;
-    width: 100%;
-    opacity: 0;
-    transform: translateX(-30px);
-    transition: all 0.6s ease;
-
-    /* GPU optimize */
-    will-change: opacity, transform;
-}
-
-.aspect-item.visible {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.aspect-title {
-    font-weight: bold;
-    color: #5e35b1;
-    font-size: 1.5rem;
-    margin-bottom: 10px;
-
-    /* GPU optimize */
-    will-change: opacity, transform;
-}
-
-.aspect-content {
-    font-size: 1.4rem;
-    line-height: 1.6;
-    opacity: 0;
-    transform: translateX(-30px);
-    transition: all 0.6s ease;
-    color: #222;
-    font-weight: 500;
-
-    /* GPU optimize */
-    will-change: opacity, transform;
-}
-
-.aspect-content.visible {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-/* Responsive Adjustments */
-@media (max-width: 500px) {
-    h1 {
-        font-size: 1.8rem;
-        margin-bottom: 15px;
+    /* Content Styling */
+    .image-container {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
     }
-    .flip-card {
-        height: 180px;
+    
+    .character-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
     }
+    
     .character-title {
-        font-size: 1.8rem;
-        margin-bottom: 20px;
+        color: #5e35b1;
+        font-weight: bold;
+        margin-bottom: 25px;
+        font-size: 2rem;
+        text-align: center;
     }
+    
+    /* Active Card Text Contrast */
+    .flip-card.active .flip-card-back .character-title,
+    .flip-card.active .flip-card-back .aspect-title,
+    .flip-card.active .flip-card-back .aspect-content {
+        color: #ffffff !important;
+        text-shadow: none !important;
+    }
+    
+    .aspect-item {
+        margin-bottom: 25px;
+        text-align: left;
+        width: 100%;
+        opacity: 0;
+        transform: translateX(-30px);
+        transition: all 0.6s ease;
+    }
+    
+    .aspect-item.visible {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    
     .aspect-title {
+        font-weight: bold;
+        color: #5e35b1;
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+    }
+    
+    .aspect-content {
         font-size: 1.4rem;
+        line-height: 1.6;
+        opacity: 0;
+        transform: translateX(-30px);
+        transition: all 0.6s ease;
+        color: #222;
+        font-weight: 500;
     }
-    .aspect-content {
-        font-size: 1.3rem;
+    
+    .aspect-content.visible {
+        opacity: 1;
+        transform: translateX(0);
     }
-    .flip-card-back {
-        padding: 20px;
+    
+    /* Responsive Adjustments */
+    @media (max-width: 500px) {
+        h1 { font-size: 1.8rem; margin-bottom: 15px; }
+        .flip-card { height: 180px; }
+        .character-title { font-size: 1.8rem; margin-bottom: 20px; }
+        .aspect-title { font-size: 1.4rem; }
+        .aspect-content { font-size: 1.3rem; }
+        .flip-card-back { padding: 20px; }
     }
-}
-
-@media (max-width: 400px) {
-    .cards-container {
-        gap: 10px;
+    
+    @media (max-width: 400px) {
+        .cards-container { gap: 10px; }
+        .flip-card { height: 160px; }
+        .character-title { font-size: 1.6rem; }
+        .aspect-title { font-size: 1.3rem; }
+        .aspect-content { font-size: 1.2rem; }
     }
-    .flip-card {
-        height: 160px;
-    }
-    .character-title {
-        font-size: 1.6rem;
-    }
-    .aspect-title {
-        font-size: 1.3rem;
-    }
-    .aspect-content {
-        font-size: 1.2rem;
-    }
-}
 
 
 </style>
@@ -903,18 +828,24 @@ if (document.readyState === 'complete') {
 
 
 
-
 <script>
-(function applyStripedHeadingWithJSAnimation() {
-  // Load Anton font
+(function applyResponsiveStripedHeading() {
+  // Load Google Font (Anton)
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
   fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
   document.head.appendChild(fontLink);
 
-  // Inject styles
+  // Inject Styling
   const style = document.createElement("style");
   style.textContent = `
+    :root {
+      --stripe-size: 100px;
+      --color1: #c44;
+      --color2: #313131;
+      --duration: 2s;
+    }
+
     .stripe-heading-container {
       width: 100%;
       max-width: 100%;
@@ -922,7 +853,7 @@ if (document.readyState === 'complete') {
       justify-content: center;
       align-items: center;
       margin-bottom: 30px;
-      min-height: 120px;
+      min-height: 120px; /* Reserve space to prevent bounce */
       position: relative;
       transition: opacity 0.3s ease, visibility 0.3s ease;
     }
@@ -932,22 +863,26 @@ if (document.readyState === 'complete') {
       font-family: 'Anton', sans-serif;
       text-align: center;
       color: transparent;
-      line-height: 1.1;
+      background: repeating-linear-gradient(
+        45deg,
+        var(--color1) 25%,
+        var(--color1) 50%,
+        var(--color2) 50%,
+        var(--color2) 75%
+      );
+      background-size: var(--stripe-size) var(--stripe-size);
       background-clip: text;
       -webkit-background-clip: text;
-      background-size: 60px 60px;
-      background-repeat: repeat;
-      background-image: repeating-linear-gradient(
-        45deg,
-        #c44 0%,
-        #c44 25%,
-        #313131 25%,
-        #313131 50%
-      );
-      will-change: background-position;
-      transform: translateZ(0);
+      animation: stripeBackgroundPosition var(--duration) linear infinite;
+      line-height: 1.1;
     }
 
+    @keyframes stripeBackgroundPosition {
+      0% { background-position: 0 0; }
+      100% { background-position: calc(var(--stripe-size) * -1) 0; }
+    }
+
+    /* Responsive scaling */
     @media (max-width: 768px) {
       .stripe-heading-text { font-size: 4rem; }
     }
@@ -956,6 +891,7 @@ if (document.readyState === 'complete') {
       .stripe-heading-text { font-size: 3rem; }
     }
 
+    /* Prevent heading from jumping on card flip */
     .flip-card.active ~ .stripe-heading-container {
       visibility: hidden;
       opacity: 0;
@@ -965,7 +901,7 @@ if (document.readyState === 'complete') {
   `;
   document.head.appendChild(style);
 
-  // Replace <h1> with animated version
+  // Replace original <h1> with styled container
   const h1 = document.querySelector('h1');
   if (!h1) return;
 
@@ -978,24 +914,6 @@ if (document.readyState === 'complete') {
 
   container.appendChild(styledText);
   h1.replaceWith(container);
-
-  // Animation
-  let offset = 0;
-  const speed = 60; // reduced for better perf
-  const stripeSize = 60; // smaller pattern size
-  let lastTime = performance.now();
-
-  function animate(time) {
-    const delta = (time - lastTime) / 1000;
-    lastTime = time;
-
-    offset = (offset - delta * speed) % stripeSize;
-    styledText.style.backgroundPosition = `${offset}px 0px`;
-
-    requestAnimationFrame(animate);
-  }
-
-  requestAnimationFrame(animate);
 })();
 </script>
 
