@@ -828,19 +828,20 @@ if (document.readyState === 'complete') {
 
 
 
-<script>
-(function applyResponsiveStripedHeading() {
-  // Load Google Font (Anton)
+
+    <script>
+(function applyStableStripedHeading() {
+  // Load Google Font
   const fontLink = document.createElement("link");
   fontLink.rel = "stylesheet";
   fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
   document.head.appendChild(fontLink);
 
-  // Inject Styling
+  // Inject Style
   const style = document.createElement("style");
   style.textContent = `
     :root {
-      --stripe-size: 100px;
+      --stripe-size: 60px; /* Narrower stripes */
       --color1: #c44;
       --color2: #313131;
       --duration: 2s;
@@ -853,9 +854,10 @@ if (document.readyState === 'complete') {
       justify-content: center;
       align-items: center;
       margin-bottom: 30px;
-      min-height: 120px; /* Reserve space to prevent bounce */
+      min-height: 120px;
       position: relative;
       transition: opacity 0.3s ease, visibility 0.3s ease;
+      will-change: opacity, transform;
     }
 
     .stripe-heading-text {
@@ -875,10 +877,12 @@ if (document.readyState === 'complete') {
       -webkit-background-clip: text;
       animation: stripeBackgroundPosition var(--duration) linear infinite;
       line-height: 1.1;
+      transform: translateZ(0); /* GPU promote to prevent flicker */
+      will-change: background-position;
     }
 
     @keyframes stripeBackgroundPosition {
-      0% { background-position: 0 0; }
+      0%   { background-position: 0 0; }
       100% { background-position: calc(var(--stripe-size) * -1) 0; }
     }
 
@@ -891,7 +895,7 @@ if (document.readyState === 'complete') {
       .stripe-heading-text { font-size: 3rem; }
     }
 
-    /* Prevent heading from jumping on card flip */
+    /* Prevent h1 bounce on flip */
     .flip-card.active ~ .stripe-heading-container {
       visibility: hidden;
       opacity: 0;
@@ -901,7 +905,7 @@ if (document.readyState === 'complete') {
   `;
   document.head.appendChild(style);
 
-  // Replace original <h1> with styled container
+  // Replace h1
   const h1 = document.querySelector('h1');
   if (!h1) return;
 
@@ -916,6 +920,7 @@ if (document.readyState === 'complete') {
   h1.replaceWith(container);
 })();
 </script>
+
 
 
 
