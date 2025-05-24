@@ -365,8 +365,9 @@
   
 
 
-    <script>
-(() => {
+   <script>
+function initInteractiveEffects() {
+    // ====== CARD TOGGLE + CONTENT ANIMATION ======
     let currentActiveCard = null;
     let isAnimating = false;
 
@@ -376,60 +377,58 @@
 
         if (currentActiveCard === card) {
             card.classList.remove('lifted');
-            await wait(300);
+            await new Promise(resolve => setTimeout(resolve, 300));
             card.classList.remove('active');
-            resetCardContent(card);
             currentActiveCard = null;
+            resetCardContent(card);
         } else {
             if (currentActiveCard) {
                 currentActiveCard.classList.remove('lifted');
-                await wait(300);
+                await new Promise(resolve => setTimeout(resolve, 300));
                 currentActiveCard.classList.remove('active');
                 resetCardContent(currentActiveCard);
             }
+
             card.classList.add('lifted');
-            await wait(500);
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             card.classList.add('active');
             currentActiveCard = card;
             animateCardContent(card);
         }
-
         isAnimating = false;
     }
 
-    function wait(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
     function animateCardContent(card) {
-        const items = card.querySelectorAll('.aspect-item');
-        const contents = card.querySelectorAll('.aspect-content');
+        const aspectItems = card.querySelectorAll('.aspect-item');
+        const aspectContents = card.querySelectorAll('.aspect-content');
 
-        items.forEach(el => el.classList.remove('visible'));
-        contents.forEach(el => el.classList.remove('visible'));
+        aspectItems.forEach(item => item.classList.remove('visible'));
+        aspectContents.forEach(content => content.classList.remove('visible'));
 
-        items.forEach((item, i) => {
+        aspectItems.forEach((item, index) => {
             setTimeout(() => {
                 item.classList.add('visible');
-                const content = item.querySelector('.aspect-content');
-                if (content) {
-                    setTimeout(() => content.classList.add('visible'), 300);
-                }
-            }, i * 600);
+                setTimeout(() => {
+                    const content = item.querySelector('.aspect-content');
+                    content.classList.add('visible');
+                }, 300);
+            }, index * 600);
         });
     }
 
     function resetCardContent(card) {
-        card.querySelectorAll('.aspect-item, .aspect-content').forEach(el => {
-            el.classList.remove('visible');
-        });
+        const aspectItems = card.querySelectorAll('.aspect-item');
+        const aspectContents = card.querySelectorAll('.aspect-content');
+
+        aspectItems.forEach(item => item.classList.remove('visible'));
+        aspectContents.forEach(content => content.classList.remove('visible'));
     }
 
-    document.body.addEventListener('click', e => {
-        const target = e.target.closest('.flip-card');
-        if (target) {
-            toggleCard(target);
-        } else if (currentActiveCard && !currentActiveCard.contains(e.target) && !isAnimating) {
+    document.body.addEventListener('click', function (e) {
+        const card = e.target.closest('.flip-card');
+        if (card) toggleCard(card);
+        else if (currentActiveCard && !isAnimating) {
             isAnimating = true;
             currentActiveCard.classList.remove('lifted');
             setTimeout(() => {
@@ -440,13 +439,56 @@
             }, 300);
         }
     });
-})();
-</script>
 
+    // ====== BACKGROUND GLOW ======
+    const bgCanvas = document.createElement('canvas');
+    bgCanvas.id = 'bg-glow';
+    Object.assign(bgCanvas.style, {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: '-1',
+        pointerEvents: 'none'
+    });
+    document.body.appendChild(bgCanvas);
+    const bgCtx = bgCanvas.getContext('2d');
 
-    
-<script>
-function createNonIntrusiveGlowEffect() {
+    function resizeBG() {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resizeBG);
+    resizeBG();
+
+    function animateBG(time) {
+        const w = bgCanvas.width;
+        const h = bgCanvas.height;
+        bgCtx.clearRect(0, 0, w, h);
+
+        const t = time * 0.002;
+        const gradient = bgCtx.createRadialGradient(
+            w / 2 + Math.sin(t) * 100,
+            h / 2 + Math.cos(t) * 100,
+            50,
+            w / 2,
+            h / 2,
+            Math.max(w, h) / 1.5
+        );
+        gradient.addColorStop(0, 'rgba(0,255,255,0.15)');
+        gradient.addColorStop(0.5, 'rgba(255,0,255,0.08)');
+        gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+        bgCtx.fillStyle = gradient;
+        bgCtx.fillRect(0, 0, w, h);
+
+        requestAnimationFrame(animateBG);
+    }
+    requestAnimationFrame(animateBG);
+
+    // ====== NON-INTRUSIVE CARD GLOW ======
     const glowConfig = {
         'clown-card':  { color: '#00a8ff', width: 6, blur: 35, speed: 0.40 },
         'joker-card':  { color: '#ff3333', width: 6, blur: 35, speed: 0.40 },
@@ -457,8 +499,8 @@ function createNonIntrusiveGlowEffect() {
     glowContainer.id = 'glow-container';
     Object.assign(glowContainer.style, {
         position: 'fixed',
-        top: '0',
-        left: '0',
+        top: 0,
+        left: 0,
         width: '100%',
         height: '100%',
         pointerEvents: 'none',
@@ -467,24 +509,36 @@ function createNonIntrusiveGlowEffect() {
     document.body.appendChild(glowContainer);
 
     const canvasContexts = new Map();
-    const flipCards = document.querySelectorAll('.flip-card');
-
-    flipCards.forEach(card => {
+    document.querySelectorAll('.flip-card').forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
-        canvas.dataset.cardId = card.id;
         Object.assign(canvas.style, {
             position: 'absolute',
             pointerEvents: 'none',
             zIndex: '1',
             borderRadius: '12px'
         });
+        canvas.dataset.cardId = card.id;
         glowContainer.appendChild(canvas);
-        canvasContexts.set(canvas, {
-            ctx: canvas.getContext('2d'),
-            progress: 0
-        });
+        canvasContexts.set(canvas, { ctx: canvas.getContext('2d'), progress: 0 });
     });
+
+    function updateGlowPositions() {
+        document.querySelectorAll('.flip-card').forEach(card => {
+            const canvas = document.querySelector(`.${card.id}-glow`);
+            if (!canvas) return;
+
+            const config = glowConfig[card.id];
+            const padding = config.blur + config.width;
+            const rect = card.getBoundingClientRect();
+            Object.assign(canvas.style, {
+                top: `${rect.top - padding}px`,
+                left: `${rect.left - padding}px`,
+                width: `${rect.width + padding * 2}px`,
+                height: `${rect.height + padding * 2}px`
+            });
+        });
+    }
 
     function pointAtLength(len, w, h) {
         const perimeter = 2 * (w + h);
@@ -495,7 +549,7 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    function buildGlowPath(w, h, startT, endT, segments = 500) {
+    function buildUniformGlowPath(w, h, startT, endT, segments = 500) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -507,7 +561,8 @@ function createNonIntrusiveGlowEffect() {
         path.moveTo(prev.x, prev.y);
 
         for (let i = 1; i <= segments; i++) {
-            const pt = pointAtLength((start + step * i) % perimeter, w, h);
+            const len = (start + step * i) % perimeter;
+            const pt = pointAtLength(len, w, h);
             path.lineTo(pt.x, pt.y);
         }
 
@@ -516,7 +571,6 @@ function createNonIntrusiveGlowEffect() {
 
     function drawGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
         const halfLen = (length * perimeter) / 2;
@@ -534,369 +588,74 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildGlowPath(w, h, start / perimeter, end / perimeter);
+        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter);
         ctx.stroke(path);
         ctx.restore();
     }
 
-    function updateCanvasSizeAndPosition() {
-        flipCards.forEach(card => {
-            const canvas = document.querySelector(`.${card.id}-glow`);
-            if (!canvas) return;
-
-            const config = glowConfig[card.id];
-            const padding = config.blur + config.width;
-            const rect = card.getBoundingClientRect();
-
-            const width = rect.width + padding * 2;
-            const height = rect.height + padding * 2;
-            const dpr = window.devicePixelRatio || 1;
-
-            Object.assign(canvas.style, {
-                top: `${rect.top - padding}px`,
-                left: `${rect.left - padding}px`,
-                width: `${width}px`,
-                height: `${height}px`
-            });
-
-            if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-                canvas.width = width * dpr;
-                canvas.height = height * dpr;
-            }
-
-            const ctx = canvasContexts.get(canvas).ctx;
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.scale(dpr, dpr);
-        });
-    }
-
     let lastTime = performance.now();
-
-    function animate(currentTime) {
+    function animateGlow(currentTime) {
         const deltaTime = Math.min(currentTime - lastTime, 33);
         lastTime = currentTime;
 
-        updateCanvasSizeAndPosition();
+        updateGlowPositions();
 
         canvasContexts.forEach((data, canvas) => {
             const cardId = canvas.dataset.cardId;
             const config = glowConfig[cardId];
             const card = document.getElementById(cardId);
-
             if (!card || card.classList.contains('active')) {
                 data.ctx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
 
+            const dpr = window.devicePixelRatio || 1;
+            const sw = parseInt(canvas.style.width);
+            const sh = parseInt(canvas.style.height);
+
+            if (canvas.width !== sw * dpr || canvas.height !== sh * dpr) {
+                canvas.width = sw * dpr;
+                canvas.height = sh * dpr;
+                data.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                data.ctx.scale(dpr, dpr);
+            } else {
+                data.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                data.ctx.scale(dpr, dpr);
+            }
+
             data.progress = (data.progress + config.speed * (deltaTime / 1000)) % 1;
 
-            const styleWidth = parseFloat(canvas.style.width);
-            const styleHeight = parseFloat(canvas.style.height);
-            const contentW = styleWidth - (config.blur + config.width) * 2;
-            const contentH = styleHeight - (config.blur + config.width) * 2;
+            const cw = sw - (config.blur + config.width) * 2;
+            const ch = sh - (config.blur + config.width) * 2;
 
-            drawGlow(
-                data.ctx,
-                config.color,
-                data.progress,
-                0.3,
-                config.width,
-                config.blur,
-                contentW,
-                contentH
-            );
+            drawGlow(data.ctx, config.color, data.progress, 0.3, config.width, config.blur, cw, ch);
         });
 
-        requestAnimationFrame(animate);
+        requestAnimationFrame(animateGlow);
     }
 
-    let resizeTimer;
+    updateGlowPositions();
+    requestAnimationFrame(animateGlow);
+
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(updateCanvasSizeAndPosition, 100);
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(updateGlowPositions, 100);
+        resizeBG();
     });
 
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', e => {
         if (e.target.closest('.flip-card')) {
-            updateCanvasSizeAndPosition();
+            updateGlowPositions();
         }
     });
-
-    updateCanvasSizeAndPosition();
-    requestAnimationFrame(animate);
 }
 
 if (document.readyState === 'complete') {
-    createNonIntrusiveGlowEffect();
+    initInteractiveEffects();
 } else {
-    document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
+    document.addEventListener('DOMContentLoaded', initInteractiveEffects);
 }
-</script>
-
-
-
-
-
-
-
-
-<script>
-(function createDynamicBackgroundGlow() {
-    const colors = {
-        default: '#666666',
-        'clown-card': '#00a8ff',
-        'joker-card': '#ff3333',
-        'jester-card': '#00cc66'
-    };
-
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const glowWidth = isMobile ? 4 : 6;
-    const glowBlur = isMobile ? 25 : 40;
-    const glowSpeed = 0.2;
-    const glowLength = isMobile ? 0.2 : 0.25;
-    const frameRate = 60;
-    const frameInterval = 1000 / frameRate;
-
-    let progress = 0;
-    let lastTime = 0;
-    let timeAccumulator = 0;
-
-    const bgCanvas = document.createElement('canvas');
-    const bgCtx = bgCanvas.getContext('2d');
-    Object.assign(bgCanvas.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100vw',
-        height: '100vh',
-        pointerEvents: 'none',
-        zIndex: '0',
-        willChange: 'transform',
-        backfaceVisibility: 'hidden'
-    });
-    document.body.appendChild(bgCanvas);
-
-    const resizeCanvas = () => {
-        const dpr = window.devicePixelRatio || 1;
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        bgCanvas.width = w * dpr;
-        bgCanvas.height = h * dpr;
-        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-        bgCtx.scale(dpr, dpr);
-    };
-
-    let resizeScheduled = false;
-    window.addEventListener('resize', () => {
-        if (!resizeScheduled) {
-            resizeScheduled = true;
-            requestAnimationFrame(() => {
-                resizeScheduled = false;
-                resizeCanvas();
-            });
-        }
-    }, { passive: true });
-
-    const getActiveCardColor = () => {
-        const activeCard = document.querySelector('.flip-card.active');
-        return activeCard ? (colors[activeCard.id] || colors.default) : colors.default;
-    };
-
-    const drawGlowSegment = (progressPoint, color) => {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        const perimeter = 2 * (w + h);
-        const center = progressPoint * perimeter;
-        const halfLen = (glowLength * perimeter) / 2;
-        const start = (center - halfLen + perimeter) % perimeter;
-        const end = (center + halfLen) % perimeter;
-        const step = isMobile ? 2 : 1.2;
-        const points = [];
-
-        const addPoint = (pos) => {
-            if (pos < w) {
-                points.push([pos, 0]);
-            } else if (pos < w + h) {
-                points.push([w, pos - w]);
-            } else if (pos < 2 * w + h) {
-                points.push([w - (pos - w - h), h]);
-            } else {
-                points.push([0, h - (pos - 2 * w - h)]);
-            }
-        };
-
-        const trace = (from, to) => {
-            for (let pos = from; pos < to; pos += step) addPoint(pos % perimeter);
-        };
-
-        if (start < end) {
-            trace(start, end);
-        } else {
-            trace(start, perimeter);
-            trace(0, end);
-        }
-
-        if (points.length < 2) return;
-
-        bgCtx.beginPath();
-        bgCtx.moveTo(points[0][0], points[0][1]);
-
-        if (isMobile) {
-            for (let i = 1; i < points.length; i++) {
-                bgCtx.lineTo(points[i][0], points[i][1]);
-            }
-        } else {
-            for (let i = 1; i < points.length; i++) {
-                const [x1, y1] = points[i - 1];
-                const [x2, y2] = points[i];
-                const cx = (x1 + x2) / 2;
-                const cy = (y1 + y2) / 2;
-                bgCtx.quadraticCurveTo(x1, y1, cx, cy);
-            }
-        }
-
-        bgCtx.lineWidth = glowWidth;
-        bgCtx.strokeStyle = color;
-        bgCtx.shadowColor = color;
-        bgCtx.shadowBlur = glowBlur;
-        bgCtx.lineCap = 'round';
-        bgCtx.stroke();
-    };
-
-    const draw = (timestamp) => {
-        if (!lastTime) lastTime = timestamp;
-        const deltaTime = timestamp - lastTime;
-        lastTime = timestamp;
-        timeAccumulator += deltaTime;
-
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-
-        while (timeAccumulator >= frameInterval) {
-            timeAccumulator -= frameInterval;
-            if (document.visibilityState !== 'visible') return;
-
-            progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
-            bgCtx.clearRect(0, 0, w, h);
-
-            const color = getActiveCardColor();
-            drawGlowSegment(progress, color);
-            drawGlowSegment((progress + 0.5) % 1, color);
-        }
-
-        requestAnimationFrame(draw);
-    };
-
-    resizeCanvas();
-    if (document.visibilityState === 'visible') {
-        requestAnimationFrame(draw);
-    } else {
-        const resume = () => {
-            if (document.visibilityState === 'visible') {
-                document.removeEventListener('visibilitychange', resume);
-                requestAnimationFrame(draw);
-            }
-        };
-        document.addEventListener('visibilitychange', resume);
-    }
-})();
-</script>
-
-
-
-
-
-
-
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-  // Load Google Font asynchronously (non-blocking)
-  const fontLink = document.createElement("link");
-  fontLink.rel = "stylesheet";
-  fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
-  fontLink.media = "print";
-  fontLink.onload = function () { this.media = "all"; };
-  document.head.appendChild(fontLink);
-
-  // Inject CSS only once
-  const style = document.createElement("style");
-  style.textContent = `
-    :root {
-      --stripe-size: 100px;
-      --color1: #c44;
-      --color2: #313131;
-      --duration: 2s;
-    }
-
-    .stripe-heading-container {
-      width: 100%;
-      max-width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 30px;
-      min-height: 120px;
-      position: relative;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-    .stripe-heading-text {
-      font-size: 8rem;
-      font-family: 'Anton', sans-serif;
-      text-align: center;
-      color: transparent;
-      background: repeating-linear-gradient(
-        45deg,
-        var(--color1) 25%,
-        var(--color1) 50%,
-        var(--color2) 50%,
-        var(--color2) 75%
-      );
-      background-size: var(--stripe-size) var(--stripe-size);
-      background-clip: text;
-      -webkit-background-clip: text;
-      animation: stripeScroll var(--duration) linear infinite;
-      line-height: 1.1;
-      will-change: background-position;
-    }
-
-    @keyframes stripeScroll {
-      from { background-position: 0 0; }
-      to { background-position: calc(var(--stripe-size) * -1) 0; }
-    }
-
-    @media (max-width: 768px) {
-      .stripe-heading-text { font-size: 4rem; }
-    }
-
-    @media (max-width: 480px) {
-      .stripe-heading-text { font-size: 3rem; }
-    }
-
-    .flip-card.active ~ .stripe-heading-container {
-      visibility: hidden;
-      opacity: 0;
-      pointer-events: none;
-      position: absolute;
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Replace the <h1> with styled container
-  const originalH1 = document.querySelector("h1");
-  if (originalH1) {
-    const container = document.createElement("div");
-    container.className = "stripe-heading-container";
-
-    const styledHeading = document.createElement("h1");
-    styledHeading.className = "stripe-heading-text";
-    styledHeading.textContent = originalH1.textContent;
-
-    container.appendChild(styledHeading);
-    originalH1.replaceWith(container);
-  }
-});
 </script>
 
 
