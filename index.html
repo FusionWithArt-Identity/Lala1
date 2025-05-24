@@ -920,197 +920,339 @@ if (document.readyState === 'complete') {
 
 
 <script>
-(() => {
-  const config = {
-    cards: {
-      'clown-card':  { color: '#00a8ff', width: 4, blur: 20, speed: 0.35 },
-      'joker-card':  { color: '#ff3333', width: 4, blur: 20, speed: 0.35 },
-      'jester-card': { color: '#00cc66', width: 4, blur: 20, speed: 0.35 }
-    },
-    background: {
-      speed: 0.18,
-      length: 0.2,
-      blur: 25,
-      width: 3,
-      defaultColor: '#444'
-    }
-  };
+(function() {
+    // Wait for DOM to be fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Performance optimization flags
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        
+        // Disable animations if reduced motion is preferred
+        if (reduceMotion) {
+            document.documentElement.style.setProperty('--animation-duration', '0.001s');
+            return;
+        }
 
-  const dpr = window.devicePixelRatio || 1;
-  let lastFrame = 0;
-  const glowCanvases = new Map();
-  const rectCache = new Map();
-  let backgroundCanvas, bgCtx, bgProgress = 0;
+        // 1. Card Flip and Animation System
+        let currentActiveCard = null;
+        let isAnimating = false;
+        
+        function setupCards() {
+            const cards = document.querySelectorAll('.flip-card');
+            
+            cards.forEach(card => {
+                // Use passive event listeners for better scrolling performance
+                card.addEventListener('touchstart', handleTouchStart, { passive: true });
+                card.addEventListener('click', handleCardClick);
+                
+                // Pre-cache animations
+                const backContent = card.querySelector('.flip-card-back');
+                backContent.style.willChange = 'transform, opacity';
+            });
+            
+            // Close card when clicking outside
+            document.body.addEventListener('click', function(e) {
+                if (currentActiveCard && !currentActiveCard.contains(e.target) {
+                    closeActiveCard();
+                }
+            }, { passive: true });
+        }
+        
+        function handleCardClick() {
+            if (isAnimating) return;
+            toggleCard(this);
+        }
+        
+        function handleTouchStart(e) {
+            // Prevent double-tap zoom
+            if (e.touches.length > 1) e.preventDefault();
+        }
+        
+        async function toggleCard(card) {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            if (currentActiveCard === card) {
+                await closeActiveCard();
+            } else {
+                if (currentActiveCard) {
+                    await closeActiveCard();
+                }
+                await openCard(card);
+            }
+            isAnimating = false;
+        }
+        
+        async function openCard(card) {
+            // Use will-change for performance
+            card.style.willChange = 'transform, width, height';
+            
+            card.classList.add('lifted');
+            await new Promise(resolve => setTimeout(resolve, isMobile ? 200 : 500));
+            
+            card.classList.add('active');
+            currentActiveCard = card;
+            
+            // Animate content with reduced motion on mobile
+            animateCardContent(card);
+            
+            // Clean up will-change after animation
+            setTimeout(() => card.style.willChange = 'auto', 1000);
+        }
+        
+        async function closeActiveCard() {
+            if (!currentActiveCard) return;
+            
+            currentActiveCard.style.willChange = 'transform, width, height';
+            currentActiveCard.classList.remove('lifted');
+            
+            await new Promise(resolve => setTimeout(resolve, isMobile ? 150 : 300));
+            
+            currentActiveCard.classList.remove('active');
+            resetCardContent(currentActiveCard);
+            currentActiveCard = null;
+        }
+        
+        function animateCardContent(card) {
+            const aspectItems = card.querySelectorAll('.aspect-item');
+            const aspectContents = card.querySelectorAll('.aspect-content');
+            
+            aspectItems.forEach(item => item.classList.remove('visible'));
+            aspectContents.forEach(content => content.classList.remove('visible'));
+            
+            // Reduced delay on mobile
+            const delay = isMobile ? 300 : 600;
+            
+            aspectItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('visible');
+                    const content = item.querySelector('.aspect-content');
+                    setTimeout(() => content.classList.add('visible'), isMobile ? 150 : 300);
+                }, index * delay);
+            });
+        }
+        
+        function resetCardContent(card) {
+            const aspectItems = card.querySelectorAll('.aspect-item');
+            const aspectContents = card.querySelectorAll('.aspect-content');
+            
+            aspectItems.forEach(item => item.classList.remove('visible'));
+            aspectContents.forEach(content => content.classList.remove('visible'));
+        }
 
-  // 🌟 Utility
-  const createCanvas = (z = 10) => {
-    const c = document.createElement('canvas');
-    Object.assign(c.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '100%',
-      height: '100%',
-      pointerEvents: 'none',
-      zIndex: z,
-      willChange: 'transform'
+        // 2. Optimized Glow Effect System (Single RAF loop)
+        function setupGlowEffects() {
+            if (isMobile) {
+                // Simplified glow for mobile
+                const cards = document.querySelectorAll('.flip-card');
+                cards.forEach(card => {
+                    card.style.boxShadow = `0 0 ${card.id === 'clown-card' ? '15px #00a8ff' : 
+                                          card.id === 'joker-card' ? '15px #ff3333' : '15px #00cc66'}`;
+                });
+                return;
+            }
+            
+            // Desktop glow effects
+            const glowConfig = {
+                'clown-card':  { color: '#00a8ff', width: 4, blur: 25, speed: 0.30 },
+                'joker-card':  { color: '#ff3333', width: 4, blur: 25, speed: 0.30 },
+                'jester-card': { color: '#00cc66', width: 4, blur: 25, speed: 0.30 }
+            };
+            
+            const glowContainer = document.createElement('div');
+            glowContainer.id = 'glow-container';
+            Object.assign(glowContainer.style, {
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: '10'
+            });
+            document.body.appendChild(glowContainer);
+            
+            const canvases = [];
+            document.querySelectorAll('.flip-card').forEach(card => {
+                const canvas = document.createElement('canvas');
+                canvas.className = `glow-canvas ${card.id}-glow`;
+                Object.assign(canvas.style, {
+                    position: 'absolute',
+                    pointerEvents: 'none',
+                    zIndex: '1',
+                    borderRadius: '12px'
+                });
+                glowContainer.appendChild(canvas);
+                canvas.dataset.cardId = card.id;
+                canvases.push(canvas);
+            });
+            
+            // Single RAF loop for all glow effects
+            let lastTime = performance.now();
+            
+            function updateGlowPositions() {
+                document.querySelectorAll('.flip-card').forEach(card => {
+                    const canvas = document.querySelector(`.${card.id}-glow`);
+                    if (!canvas) return;
+                    
+                    const config = glowConfig[card.id];
+                    const padding = config.blur + config.width;
+                    
+                    const rect = card.getBoundingClientRect();
+                    Object.assign(canvas.style, {
+                        top: `${rect.top - padding}px`,
+                        left: `${rect.left - padding}px`,
+                        width: `${rect.width + padding * 2}px`,
+                        height: `${rect.height + padding * 2}px`
+                    });
+                });
+            }
+            
+            function animateGlows(time) {
+                const deltaTime = Math.min(time - lastTime, 33);
+                lastTime = time;
+                
+                updateGlowPositions();
+                
+                canvases.forEach(canvas => {
+                    const cardId = canvas.dataset.cardId;
+                    const config = glowConfig[cardId];
+                    const ctx = canvas.getContext('2d');
+                    const card = document.getElementById(cardId);
+                    
+                    if (!card || card.classList.contains('active')) {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        return;
+                    }
+                    
+                    const dpr = window.devicePixelRatio || 1;
+                    const styleWidth = parseInt(canvas.style.width);
+                    const styleHeight = parseInt(canvas.style.height);
+                    
+                    if (canvas.width !== styleWidth * dpr || canvas.height !== styleHeight * dpr) {
+                        canvas.width = styleWidth * dpr;
+                        canvas.height = styleHeight * dpr;
+                        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                    }
+                    
+                    // Simplified glow drawing for performance
+                    ctx.clearRect(0, 0, styleWidth, styleHeight);
+                    
+                    const centerX = styleWidth / 2;
+                    const centerY = styleHeight / 2;
+                    const maxDimension = Math.max(styleWidth, styleHeight);
+                    const progress = (performance.now() * config.speed / 1000) % 1;
+                    const angle = progress * Math.PI * 2;
+                    
+                    const gradient = ctx.createRadialGradient(
+                        centerX + Math.cos(angle) * maxDimension * 0.3,
+                        centerY + Math.sin(angle) * maxDimension * 0.3,
+                        0,
+                        centerX,
+                        centerY,
+                        maxDimension * 0.5
+                    );
+                    
+                    gradient.addColorStop(0, config.color);
+                    gradient.addColorStop(1, 'transparent');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.fillRect(0, 0, styleWidth, styleHeight);
+                });
+                
+                requestAnimationFrame(animateGlows);
+            }
+            
+            updateGlowPositions();
+            requestAnimationFrame(animateGlows);
+            
+            // Throttled resize handler
+            let resizeTimeout;
+            window.addEventListener('resize', () => {
+                clearTimeout(resizeTimeout);
+                resizeTimeout = setTimeout(updateGlowPositions, 100);
+            });
+        }
+
+        // 3. Simplified Heading Animation
+        function setupHeading() {
+            const h1 = document.querySelector('h1');
+            if (!h1) return;
+            
+            if (isMobile) {
+                // Static heading for mobile
+                h1.style.color = '#fff';
+                h1.style.textShadow = '0 0 10px rgba(255,255,255,0.7)';
+                return;
+            }
+            
+            // Load font only if needed
+            const fontLink = document.createElement('link');
+            fontLink.rel = 'stylesheet';
+            fontLink.href = 'https://fonts.googleapis.com/css2?family=Anton&display=swap';
+            document.head.appendChild(fontLink);
+            
+            const container = document.createElement('div');
+            container.className = 'stripe-heading-container';
+            
+            const styledText = document.createElement('h1');
+            styledText.className = 'stripe-heading-text';
+            styledText.textContent = h1.textContent;
+            
+            container.appendChild(styledText);
+            h1.replaceWith(container);
+            
+            // Simplified CSS animation
+            const style = document.createElement('style');
+            style.textContent = `
+                .stripe-heading-container {
+                    width: 100%;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    margin-bottom: 30px;
+                }
+                
+                .stripe-heading-text {
+                    font-size: clamp(2.5rem, 8vw, 8rem);
+                    font-family: 'Anton', sans-serif;
+                    text-align: center;
+                    color: #fff;
+                    text-shadow: 0 0 10px rgba(255,255,255,0.7);
+                    line-height: 1.1;
+                    transition: all 0.3s ease;
+                }
+                
+                .flip-card.active ~ .stripe-heading-container {
+                    display: none;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Initialize all systems
+        setupCards();
+        setupGlowEffects();
+        setupHeading();
+
+        // Performance optimization: reduce precision on mobile
+        if (isMobile) {
+            document.documentElement.style.setProperty('--animation-duration', '0.4s');
+        }
     });
-    c.width = window.innerWidth * dpr;
-    c.height = window.innerHeight * dpr;
-    c.getContext('2d').scale(dpr, dpr);
-    document.body.appendChild(c);
-    return c;
-  };
 
-  const updateCardRects = () => {
-    for (const id of Object.keys(config.cards)) {
-      const el = document.getElementById(id);
-      if (el && !el.classList.contains('active')) {
-        rectCache.set(id, el.getBoundingClientRect());
-      }
+    // Additional performance optimizations
+    if ('scrollBehavior' in document.documentElement.style) {
+        // Smooth scrolling is supported and performant
+        document.documentElement.style.scrollBehavior = 'smooth';
     }
-  };
-
-  const pointOnPerimeter = (t, w, h) => {
-    const p = 2 * (w + h), len = (t * p + p) % p;
-    if (len < w) return { x: len, y: 0 };
-    if (len < w + h) return { x: w, y: len - w };
-    if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
-    return { x: 0, y: p - len };
-  };
-
-  const drawCardGlow = (ctx, color, w, h, progress, blur, width) => {
-    const p = 2 * (w + h), len = p * 0.3;
-    const start = (progress * p - len / 2 + p) % p;
-    const end = (progress * p + len / 2) % p;
-    const steps = 200;
-    const path = new Path2D();
-
-    let prev = pointOnPerimeter(start / p, w, h);
-    path.moveTo(prev.x, prev.y);
-
-    for (let i = 1; i <= steps; i++) {
-      const t = (start + ((end - start + p) % p) * (i / steps)) % p;
-      const pt = pointOnPerimeter(t / p, w, h);
-      path.lineTo(pt.x, pt.y);
-    }
-
-    ctx.lineWidth = width;
-    ctx.shadowBlur = blur;
-    ctx.shadowColor = color;
-    ctx.strokeStyle = color;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke(path);
-  };
-
-  const drawBackgroundGlow = (ctx, w, h, progress, color) => {
-    const p = 2 * (w + h), len = p * config.background.length;
-    const start = (progress * p - len / 2 + p) % p;
-    const end = (progress * p + len / 2) % p;
-
-    const path = new Path2D();
-    let prev = pointOnPerimeter(start / p, w, h);
-    path.moveTo(prev.x, prev.y);
-
-    const steps = 150;
-    for (let i = 1; i <= steps; i++) {
-      const t = (start + ((end - start + p) % p) * (i / steps)) % p;
-      const pt = pointOnPerimeter(t / p, w, h);
-      path.lineTo(pt.x, pt.y);
-    }
-
-    ctx.lineWidth = config.background.width;
-    ctx.shadowBlur = config.background.blur;
-    ctx.shadowColor = color;
-    ctx.strokeStyle = color;
-    ctx.lineCap = 'round';
-    ctx.stroke(path);
-  };
-
-  const render = (now) => {
-    const delta = now - lastFrame;
-    lastFrame = now;
-
-    // 🔄 Update rect cache
-    updateCardRects();
-
-    // 🎨 Draw card glows
-    for (const [id, canvas] of glowCanvases) {
-      const rect = rectCache.get(id);
-      const cfg = config.cards[id];
-      if (!rect) continue;
-
-      const ctx = canvas.getContext('2d');
-      const pad = cfg.blur + cfg.width;
-      const w = rect.width;
-      const h = rect.height;
-
-      canvas.style.left = `${rect.left - pad}px`;
-      canvas.style.top = `${rect.top - pad}px`;
-      canvas.width = (w + pad * 2) * dpr;
-      canvas.height = (h + pad * 2) * dpr;
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const progress = (now * 0.001 * cfg.speed) % 1;
-      ctx.save();
-      ctx.translate(pad, pad);
-      drawCardGlow(ctx, cfg.color, w, h, progress, cfg.blur, cfg.width);
-      ctx.restore();
-    }
-
-    // 🌌 Background glow
-    if (backgroundCanvas) {
-      const ctx = bgCtx;
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const color = document.querySelector('.flip-card.active')?.id
-        ? config.cards[document.querySelector('.flip-card.active').id].color
-        : config.background.defaultColor;
-
-      bgProgress = (bgProgress + config.background.speed * (delta / 1000)) % 1;
-      ctx.clearRect(0, 0, w, h);
-      drawBackgroundGlow(ctx, w, h, bgProgress, color);
-    }
-
-    requestAnimationFrame(render);
-  };
-
-  const init = () => {
-    // 🎴 Card Glow Canvas per card
-    for (const id of Object.keys(config.cards)) {
-      const canvas = document.createElement('canvas');
-      canvas.style.position = 'fixed';
-      canvas.style.pointerEvents = 'none';
-      canvas.style.zIndex = '11';
-      document.body.appendChild(canvas);
-      glowCanvases.set(id, canvas);
-    }
-
-    // 🌌 Background
-    backgroundCanvas = createCanvas(0);
-    bgCtx = backgroundCanvas.getContext('2d');
-    bgCtx.scale(dpr, dpr);
-
-    // Resize
-    window.addEventListener('resize', () => {
-      backgroundCanvas.width = window.innerWidth * dpr;
-      backgroundCanvas.height = window.innerHeight * dpr;
-      bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-      bgCtx.scale(dpr, dpr);
-    }, { passive: true });
-
-    updateCardRects();
-    requestAnimationFrame(render);
-  };
-
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    init();
-  } else {
-    document.addEventListener('DOMContentLoaded', init);
-  }
+    
+    // Prevent unnecessary style recalculations
+    const meta = document.createElement('meta');
+    meta.name = 'viewport';
+    meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+    document.head.appendChild(meta);
 })();
 </script>
 
