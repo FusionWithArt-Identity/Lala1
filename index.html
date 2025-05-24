@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Clown vs Joker vs Jester</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Clown Vs Joker Vs Jester</h1>
+    
+    <div class="cards-container">
+        <!-- Clown Card -->
+        <div class="flip-card" id="clown-card" onclick="toggleCard(this)">
+            <div class="flip-card-inner">
+                <div class="flip-card-front">
+                    <div class="image-container">
+                        <img src="Clown" alt="Clown" class="character-image">
+                    </div>
+                </div>
+                <div class="flip-card-back">
+                    <div class="character-title">🤡 Clown</div>
+                    <div class="aspect-item" data-order="1">
+                        <div class="aspect-title">Purpose</div>
+                        <div class="aspect-content">
+                            Entertain with slapstick and physical humor
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="2">
+                        <div class="aspect-title">Appearance</div>
+                        <div class="aspect-content">
+                            Colorful costumes, wigs, big shoes, painted face
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="3">
+                        <div class="aspect-title">Symbolism</div>
+                        <div class="aspect-content">
+                            Innocence, humor, or simple foolishness
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="4">
+                        <div class="aspect-title">Setting</div>
+                        <div class="aspect-content">
+                            Circus, children's parties, comedic shows
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Joker Card -->
+        <div class="flip-card" id="joker-card" onclick="toggleCard(this)">
+            <div class="flip-card-inner">
+                <div class="flip-card-front">
+                    <div class="image-container">
+                        <img src="Joker" alt="Joker" class="character-image">
+                    </div>
+                </div>
+                <div class="flip-card-back">
+                    <div class="character-title">🃏 Joker</div>
+                    <div class="aspect-item" data-order="1">
+                        <div class="aspect-title">Purpose</div>
+                        <div class="aspect-content">
+                            Amuse or provoke using wit, sarcasm, or tricks
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="2">
+                        <div class="aspect-title">Appearance</div>
+                        <div class="aspect-content">
+                            Can look clownish or sinister (e.g., Batman's Joker)
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="3">
+                        <div class="aspect-title">Symbolism</div>
+                        <div class="aspect-content">
+                            Chaos, unpredictability, or rebellion
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="4">
+                        <div class="aspect-title">Setting</div>
+                        <div class="aspect-content">
+                            Playing cards, pop culture, dark fiction
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Jester Card -->
+        <div class="flip-card" id="jester-card" onclick="toggleCard(this)">
+            <div class="flip-card-inner">
+                <div class="flip-card-front">
+                    <div class="image-container">
+                        <img src="Jester" alt="Jester" class="character-image">
+                    </div>
+                </div>
+                <div class="flip-card-back">
+                    <div class="character-title">🎭 Jester</div>
+                    <div class="aspect-item" data-order="1">
+                        <div class="aspect-title">Purpose</div>
+                        <div class="aspect-content">
+                            Entertain royalty with jokes, music, and clever wordplay
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="2">
+                        <div class="aspect-title">Appearance</div>
+                        <div class="aspect-content">
+                            Traditional medieval outfit with bells, cap, and motley
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="3">
+                        <div class="aspect-title">Symbolism</div>
+                        <div class="aspect-content">
+                            Cleverness disguised as foolishness, truth-telling through humor
+                        </div>
+                    </div>
+                    <div class="aspect-item" data-order="4">
+                        <div class="aspect-title">Setting</div>
+                        <div class="aspect-content">
+                            Medieval courts, noble households, theatrical plays
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Courier New', monospace;
+    background-color: black;
+    color: #333;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    touch-action: manipulation;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 15px;
+    overflow-x: hidden;
+}
+
+.cards-container {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 25px;
+    width: 100%;
+    height: 60%;
+}
+
+.flip-card {
+    background-color: transparent;
+    width: 30%;
+    height: 200px;
+    perspective: 1000px;
+    transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+}
+
+.flip-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transform-style: preserve-3d;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    border-radius: 12px;
+}
+
+/* Card States */
+.flip-card.lifted {
+    transform: translateY(-30px) scale(1.05);
+}
+
+.flip-card.active {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 90vh;
+    z-index: 100;
+    padding: 25px;
+    transform: none !important;
+    overflow-y: auto;
+}
+
+.flip-card.active .flip-card-inner {
+    width: 100%;
+    height: 100%;
+}
+
+.flip-card.active ~ .flip-card {
+    display: none;
+}
+
+.flip-card.active ~ h1 {
+    display: none;
+}
+
+.flip-card.active .flip-card-inner {
+    transform: rotateY(180deg);
+}
+
+/* Card Faces */
+.flip-card-front, .flip-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.flip-card-front {
+    background-color: #fff;
+}
+
+.flip-card-back {
+    background-color: #fff;
+    transform: rotateY(180deg);
+    overflow-y: auto;
+    padding: 25px;
+}
+
+/* Hide Scrollbar Only on Active Card */
+.flip-card.active .flip-card-back {
+    scrollbar-width: none;         /* Firefox */
+    -ms-overflow-style: none;      /* IE and Edge */
+}
+
+.flip-card.active .flip-card-back::-webkit-scrollbar {
+    display: none;                 /* Chrome, Safari, Opera */
+}
+
+/* Solid Neon Backgrounds for Active Cards */
+#clown-card.active .flip-card-back {
+    background: #0a1a2a !important;
+    box-shadow: 0 0 30px rgba(0, 150, 255, 0.7),
+                inset 0 0 15px rgba(0, 200, 255, 0.4);
+    border: 2px solid #00a8ff !important;
+}
+
+#joker-card.active .flip-card-back {
+    background: #2a0a0a !important;
+    box-shadow: 0 0 30px rgba(255, 50, 50, 0.7),
+                inset 0 0 15px rgba(255, 100, 100, 0.4);
+    border: 2px solid #ff3333 !important;
+}
+
+#jester-card.active .flip-card-back {
+    background: #0a2a0a !important;
+    box-shadow: 0 0 30px rgba(50, 255, 50, 0.7),
+                inset 0 0 15px rgba(100, 255, 100, 0.4);
+    border: 2px solid #00cc66 !important;
+}
+
+/* Content Styling */
+.image-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.character-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.character-title {
+    color: #5e35b1;
+    font-weight: bold;
+    margin-bottom: 25px;
+    font-size: 2rem;
+    text-align: center;
+}
+
+/* Active Card Text Contrast */
+.flip-card.active .flip-card-back .character-title,
+.flip-card.active .flip-card-back .aspect-title,
+.flip-card.active .flip-card-back .aspect-content {
+    color: #ffffff !important;
+    text-shadow: none !important;
+}
+
+.aspect-item {
+    margin-bottom: 25px;
+    text-align: left;
+    width: 100%;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.6s ease;
+}
+
+.aspect-item.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.aspect-title {
+    font-weight: bold;
+    color: #5e35b1;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
+.aspect-content {
+    font-size: 1.4rem;
+    line-height: 1.6;
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.6s ease;
+    color: #222;
+    font-weight: 500;
+}
+
+.aspect-content.visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 500px) {
+    h1 { font-size: 1.8rem; margin-bottom: 15px; }
+    .flip-card { height: 180px; }
+    .character-title { font-size: 1.8rem; margin-bottom: 20px; }
+    .aspect-title { font-size: 1.4rem; }
+    .aspect-content { font-size: 1.3rem; }
+    .flip-card-back { padding: 20px; }
+}
+
+@media (max-width: 400px) {
+    .cards-container { gap: 10px; }
+    .flip-card { height: 160px; }
+    .character-title { font-size: 1.6rem; }
+    .aspect-title { font-size: 1.3rem; }
+    .aspect-content { font-size: 1.2rem; }
+}
+
+/* Stripe Heading Styles */
+:root {
+    --stripe-size: 100px;
+    --color1: #c44;
+    --color2: #313131;
+    --duration: 2s;
+}
+
+.stripe-heading-container {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 30px;
+    min-height: 120px;
+    position: relative;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.stripe-heading-text {
+    font-size: 8rem;
+    font-family: 'Anton', sans-serif;
+    text-align: center;
+    color: transparent;
+    background: repeating-linear-gradient(
+        45deg,
+        var(--color1) 25%,
+        var(--color1) 50%,
+        var(--color2) 50%,
+        var(--color2) 75%
+    );
+    background-size: var(--stripe-size) var(--stripe-size);
+    background-clip: text;
+    -webkit-background-clip: text;
+    animation: stripeBackgroundPosition var(--duration) linear infinite;
+    line-height: 1.1;
+}
+
+@keyframes stripeBackgroundPosition {
+    0% { background-position: 0 0; }
+    100% { background-position: calc(var(--stripe-size) * -1) 0; }
+}
+
+/* Responsive scaling */
+@media (max-width: 768px) {
+    .stripe-heading-text { font-size: 4rem; }
+}
+
+@media (max-width: 480px) {
+    .stripe-heading-text { font-size: 3rem; }
+}
+
+/* Prevent heading from jumping on card flip */
+.flip-card.active ~ .stripe-heading-container {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+}
