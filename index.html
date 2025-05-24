@@ -919,7 +919,203 @@ if (document.readyState === 'complete') {
 
 
 
+<script>
+<script>
+(() => {
+  const config = {
+    cards: {
+      'clown-card':  { color: '#00a8ff', width: 4, blur: 20, speed: 0.35 },
+      'joker-card':  { color: '#ff3333', width: 4, blur: 20, speed: 0.35 },
+      'jester-card': { color: '#00cc66', width: 4, blur: 20, speed: 0.35 }
+    },
+    background: {
+      speed: 0.18,
+      length: 0.2,
+      blur: 25,
+      width: 3,
+      defaultColor: '#444'
+    }
+  };
 
+  const dpr = window.devicePixelRatio || 1;
+  let lastFrame = 0;
+  const glowCanvases = new Map();
+  const rectCache = new Map();
+  let backgroundCanvas, bgCtx, bgProgress = 0;
+
+  // 🌟 Utility
+  const createCanvas = (z = 10) => {
+    const c = document.createElement('canvas');
+    Object.assign(c.style, {
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      pointerEvents: 'none',
+      zIndex: z,
+      willChange: 'transform'
+    });
+    c.width = window.innerWidth * dpr;
+    c.height = window.innerHeight * dpr;
+    c.getContext('2d').scale(dpr, dpr);
+    document.body.appendChild(c);
+    return c;
+  };
+
+  const updateCardRects = () => {
+    for (const id of Object.keys(config.cards)) {
+      const el = document.getElementById(id);
+      if (el && !el.classList.contains('active')) {
+        rectCache.set(id, el.getBoundingClientRect());
+      }
+    }
+  };
+
+  const pointOnPerimeter = (t, w, h) => {
+    const p = 2 * (w + h), len = (t * p + p) % p;
+    if (len < w) return { x: len, y: 0 };
+    if (len < w + h) return { x: w, y: len - w };
+    if (len < 2 * w + h) return { x: 2 * w + h - len, y: h };
+    return { x: 0, y: p - len };
+  };
+
+  const drawCardGlow = (ctx, color, w, h, progress, blur, width) => {
+    const p = 2 * (w + h), len = p * 0.3;
+    const start = (progress * p - len / 2 + p) % p;
+    const end = (progress * p + len / 2) % p;
+    const steps = 200;
+    const path = new Path2D();
+
+    let prev = pointOnPerimeter(start / p, w, h);
+    path.moveTo(prev.x, prev.y);
+
+    for (let i = 1; i <= steps; i++) {
+      const t = (start + ((end - start + p) % p) * (i / steps)) % p;
+      const pt = pointOnPerimeter(t / p, w, h);
+      path.lineTo(pt.x, pt.y);
+    }
+
+    ctx.lineWidth = width;
+    ctx.shadowBlur = blur;
+    ctx.shadowColor = color;
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke(path);
+  };
+
+  const drawBackgroundGlow = (ctx, w, h, progress, color) => {
+    const p = 2 * (w + h), len = p * config.background.length;
+    const start = (progress * p - len / 2 + p) % p;
+    const end = (progress * p + len / 2) % p;
+
+    const path = new Path2D();
+    let prev = pointOnPerimeter(start / p, w, h);
+    path.moveTo(prev.x, prev.y);
+
+    const steps = 150;
+    for (let i = 1; i <= steps; i++) {
+      const t = (start + ((end - start + p) % p) * (i / steps)) % p;
+      const pt = pointOnPerimeter(t / p, w, h);
+      path.lineTo(pt.x, pt.y);
+    }
+
+    ctx.lineWidth = config.background.width;
+    ctx.shadowBlur = config.background.blur;
+    ctx.shadowColor = color;
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.stroke(path);
+  };
+
+  const render = (now) => {
+    const delta = now - lastFrame;
+    lastFrame = now;
+
+    // 🔄 Update rect cache
+    updateCardRects();
+
+    // 🎨 Draw card glows
+    for (const [id, canvas] of glowCanvases) {
+      const rect = rectCache.get(id);
+      const cfg = config.cards[id];
+      if (!rect) continue;
+
+      const ctx = canvas.getContext('2d');
+      const pad = cfg.blur + cfg.width;
+      const w = rect.width;
+      const h = rect.height;
+
+      canvas.style.left = `${rect.left - pad}px`;
+      canvas.style.top = `${rect.top - pad}px`;
+      canvas.width = (w + pad * 2) * dpr;
+      canvas.height = (h + pad * 2) * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const progress = (now * 0.001 * cfg.speed) % 1;
+      ctx.save();
+      ctx.translate(pad, pad);
+      drawCardGlow(ctx, cfg.color, w, h, progress, cfg.blur, cfg.width);
+      ctx.restore();
+    }
+
+    // 🌌 Background glow
+    if (backgroundCanvas) {
+      const ctx = bgCtx;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const color = document.querySelector('.flip-card.active')?.id
+        ? config.cards[document.querySelector('.flip-card.active').id].color
+        : config.background.defaultColor;
+
+      bgProgress = (bgProgress + config.background.speed * (delta / 1000)) % 1;
+      ctx.clearRect(0, 0, w, h);
+      drawBackgroundGlow(ctx, w, h, bgProgress, color);
+    }
+
+    requestAnimationFrame(render);
+  };
+
+  const init = () => {
+    // 🎴 Card Glow Canvas per card
+    for (const id of Object.keys(config.cards)) {
+      const canvas = document.createElement('canvas');
+      canvas.style.position = 'fixed';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.zIndex = '11';
+      document.body.appendChild(canvas);
+      glowCanvases.set(id, canvas);
+    }
+
+    // 🌌 Background
+    backgroundCanvas = createCanvas(0);
+    bgCtx = backgroundCanvas.getContext('2d');
+    bgCtx.scale(dpr, dpr);
+
+    // Resize
+    window.addEventListener('resize', () => {
+      backgroundCanvas.width = window.innerWidth * dpr;
+      backgroundCanvas.height = window.innerHeight * dpr;
+      bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+      bgCtx.scale(dpr, dpr);
+    }, { passive: true });
+
+    updateCardRects();
+    requestAnimationFrame(render);
+  };
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    init();
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
+})();
+</script>
+
+</script>
 
 
 
