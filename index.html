@@ -919,7 +919,69 @@ if (document.readyState === 'complete') {
 
 
 
+<script>
+(function optimizeRendering() {
+    // Only activate on mobile devices
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (!isMobile) return;
 
+    // 1. Will-change hints for animated elements
+    const style = document.createElement('style');
+    style.textContent = `
+        .flip-card, .flip-card-inner, 
+        .flip-card-front, .flip-card-back {
+            will-change: transform, opacity;
+            backface-visibility: hidden;
+        }
+        .stripe-heading-text {
+            will-change: background-position;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 2. Passive event listeners for touch events
+    const events = ['touchstart', 'touchmove', 'touchend', 'touchcancel'];
+    events.forEach(evt => {
+        window.addEventListener(evt, () => {}, { 
+            passive: true,
+            capture: true 
+        });
+    });
+
+    // 3. Optimized RAF (requestAnimationFrame) scheduler
+    const originalRAF = window.requestAnimationFrame;
+    let lastFrameTime = performance.now();
+    const frameBudget = 33; // Target ~30fps (33ms/frame)
+
+    window.requestAnimationFrame = function(callback) {
+        return originalRAF(function(timestamp) {
+            const elapsed = timestamp - lastFrameTime;
+            
+            if (elapsed < frameBudget * 1.5) {
+                // Run normally if within budget
+                callback(timestamp);
+                lastFrameTime = timestamp;
+            } else {
+                // Skip frame if behind schedule
+                lastFrameTime = timestamp - (elapsed % frameBudget);
+            }
+        });
+    };
+
+    // 4. Smart GPU layer management
+    const animationElements = document.querySelectorAll('.flip-card, .flip-card-inner');
+    animationElements.forEach(el => {
+        el.style.transform = 'translateZ(0)';
+    });
+
+    // 5. Smooth scrolling for card content
+    document.querySelectorAll('.flip-card-back').forEach(el => {
+        el.style.webkitOverflowScrolling = 'touch';
+    });
+
+    console.log('[Rendering Optimizer] Mobile optimizations applied (non-intrusive)');
+})();
+</script>
 
 
 
