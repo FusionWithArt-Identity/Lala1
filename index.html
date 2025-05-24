@@ -362,86 +362,89 @@
             </div>
         </div>
     </div>
-    <script>
-        let currentActiveCard = null;
-        let isAnimating = false;
-        
-        async function toggleCard(card) {
-            if (isAnimating) return;
-            isAnimating = true;
-            
-            if (currentActiveCard === card) {
-                card.classList.remove('lifted');
-                await new Promise(resolve => setTimeout(resolve, 300));
-                card.classList.remove('active');
-                currentActiveCard = null;
-                resetCardContent(card);
-            } else {
-                if (currentActiveCard) {
-                    currentActiveCard.classList.remove('lifted');
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    currentActiveCard.classList.remove('active');
-                    resetCardContent(currentActiveCard);
-                }
-                
-                card.classList.add('lifted');
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                card.classList.add('active');
-                currentActiveCard = card;
-                animateCardContent(card);
-            }
-            isAnimating = false;
-        }
-        
-        function animateCardContent(card) {
-            const aspectItems = card.querySelectorAll('.aspect-item');
-            const aspectContents = card.querySelectorAll('.aspect-content');
-            
-            aspectItems.forEach(item => {
-                item.classList.remove('visible');
-            });
-            aspectContents.forEach(content => {
-                content.classList.remove('visible');
-            });
-            
-            aspectItems.forEach((item, index) => {
-                setTimeout(() => {
-                    item.classList.add('visible');
-                    setTimeout(() => {
-                        const content = item.querySelector('.aspect-content');
-                        content.classList.add('visible');
-                    }, 300);
-                }, index * 600);
-            });
-        }
-        
-        function resetCardContent(card) {
-            const aspectItems = card.querySelectorAll('.aspect-item');
-            const aspectContents = card.querySelectorAll('.aspect-content');
-            
-            aspectItems.forEach(item => {
-                item.classList.remove('visible');
-            });
-            aspectContents.forEach(content => {
-                content.classList.remove('visible');
-            });
-        }
-        
-        document.body.addEventListener('click', function(e) {
-            if (currentActiveCard && !currentActiveCard.contains(e.target) && !isAnimating) {
-                isAnimating = true;
-                currentActiveCard.classList.remove('lifted');
-                setTimeout(() => {
-                    currentActiveCard.classList.remove('active');
-                    resetCardContent(currentActiveCard);
-                    currentActiveCard = null;
-                    isAnimating = false;
-                }, 300);
-            }
-        });
-    </script>
+  
 
+
+    <script>
+(() => {
+    let currentActiveCard = null;
+    let isAnimating = false;
+
+    async function toggleCard(card) {
+        if (isAnimating) return;
+        isAnimating = true;
+
+        if (currentActiveCard === card) {
+            card.classList.remove('lifted');
+            await wait(300);
+            card.classList.remove('active');
+            resetCardContent(card);
+            currentActiveCard = null;
+        } else {
+            if (currentActiveCard) {
+                currentActiveCard.classList.remove('lifted');
+                await wait(300);
+                currentActiveCard.classList.remove('active');
+                resetCardContent(currentActiveCard);
+            }
+            card.classList.add('lifted');
+            await wait(500);
+            card.classList.add('active');
+            currentActiveCard = card;
+            animateCardContent(card);
+        }
+
+        isAnimating = false;
+    }
+
+    function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function animateCardContent(card) {
+        const items = card.querySelectorAll('.aspect-item');
+        const contents = card.querySelectorAll('.aspect-content');
+
+        items.forEach(el => el.classList.remove('visible'));
+        contents.forEach(el => el.classList.remove('visible'));
+
+        items.forEach((item, i) => {
+            setTimeout(() => {
+                item.classList.add('visible');
+                const content = item.querySelector('.aspect-content');
+                if (content) {
+                    setTimeout(() => content.classList.add('visible'), 300);
+                }
+            }, i * 600);
+        });
+    }
+
+    function resetCardContent(card) {
+        card.querySelectorAll('.aspect-item, .aspect-content').forEach(el => {
+            el.classList.remove('visible');
+        });
+    }
+
+    document.body.addEventListener('click', e => {
+        const target = e.target.closest('.flip-card');
+        if (target) {
+            toggleCard(target);
+        } else if (currentActiveCard && !currentActiveCard.contains(e.target) && !isAnimating) {
+            isAnimating = true;
+            currentActiveCard.classList.remove('lifted');
+            setTimeout(() => {
+                currentActiveCard.classList.remove('active');
+                resetCardContent(currentActiveCard);
+                currentActiveCard = null;
+                isAnimating = false;
+            }, 300);
+        }
+    });
+})();
+</script>
+
+
+    
 <script>
 function createNonIntrusiveGlowEffect() {
     const glowConfig = {
@@ -463,9 +466,13 @@ function createNonIntrusiveGlowEffect() {
     });
     document.body.appendChild(glowContainer);
 
-    document.querySelectorAll('.flip-card').forEach(card => {
+    const canvasContexts = new Map();
+    const flipCards = document.querySelectorAll('.flip-card');
+
+    flipCards.forEach(card => {
         const canvas = document.createElement('canvas');
         canvas.className = `glow-canvas ${card.id}-glow`;
+        canvas.dataset.cardId = card.id;
         Object.assign(canvas.style, {
             position: 'absolute',
             pointerEvents: 'none',
@@ -473,38 +480,12 @@ function createNonIntrusiveGlowEffect() {
             borderRadius: '12px'
         });
         glowContainer.appendChild(canvas);
-        canvas.dataset.cardId = card.id;
-    });
-
-    const canvasContexts = new Map();
-    let lastTime = performance.now();
-
-    document.querySelectorAll('.glow-canvas').forEach(canvas => {
         canvasContexts.set(canvas, {
             ctx: canvas.getContext('2d'),
             progress: 0
         });
     });
 
-    function updateGlowPositions() {
-        document.querySelectorAll('.flip-card').forEach(card => {
-            const canvas = document.querySelector(`.${card.id}-glow`);
-            if (!canvas) return;
-
-            const config = glowConfig[card.id];
-            const padding = config.blur + config.width;
-
-            const rect = card.getBoundingClientRect();
-            Object.assign(canvas.style, {
-                top: `${rect.top - padding}px`,
-                left: `${rect.left - padding}px`,
-                width: `${rect.width + padding * 2}px`,
-                height: `${rect.height + padding * 2}px`
-            });
-        });
-    }
-
-    // Returns point along perimeter length (linear, no easing)
     function pointAtLength(len, w, h) {
         const perimeter = 2 * (w + h);
         len = (len + perimeter) % perimeter;
@@ -514,8 +495,7 @@ function createNonIntrusiveGlowEffect() {
         else return { x: 0, y: perimeter - len };
     }
 
-    // Build linear path with many segments for smoothness
-    function buildUniformGlowPath(w, h, startT, endT, segments = 500) {
+    function buildGlowPath(w, h, startT, endT, segments = 500) {
         const path = new Path2D();
         const perimeter = 2 * (w + h);
         const start = startT * perimeter;
@@ -527,16 +507,16 @@ function createNonIntrusiveGlowEffect() {
         path.moveTo(prev.x, prev.y);
 
         for (let i = 1; i <= segments; i++) {
-            const len = (start + step * i) % perimeter;
-            const pt = pointAtLength(len, w, h);
+            const pt = pointAtLength((start + step * i) % perimeter, w, h);
             path.lineTo(pt.x, pt.y);
         }
 
         return path;
     }
 
-    function drawEnhancedGlow(ctx, color, progress, length, width, blur, w, h) {
+    function drawGlow(ctx, color, progress, length, width, blur, w, h) {
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
         const perimeter = 2 * (w + h);
         const center = progress * perimeter;
         const halfLen = (length * perimeter) / 2;
@@ -545,7 +525,7 @@ function createNonIntrusiveGlowEffect() {
 
         ctx.save();
         const offset = blur + width;
-        ctx.translate(offset + 0.5, offset + 0.5); // align to pixel grid
+        ctx.translate(offset + 0.5, offset + 0.5);
 
         ctx.lineWidth = width;
         ctx.strokeStyle = color;
@@ -554,76 +534,96 @@ function createNonIntrusiveGlowEffect() {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        const path = buildUniformGlowPath(w, h, start / perimeter, end / perimeter, 500);
+        const path = buildGlowPath(w, h, start / perimeter, end / perimeter);
         ctx.stroke(path);
         ctx.restore();
     }
+
+    function updateCanvasSizeAndPosition() {
+        flipCards.forEach(card => {
+            const canvas = document.querySelector(`.${card.id}-glow`);
+            if (!canvas) return;
+
+            const config = glowConfig[card.id];
+            const padding = config.blur + config.width;
+            const rect = card.getBoundingClientRect();
+
+            const width = rect.width + padding * 2;
+            const height = rect.height + padding * 2;
+            const dpr = window.devicePixelRatio || 1;
+
+            Object.assign(canvas.style, {
+                top: `${rect.top - padding}px`,
+                left: `${rect.left - padding}px`,
+                width: `${width}px`,
+                height: `${height}px`
+            });
+
+            if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+            }
+
+            const ctx = canvasContexts.get(canvas).ctx;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+        });
+    }
+
+    let lastTime = performance.now();
 
     function animate(currentTime) {
         const deltaTime = Math.min(currentTime - lastTime, 33);
         lastTime = currentTime;
 
-        updateGlowPositions();
+        updateCanvasSizeAndPosition();
 
-        document.querySelectorAll('.glow-canvas').forEach(canvas => {
+        canvasContexts.forEach((data, canvas) => {
             const cardId = canvas.dataset.cardId;
             const config = glowConfig[cardId];
-            const canvasData = canvasContexts.get(canvas);
             const card = document.getElementById(cardId);
 
             if (!card || card.classList.contains('active')) {
-                canvasData.ctx.clearRect(0, 0, canvas.width, canvas.height);
+                data.ctx.clearRect(0, 0, canvas.width, canvas.height);
                 return;
             }
 
-            const dpr = window.devicePixelRatio || 1;
-            const styleWidth = parseInt(canvas.style.width);
-            const styleHeight = parseInt(canvas.style.height);
+            data.progress = (data.progress + config.speed * (deltaTime / 1000)) % 1;
 
-            if (canvas.width !== styleWidth * dpr || canvas.height !== styleHeight * dpr) {
-                canvas.width = styleWidth * dpr;
-                canvas.height = styleHeight * dpr;
-                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                canvasData.ctx.scale(dpr, dpr);
-            } else {
-                canvasData.ctx.setTransform(1, 0, 0, 1, 0, 0);
-                canvasData.ctx.scale(dpr, dpr);
-            }
+            const styleWidth = parseFloat(canvas.style.width);
+            const styleHeight = parseFloat(canvas.style.height);
+            const contentW = styleWidth - (config.blur + config.width) * 2;
+            const contentH = styleHeight - (config.blur + config.width) * 2;
 
-            canvasData.progress = (canvasData.progress + config.speed * (deltaTime / 1000)) % 1;
-
-            const contentWidth = styleWidth - (config.blur + config.width) * 2;
-            const contentHeight = styleHeight - (config.blur + config.width) * 2;
-
-            drawEnhancedGlow(
-                canvasData.ctx,
+            drawGlow(
+                data.ctx,
                 config.color,
-                canvasData.progress,
+                data.progress,
                 0.3,
                 config.width,
                 config.blur,
-                contentWidth,
-                contentHeight
+                contentW,
+                contentH
             );
         });
 
         requestAnimationFrame(animate);
     }
 
-    updateGlowPositions();
-    requestAnimationFrame(animate);
-
-    let resizeTimeout;
+    let resizeTimer;
     window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(updateGlowPositions, 100);
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(updateCanvasSizeAndPosition, 100);
     });
 
     document.addEventListener('click', (e) => {
         if (e.target.closest('.flip-card')) {
-            updateGlowPositions();
+            updateCanvasSizeAndPosition();
         }
     });
+
+    updateCanvasSizeAndPosition();
+    requestAnimationFrame(animate);
 }
 
 if (document.readyState === 'complete') {
@@ -632,9 +632,6 @@ if (document.readyState === 'complete') {
     document.addEventListener('DOMContentLoaded', createNonIntrusiveGlowEffect);
 }
 </script>
-
-
-
 
 
 
@@ -665,7 +662,7 @@ if (document.readyState === 'complete') {
     let timeAccumulator = 0;
 
     const bgCanvas = document.createElement('canvas');
-    const bgCtx = bgCanvas.getContext('2d', { alpha: true });
+    const bgCtx = bgCanvas.getContext('2d');
     Object.assign(bgCanvas.style, {
         position: 'fixed',
         top: '0',
@@ -679,30 +676,33 @@ if (document.readyState === 'complete') {
     });
     document.body.appendChild(bgCanvas);
 
-    let resizeTimeout;
-    function resizeCanvas() {
-        if (resizeTimeout) clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            const dpr = window.devicePixelRatio || 1;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            bgCanvas.style.width = `${w}px`;
-            bgCanvas.style.height = `${h}px`;
-            bgCanvas.width = w * dpr;
-            bgCanvas.height = h * dpr;
-            bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-            bgCtx.scale(dpr, dpr);
-            bgCtx.clearRect(0, 0, w, h);
-        }, 100);
-    }
+    const resizeCanvas = () => {
+        const dpr = window.devicePixelRatio || 1;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        bgCanvas.width = w * dpr;
+        bgCanvas.height = h * dpr;
+        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+        bgCtx.scale(dpr, dpr);
+    };
 
-    function getActiveCardColor() {
+    let resizeScheduled = false;
+    window.addEventListener('resize', () => {
+        if (!resizeScheduled) {
+            resizeScheduled = true;
+            requestAnimationFrame(() => {
+                resizeScheduled = false;
+                resizeCanvas();
+            });
+        }
+    }, { passive: true });
+
+    const getActiveCardColor = () => {
         const activeCard = document.querySelector('.flip-card.active');
-        if (!activeCard) return colors.default;
-        return colors[activeCard.id] || colors.default;
-    }
+        return activeCard ? (colors[activeCard.id] || colors.default) : colors.default;
+    };
 
-    function drawGlowSegment(progressPoint, color) {
+    const drawGlowSegment = (progressPoint, color) => {
         const w = window.innerWidth;
         const h = window.innerHeight;
         const perimeter = 2 * (w + h);
@@ -710,28 +710,23 @@ if (document.readyState === 'complete') {
         const halfLen = (glowLength * perimeter) / 2;
         const start = (center - halfLen + perimeter) % perimeter;
         const end = (center + halfLen) % perimeter;
-
         const step = isMobile ? 2 : 1.2;
         const points = [];
 
         const addPoint = (pos) => {
             if (pos < w) {
-                points.push({ x: pos, y: 0 });
+                points.push([pos, 0]);
             } else if (pos < w + h) {
-                points.push({ x: w, y: pos - w });
+                points.push([w, pos - w]);
             } else if (pos < 2 * w + h) {
-                points.push({ x: w - (pos - w - h), y: h });
+                points.push([w - (pos - w - h), h]);
             } else {
-                points.push({ x: 0, y: h - (pos - 2 * w - h) });
+                points.push([0, h - (pos - 2 * w - h)]);
             }
         };
 
         const trace = (from, to) => {
-            let pos = from;
-            while (pos < to) {
-                addPoint(pos);
-                pos += step;
-            }
+            for (let pos = from; pos < to; pos += step) addPoint(pos % perimeter);
         };
 
         if (start < end) {
@@ -741,92 +736,168 @@ if (document.readyState === 'complete') {
             trace(0, end);
         }
 
-        if (points.length > 1) {
-            bgCtx.beginPath();
-            bgCtx.moveTo(points[0].x, points[0].y);
+        if (points.length < 2) return;
 
-            if (isMobile) {
-                for (let i = 1; i < points.length; i++) {
-                    bgCtx.lineTo(points[i].x, points[i].y);
-                }
-            } else {
-                for (let i = 1; i < points.length; i++) {
-                    const prev = points[i - 1];
-                    const curr = points[i];
-                    const cx = (prev.x + curr.x) / 2;
-                    const cy = (prev.y + curr.y) / 2;
-                    bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
-                }
+        bgCtx.beginPath();
+        bgCtx.moveTo(points[0][0], points[0][1]);
+
+        if (isMobile) {
+            for (let i = 1; i < points.length; i++) {
+                bgCtx.lineTo(points[i][0], points[i][1]);
             }
-
-            bgCtx.lineWidth = glowWidth;
-            bgCtx.strokeStyle = color;
-            bgCtx.shadowColor = color;
-            bgCtx.shadowBlur = glowBlur;
-            bgCtx.lineCap = 'round';
-            bgCtx.stroke();
+        } else {
+            for (let i = 1; i < points.length; i++) {
+                const [x1, y1] = points[i - 1];
+                const [x2, y2] = points[i];
+                const cx = (x1 + x2) / 2;
+                const cy = (y1 + y2) / 2;
+                bgCtx.quadraticCurveTo(x1, y1, cx, cy);
+            }
         }
-    }
 
-    function draw(timestamp) {
+        bgCtx.lineWidth = glowWidth;
+        bgCtx.strokeStyle = color;
+        bgCtx.shadowColor = color;
+        bgCtx.shadowBlur = glowBlur;
+        bgCtx.lineCap = 'round';
+        bgCtx.stroke();
+    };
+
+    const draw = (timestamp) => {
         if (!lastTime) lastTime = timestamp;
         const deltaTime = timestamp - lastTime;
         lastTime = timestamp;
         timeAccumulator += deltaTime;
 
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
         while (timeAccumulator >= frameInterval) {
             timeAccumulator -= frameInterval;
-
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const color = getActiveCardColor();
+            if (document.visibilityState !== 'visible') return;
 
             progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
-
             bgCtx.clearRect(0, 0, w, h);
 
-            if (document.visibilityState === 'hidden') {
-                requestAnimationFrame(draw);
-                return;
-            }
-
+            const color = getActiveCardColor();
             drawGlowSegment(progress, color);
             drawGlowSegment((progress + 0.5) % 1, color);
         }
 
         requestAnimationFrame(draw);
-    }
+    };
 
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas, { passive: true });
-
-    const observer = new MutationObserver(() => {});
-    document.querySelectorAll('.flip-card').forEach(card => {
-        observer.observe(card, {
-            attributes: true,
-            attributeFilter: ['class'],
-            subtree: false,
-            childList: false,
-            characterData: false
-        });
-    });
-
     if (document.visibilityState === 'visible') {
         requestAnimationFrame(draw);
     } else {
-        const handleVisibilityChange = () => {
+        const resume = () => {
             if (document.visibilityState === 'visible') {
+                document.removeEventListener('visibilitychange', resume);
                 requestAnimationFrame(draw);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
             }
         };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('visibilitychange', resume);
     }
 })();
 </script>
 
 
 
+
+
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // Load Google Font asynchronously (non-blocking)
+  const fontLink = document.createElement("link");
+  fontLink.rel = "stylesheet";
+  fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
+  fontLink.media = "print";
+  fontLink.onload = function () { this.media = "all"; };
+  document.head.appendChild(fontLink);
+
+  // Inject CSS only once
+  const style = document.createElement("style");
+  style.textContent = `
+    :root {
+      --stripe-size: 100px;
+      --color1: #c44;
+      --color2: #313131;
+      --duration: 2s;
+    }
+
+    .stripe-heading-container {
+      width: 100%;
+      max-width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 30px;
+      min-height: 120px;
+      position: relative;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .stripe-heading-text {
+      font-size: 8rem;
+      font-family: 'Anton', sans-serif;
+      text-align: center;
+      color: transparent;
+      background: repeating-linear-gradient(
+        45deg,
+        var(--color1) 25%,
+        var(--color1) 50%,
+        var(--color2) 50%,
+        var(--color2) 75%
+      );
+      background-size: var(--stripe-size) var(--stripe-size);
+      background-clip: text;
+      -webkit-background-clip: text;
+      animation: stripeScroll var(--duration) linear infinite;
+      line-height: 1.1;
+      will-change: background-position;
+    }
+
+    @keyframes stripeScroll {
+      from { background-position: 0 0; }
+      to { background-position: calc(var(--stripe-size) * -1) 0; }
+    }
+
+    @media (max-width: 768px) {
+      .stripe-heading-text { font-size: 4rem; }
+    }
+
+    @media (max-width: 480px) {
+      .stripe-heading-text { font-size: 3rem; }
+    }
+
+    .flip-card.active ~ .stripe-heading-container {
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+      position: absolute;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Replace the <h1> with styled container
+  const originalH1 = document.querySelector("h1");
+  if (originalH1) {
+    const container = document.createElement("div");
+    container.className = "stripe-heading-container";
+
+    const styledHeading = document.createElement("h1");
+    styledHeading.className = "stripe-heading-text";
+    styledHeading.textContent = originalH1.textContent;
+
+    container.appendChild(styledHeading);
+    originalH1.replaceWith(container);
+  }
+});
+</script>
 
 
 
