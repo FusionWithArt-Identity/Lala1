@@ -919,7 +919,184 @@ if (document.readyState === 'complete') {
 
 
 
+<script>
+(function optimizeMobileAnimations() {
+    // Check if mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (!isMobile) return;
 
+    // Performance optimization flags
+    const config = {
+        willChange: true,          // Use will-change for animated elements
+        forceGPU: true,            // Promote elements to GPU layers
+        simplifyAnimations: true,  // Simplify complex animations during interaction
+        passiveEvents: true,       // Use passive event listeners
+        frameBudget: 33            // Target 30fps (33ms per frame)
+    };
+
+    // Apply will-change to animated elements
+    if (config.willChange) {
+        const style = document.createElement('style');
+        style.textContent = `
+            .flip-card, .flip-card-inner, 
+            .flip-card-front, .flip-card-back,
+            .aspect-item, .aspect-content {
+                will-change: transform, opacity;
+            }
+            .stripe-heading-text {
+                will-change: background-position;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Force GPU acceleration for critical elements
+    if (config.forceGPU) {
+        const style = document.createElement('style');
+        style.textContent = `
+            .flip-card, .flip-card-inner {
+                transform: translateZ(0);
+                backface-visibility: hidden;
+                perspective: 1000px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Optimize frame budget management
+    (function frameBudgetManager() {
+        let lastFrameTime = performance.now();
+        let pendingAnimations = [];
+
+        function processFrame(currentTime) {
+            const elapsed = currentTime - lastFrameTime;
+            
+            if (elapsed < config.frameBudget) {
+                // Process all animations if we have time
+                for (const animation of pendingAnimations) {
+                    animation();
+                }
+            } else {
+                // Process only high-priority animations
+                for (let i = 0; i < Math.min(2, pendingAnimations.length); i++) {
+                    pendingAnimations[i]();
+                }
+            }
+
+            pendingAnimations = [];
+            lastFrameTime = currentTime;
+            requestAnimationFrame(processFrame);
+        }
+
+        // Override requestAnimationFrame to manage frame budget
+        const originalRAF = window.requestAnimationFrame;
+        window.requestAnimationFrame = function(callback) {
+            pendingAnimations.push(callback);
+            return originalRAF(processFrame);
+        };
+
+        requestAnimationFrame(processFrame);
+    })();
+
+    // Simplify animations during user interaction
+    if (config.simplifyAnimations) {
+        let isInteracting = false;
+        const animationElements = document.querySelectorAll(
+            '.flip-card, .flip-card-inner, .aspect-item, .aspect-content, .stripe-heading-text'
+        );
+
+        function startInteraction() {
+            if (isInteracting) return;
+            isInteracting = true;
+            
+            // Add simplified animation class
+            document.body.classList.add('mobile-optimized-animations');
+            
+            // Temporarily disable complex animations
+            const style = document.createElement('style');
+            style.id = 'mobile-animation-overrides';
+            style.textContent = `
+                .mobile-optimized-animations .flip-card-inner {
+                    transition-duration: 400ms !important;
+                    animation-duration: 400ms !important;
+                }
+                .mobile-optimized-animations .aspect-item,
+                .mobile-optimized-animations .aspect-content {
+                    transition-delay: 0ms !important;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        function endInteraction() {
+            if (!isInteracting) return;
+            isInteracting = false;
+            
+            // Remove simplified animation class
+            document.body.classList.remove('mobile-optimized-animations');
+            
+            // Remove temporary styles
+            const style = document.getElementById('mobile-animation-overrides');
+            if (style) style.remove();
+        }
+
+        // Detect touch interactions
+        document.addEventListener('touchstart', startInteraction, { passive: true });
+        document.addEventListener('touchend', endInteraction, { passive: true });
+        document.addEventListener('touchcancel', endInteraction, { passive: true });
+    }
+
+    // Use passive event listeners where possible
+    if (config.passiveEvents) {
+        const events = ['touchstart', 'touchmove', 'touchend', 'touchcancel', 'wheel'];
+        events.forEach(event => {
+            document.addEventListener(event, () => {}, {
+                passive: true,
+                capture: true
+            });
+        });
+    }
+
+    // Optimize scroll performance
+    document.addEventListener('DOMContentLoaded', () => {
+        const scrollElements = document.querySelectorAll('.flip-card-back');
+        scrollElements.forEach(el => {
+            el.style.webkitOverflowScrolling = 'touch';
+            el.style.overflowScrolling = 'touch';
+        });
+    });
+
+    // Reduce composite layers when not needed
+    let cleanupTimer;
+    function optimizeCompositeLayers() {
+        clearTimeout(cleanupTimer);
+        
+        // Temporarily promote elements during animation
+        const activeAnimations = document.querySelectorAll('.flip-card.active, .aspect-item.visible');
+        activeAnimations.forEach(el => {
+            el.style.transform = 'translateZ(0)';
+        });
+        
+        // Clean up after animations complete
+        cleanupTimer = setTimeout(() => {
+            activeAnimations.forEach(el => {
+                el.style.transform = '';
+            });
+        }, 1000);
+    }
+
+    // Watch for animation state changes
+    const observer = new MutationObserver(optimizeCompositeLayers);
+    document.querySelectorAll('.flip-card, .aspect-item').forEach(el => {
+        observer.observe(el, {
+            attributes: true,
+            attributeFilter: ['class']
+        });
+    });
+
+    console.log('Mobile animation optimizations applied');
+})();
+</script>
 
 
 
