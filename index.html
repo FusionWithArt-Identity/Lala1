@@ -447,7 +447,43 @@
 
 
 
+<script>
+(function createPulseBorderGlow() {
+    const glowColors = {
+        'clown-card': '#00a8ff',
+        'joker-card': '#ff3333',
+        'jester-card': '#00cc66'
+    };
 
+    // Create CSS keyframes and animation rule
+    const styleTag = document.createElement('style');
+    styleTag.type = 'text/css';
+    styleTag.textContent = `
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 10px var(--glow-color);
+            }
+            50% {
+                box-shadow: 0 0 20px var(--glow-color);
+            }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 2.5s ease-in-out infinite;
+            will-change: box-shadow;
+        }
+    `;
+    document.head.appendChild(styleTag);
+
+    // Apply animation dynamically to all .flip-card elements
+    document.querySelectorAll('.flip-card').forEach(card => {
+        const color = glowColors[card.id] || '#00a8ff';
+        card.style.setProperty('--glow-color', color);
+        card.classList.add('pulse-glow');
+    });
+})();
+
+</script>
 
 
 
