@@ -372,85 +372,34 @@
             </div>
         </div>
     </div>
-    <script>
-        let currentActiveCard = null;
-        let isAnimating = false;
-        
-        async function toggleCard(card) {
-            if (isAnimating) return;
-            isAnimating = true;
-            
-            if (currentActiveCard === card) {
-                card.classList.remove('lifted');
-                await new Promise(resolve => setTimeout(resolve, 300));
-                card.classList.remove('active');
-                currentActiveCard = null;
-                resetCardContent(card);
-            } else {
-                if (currentActiveCard) {
-                    currentActiveCard.classList.remove('lifted');
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                    currentActiveCard.classList.remove('active');
-                    resetCardContent(currentActiveCard);
-                }
-                
-                card.classList.add('lifted');
-                await new Promise(resolve => setTimeout(resolve, 500));
-                
-                card.classList.add('active');
-                currentActiveCard = card;
-                animateCardContent(card);
-            }
-            isAnimating = false;
-        }
-        
-        function animateCardContent(card) {
-            const aspectItems = card.querySelectorAll('.aspect-item');
-            const aspectContents = card.querySelectorAll('.aspect-content');
-            
-            aspectItems.forEach(item => {
-                item.classList.remove('visible');
-            });
-            aspectContents.forEach(content => {
-                content.classList.remove('visible');
-            });
-            
-            aspectItems.forEach((item, index) => {
-                setTimeout(() => {
-                    item.classList.add('visible');
-                    setTimeout(() => {
-                        const content = item.querySelector('.aspect-content');
-                        content.classList.add('visible');
-                    }, 300);
-                }, index * 600);
-            });
-        }
-        
-        function resetCardContent(card) {
-            const aspectItems = card.querySelectorAll('.aspect-item');
-            const aspectContents = card.querySelectorAll('.aspect-content');
-            
-            aspectItems.forEach(item => {
-                item.classList.remove('visible');
-            });
-            aspectContents.forEach(content => {
-                content.classList.remove('visible');
-            });
-        }
-        
-        document.body.addEventListener('click', function(e) {
-            if (currentActiveCard && !currentActiveCard.contains(e.target) && !isAnimating) {
-                isAnimating = true;
-                currentActiveCard.classList.remove('lifted');
-                setTimeout(() => {
-                    currentActiveCard.classList.remove('active');
-                    resetCardContent(currentActiveCard);
-                    currentActiveCard = null;
-                    isAnimating = false;
-                }, 300);
-            }
-        });
-    </script>
+   <script>
+(function setupFlipCardAnimation() {
+  document.querySelectorAll('.flip-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const isActive = card.classList.contains('active');
+
+      if (!isActive) {
+        // Step 1: Apply lifted for raise animation
+        card.classList.add('lifted');
+
+        // Step 2: After delay, apply flip
+        setTimeout(() => {
+          card.classList.add('active');
+        }, 400); // 400ms matches lift transition duration
+      } else {
+        // Reverse both animations
+        card.classList.remove('active');
+
+        // Wait for flip to reverse before dropping
+        setTimeout(() => {
+          card.classList.remove('lifted');
+        }, 400); // Optional: match to your desired drop timing
+      }
+    });
+  });
+})();
+</script>
+
 
 <script>
 function createNonIntrusiveGlowEffect() {
