@@ -790,93 +790,101 @@ if (document.readyState === 'complete') {
 
 
 <script>
-(function applyResponsiveStripedHeading() {
-  // Load Google Font (Anton)
-  const fontLink = document.createElement("link");
-  fontLink.rel = "stylesheet";
-  fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
-  document.head.appendChild(fontLink);
+(() => {
+  if (!document.querySelector('h1')) return;
 
-  // Inject Styling
-  const style = document.createElement("style");
-  style.textContent = `
-    :root {
-      --stripe-size: 100px;
-      --color1: #c44;
-      --color2: #313131;
-      --duration: 2s;
-    }
+  const insertStripedHeading = () => {
+    // Add Google Font asynchronously
+    const fontLink = document.createElement("link");
+    fontLink.rel = "stylesheet";
+    fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
+    fontLink.crossOrigin = "anonymous";
+    document.head.appendChild(fontLink);
 
-    .stripe-heading-container {
-      width: 100%;
-      max-width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 30px;
-      min-height: 120px; /* Reserve space to prevent bounce */
-      position: relative;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
+    // Create and append CSS
+    const style = document.createElement("style");
+    style.textContent = `
+      :root {
+        --stripe-size: 100px;
+        --color1: #c44;
+        --color2: #313131;
+        --duration: 2s;
+      }
 
-    .stripe-heading-text {
-      font-size: 8rem;
-      font-family: 'Anton', sans-serif;
-      text-align: center;
-      color: transparent;
-      background: repeating-linear-gradient(
-        45deg,
-        var(--color1) 25%,
-        var(--color1) 50%,
-        var(--color2) 50%,
-        var(--color2) 75%
-      );
-      background-size: var(--stripe-size) var(--stripe-size);
-      background-clip: text;
-      -webkit-background-clip: text;
-      animation: stripeBackgroundPosition var(--duration) linear infinite;
-      line-height: 1.1;
-    }
+      .stripe-heading-container {
+        width: 100%;
+        max-width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 30px;
+        min-height: 120px;
+        position: relative;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
 
-    @keyframes stripeBackgroundPosition {
-      0% { background-position: 0 0; }
-      100% { background-position: calc(var(--stripe-size) * -1) 0; }
-    }
+      .stripe-heading-text {
+        font-size: 8rem;
+        font-family: 'Anton', sans-serif;
+        text-align: center;
+        color: transparent;
+        background: repeating-linear-gradient(
+          45deg,
+          var(--color1) 25%,
+          var(--color1) 50%,
+          var(--color2) 50%,
+          var(--color2) 75%
+        );
+        background-size: var(--stripe-size) var(--stripe-size);
+        background-clip: text;
+        -webkit-background-clip: text;
+        animation: stripeBackgroundPosition var(--duration) linear infinite;
+        line-height: 1.1;
+      }
 
-    /* Responsive scaling */
-    @media (max-width: 768px) {
-      .stripe-heading-text { font-size: 4rem; }
-    }
+      @keyframes stripeBackgroundPosition {
+        0% { background-position: 0 0; }
+        100% { background-position: calc(var(--stripe-size) * -1) 0; }
+      }
 
-    @media (max-width: 480px) {
-      .stripe-heading-text { font-size: 3rem; }
-    }
+      @media (max-width: 768px) {
+        .stripe-heading-text { font-size: 4rem; }
+      }
 
-    /* Prevent heading from jumping on card flip */
-    .flip-card.active ~ .stripe-heading-container {
-      visibility: hidden;
-      opacity: 0;
-      pointer-events: none;
-      position: absolute;
-    }
-  `;
-  document.head.appendChild(style);
+      @media (max-width: 480px) {
+        .stripe-heading-text { font-size: 3rem; }
+      }
 
-  // Replace original <h1> with styled container
-  const h1 = document.querySelector('h1');
-  if (!h1) return;
+      .flip-card.active ~ .stripe-heading-container {
+        visibility: hidden;
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+      }
+    `;
+    document.head.appendChild(style);
 
-  const container = document.createElement('div');
-  container.className = 'stripe-heading-container';
+    // Replace original <h1> with styled version
+    const originalH1 = document.querySelector('h1');
+    const container = document.createElement('div');
+    container.className = 'stripe-heading-container';
 
-  const styledText = document.createElement('h1');
-  styledText.className = 'stripe-heading-text';
-  styledText.textContent = h1.textContent;
+    const styledText = document.createElement('h1');
+    styledText.className = 'stripe-heading-text';
+    styledText.textContent = originalH1.textContent;
 
-  container.appendChild(styledText);
-  h1.replaceWith(container);
+    container.appendChild(styledText);
+    originalH1.replaceWith(container);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(insertStripedHeading));
+  } else {
+    requestAnimationFrame(insertStripedHeading);
+  }
 })();
 </script>
+
 
 
 
