@@ -657,12 +657,9 @@ if (document.readyState === 'complete') {
     const glowBlur = isMobile ? 25 : 40;
     const glowSpeed = 0.2;
     const glowLength = isMobile ? 0.2 : 0.25;
-    const frameRate = 60;
-    const frameInterval = 1000 / frameRate;
 
     let progress = 0;
-    let lastTime = 0;
-    let timeAccumulator = 0;
+    let lastTimestamp = 0;
 
     const bgCanvas = document.createElement('canvas');
     const bgCtx = bgCanvas.getContext('2d', { alpha: true });
@@ -679,21 +676,14 @@ if (document.readyState === 'complete') {
     });
     document.body.appendChild(bgCanvas);
 
-    let resizeTimeout;
     function resizeCanvas() {
-        if (resizeTimeout) clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
-            const dpr = window.devicePixelRatio || 1;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            bgCanvas.style.width = `${w}px`;
-            bgCanvas.style.height = `${h}px`;
-            bgCanvas.width = w * dpr;
-            bgCanvas.height = h * dpr;
-            bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-            bgCtx.scale(dpr, dpr);
-            bgCtx.clearRect(0, 0, w, h);
-        }, 100);
+        const dpr = window.devicePixelRatio || 1;
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        bgCanvas.width = width * dpr;
+        bgCanvas.height = height * dpr;
+        bgCtx.setTransform(1, 0, 0, 1, 0, 0);
+        bgCtx.scale(dpr, dpr);
     }
 
     function getActiveCardColor() {
@@ -714,7 +704,7 @@ if (document.readyState === 'complete') {
         const step = isMobile ? 2 : 1.2;
         const points = [];
 
-        const addPoint = (pos) => {
+        function addPoint(pos) {
             if (pos < w) {
                 points.push({ x: pos, y: 0 });
             } else if (pos < w + h) {
@@ -724,15 +714,15 @@ if (document.readyState === 'complete') {
             } else {
                 points.push({ x: 0, y: h - (pos - 2 * w - h) });
             }
-        };
+        }
 
-        const trace = (from, to) => {
+        function trace(from, to) {
             let pos = from;
             while (pos < to) {
                 addPoint(pos);
                 pos += step;
             }
-        };
+        }
 
         if (start < end) {
             trace(start, end);
@@ -768,33 +758,25 @@ if (document.readyState === 'complete') {
         }
     }
 
-    function draw(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const deltaTime = timestamp - lastTime;
-        lastTime = timestamp;
-        timeAccumulator += deltaTime;
+    function animate(timestamp) {
+        if (!lastTimestamp) lastTimestamp = timestamp;
+        const delta = (timestamp - lastTimestamp) / 1000;
+        lastTimestamp = timestamp;
 
-        while (timeAccumulator >= frameInterval) {
-            timeAccumulator -= frameInterval;
+        progress = (progress + glowSpeed * delta) % 1;
 
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const color = getActiveCardColor();
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const color = getActiveCardColor();
 
-            progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
+        bgCtx.clearRect(0, 0, w, h);
 
-            bgCtx.clearRect(0, 0, w, h);
-
-            if (document.visibilityState === 'hidden') {
-                requestAnimationFrame(draw);
-                return;
-            }
-
+        if (document.visibilityState === 'visible') {
             drawGlowSegment(progress, color);
             drawGlowSegment((progress + 0.5) % 1, color);
         }
 
-        requestAnimationFrame(draw);
+        requestAnimationFrame(animate);
     }
 
     resizeCanvas();
@@ -804,26 +786,24 @@ if (document.readyState === 'complete') {
     document.querySelectorAll('.flip-card').forEach(card => {
         observer.observe(card, {
             attributes: true,
-            attributeFilter: ['class'],
-            subtree: false,
-            childList: false,
-            characterData: false
+            attributeFilter: ['class']
         });
     });
 
     if (document.visibilityState === 'visible') {
-        requestAnimationFrame(draw);
+        requestAnimationFrame(animate);
     } else {
-        const handleVisibilityChange = () => {
+        const onVisible = () => {
             if (document.visibilityState === 'visible') {
-                requestAnimationFrame(draw);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
+                requestAnimationFrame(animate);
+                document.removeEventListener('visibilitychange', onVisible);
             }
         };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
+        document.addEventListener('visibilitychange', onVisible);
     }
 })();
 </script>
+
 
 
 
