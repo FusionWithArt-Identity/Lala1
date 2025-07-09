@@ -129,6 +129,16 @@
     display: none;                 /* Chrome, Safari, Opera */
 }
 
+/* Add this to your existing styles */
+.flip-card-back {
+    scrollbar-width: none;         /* Firefox */
+    -ms-overflow-style: none;      /* IE and Edge */
+}
+
+.flip-card-back::-webkit-scrollbar {
+    display: none;                 /* Chrome, Safari, Opera */
+}
+        
 /* Solid Neon Backgrounds for Active Cards */
 #clown-card.active .flip-card-back {
     background: #0a1a2a !important;
