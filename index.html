@@ -600,7 +600,7 @@ function createNonIntrusiveGlowEffect() {
                 canvasData.ctx.scale(dpr, dpr);
             }
 
-            canvasData.progress = (canvasData.progress + config.speed * (deltaTime / 10)) % 1;
+            canvasData.progress = (canvasData.progress + config.speed * (deltaTime / 1000)) % 1;
 
             const contentWidth = styleWidth - (config.blur + config.width) * 2;
             const contentHeight = styleHeight - (config.blur + config.width) * 2;
