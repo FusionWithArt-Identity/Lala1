@@ -4,706 +4,525 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Clown vs Joker vs Jester</title>
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
     <style>
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
-    
-    body {
-        font-family: 'Courier New', monospace;
-        background-color: black;
-        color: #333;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        touch-action: manipulation;
-        overflow-x: hidden;
-        overflow-y: auto;
-        padding: 15px;
-    }
-        
-    .cards-container {
-        display: flex;
-        flex-direction: row;
-        justify-content: center;
-        align-items: center;
-        gap: 25px;
-        width: 100%;
-        height: 60%;
-    }
-
-    .flip-card {
-        background-color: transparent;
-        width: 30%;
-        height: 200px;
-        perspective: 1000px;
-        transition: all 1s cubic-bezier(0.25, 0.8, 0.25, 1);
-        position: relative;
-    }
-
-    .flip-card-inner {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        text-align: center;
-        transition: transform 2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        transform-style: preserve-3d;
-        box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-        border-radius: 12px;
-    }
-
-    /* Card States */
-    .flip-card.lifted {
-        transform: translateY(-30px) scale(1.05);
-    }
-
-    .flip-card.active {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 90vh;
-        z-index: 100;
-        padding: 25px;
-        transform: none !important;
-        overflow-y: auto;
-    }
-
-    .flip-card.active .flip-card-inner {
-        width: 100%;
-        height: 100%;
-    }
-
-    .flip-card.active ~ .flip-card {
-        display: none;
-    }
-
-    .flip-card.active ~ .stripe-heading-container {
-        display: none;
-    }
-
-    .flip-card.active .flip-card-inner {
-        transform: rotateY(180deg);
-    }
-
-    /* Card Faces */
-    .flip-card-front, .flip-card-back {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        -webkit-backface-visibility: hidden;
-        backface-visibility: hidden;
-        border-radius: 12px;
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-    }
-
-    .flip-card-front {
-        background-color: #fff;
-    }
-
-    .flip-card-back {
-        background-color: #fff;
-        transform: rotateY(180deg);
-        overflow-y: auto;
-        padding: 25px;
-        scrollbar-width: none;         /* Firefox */
-        -ms-overflow-style: none;      /* IE and Edge */
-    }
-
-    .flip-card-back::-webkit-scrollbar {
-        display: none;                 /* Chrome, Safari, Opera */
-    }
-        
-    /* --- NEW --- Pulsating Glow Animation */
-    @keyframes pulsing-glow {
-        from {
-            box-shadow: 0 0 30px var(--glow-color),
-                        inset 0 0 15px var(--glow-inset-color);
+        :root {
+            --card-transition-duration: 0.6s;
+            --card-transition-timing: cubic-bezier(0.25, 0.8, 0.25, 1);
+            --glow-clown: #00a8ff;
+            --glow-joker: #ff3333;
+            --glow-jester: #00cc66;
         }
-        to {
-            box-shadow: 0 0 45px 10px var(--glow-color),
-                        inset 0 0 25px 5px var(--glow-inset-color);
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-    }
 
-    /* --- MODIFIED --- Solid Backgrounds with new Animated Glow */
-    #clown-card.active .flip-card-back {
-        --glow-color: rgba(0, 150, 255, 0.7);
-        --glow-inset-color: rgba(0, 200, 255, 0.4);
-        background: #0a1a2a !important;
-        border: 2px solid #00a8ff !important;
-        animation: pulsing-glow 2.5s infinite alternate ease-in-out;
-    }
+        html {
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    #joker-card.active .flip-card-back {
-        --glow-color: rgba(255, 50, 50, 0.7);
-        --glow-inset-color: rgba(255, 100, 100, 0.4);
-        background: #2a0a0a !important;
-        border: 2px solid #ff3333 !important;
-        animation: pulsing-glow 2.5s infinite alternate ease-in-out;
-    }
+        body {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+            overflow: hidden;
+            padding: 15px;
+            perspective: 1500px;
+        }
 
-    #jester-card.active .flip-card-back {
-        --glow-color: rgba(50, 255, 50, 0.7);
-        --glow-inset-color: rgba(100, 255, 100, 0.4);
-        background: #0a2a0a !important;
-        border: 2px solid #00cc66 !important;
-        animation: pulsing-glow 2.5s infinite alternate ease-in-out;
-    }
+        .stripe-heading-container {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 30px;
+            min-height: 120px;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
 
-    /* Content Styling */
-    .image-container {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
-    }
-    
-    .character-image {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-    }
-    
-    .character-title {
-        color: #5e35b1;
-        font-weight: bold;
-        margin-bottom: 25px;
-        /* --- MODIFIED --- Responsive font size */
-        font-size: clamp(1.6rem, 5vw, 2rem);
-        text-align: center;
-    }
-    
-    /* Active Card Text Contrast */
-    .flip-card.active .flip-card-back .character-title,
-    .flip-card.active .flip-card-back .aspect-title,
-    .flip-card.active .flip-card-back .aspect-content {
-        color: #ffffff !important;
-        text-shadow: none !important;
-    }
-    
-    .aspect-item {
-        margin-bottom: 25px;
-        text-align: left;
-        width: 100%;
-        opacity: 0;
-        transform: translateX(-30px);
-        transition: all 0.6s ease;
-    }
-    
-    .aspect-item.visible {
-        opacity: 1;
-        transform: translateX(0);
-    }
-    
-    .aspect-title {
-        font-weight: bold;
-        color: #5e35b1;
-        margin-bottom: 10px;
-        /* --- MODIFIED --- Responsive font size */
-        font-size: clamp(1.3rem, 4vw, 1.5rem);
-    }
-    
-    .aspect-content {
-        line-height: 1.6;
-        opacity: 0;
-        transform: translateX(-30px);
-        transition: all 0.6s ease;
-        color: #222;
-        font-weight: 500;
-        /* --- MODIFIED --- Responsive font size */
-        font-size: clamp(1.2rem, 3.5vw, 1.4rem);
-    }
-    
-    .aspect-content.visible {
-        opacity: 1;
-        transform: translateX(0);
-    }
-    
-    /* Responsive Adjustments */
-    @media (max-width: 500px) {
-        .flip-card { height: 180px; }
-        .flip-card-back { padding: 20px; }
-    }
-    
-    @media (max-width: 400px) {
-        .cards-container { gap: 10px; }
-        .flip-card { height: 160px; }
-    }
+        .stripe-heading-text {
+            font-size: clamp(3rem, 15vw, 8rem);
+            font-family: 'Anton', sans-serif;
+            color: transparent;
+            background: repeating-linear-gradient(45deg, #c44 25%, #c44 50%, #313131 50%, #313131 75%);
+            background-size: 100px 100px;
+            background-clip: text;
+            -webkit-background-clip: text;
+            animation: stripeBackgroundPosition 2s linear infinite;
+            line-height: 1.1;
+            will-change: background-position;
+        }
 
-</style>
+        @keyframes stripeBackgroundPosition {
+            to { background-position: -100px 0; }
+        }
+
+        .cards-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 25px;
+            width: 100%;
+            height: 60%;
+            max-height: 250px;
+            transition: opacity 0.4s ease;
+        }
+
+        body.card-active .stripe-heading-container,
+        body.card-active .cards-container .flip-card:not(.active) {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.95);
+        }
+
+        .flip-card {
+            background-color: transparent;
+            width: 30%;
+            max-width: 200px;
+            height: 100%;
+            perspective: 1000px;
+            transition: transform var(--card-transition-duration) var(--card-transition-timing), box-shadow var(--card-transition-duration) var(--card-transition-timing);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .flip-card:hover:not(.active) {
+            transform: translateY(-10px) scale(1.05);
+        }
+
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 1s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transform-style: preserve-3d;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            will-change: transform;
+        }
+
+        .flip-card.active {
+            position: fixed;
+            top: 5vh;
+            left: 5vw;
+            width: 90vw;
+            height: 90vh;
+            z-index: 100;
+            max-width: none;
+            max-height: none;
+            cursor: default;
+            transform: none !important;
+        }
+
+        .flip-card.active .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .flip-card-front {
+            background-color: #fff;
+        }
+
+        .flip-card-back {
+            background-color: #fff;
+            transform: rotateY(180deg);
+            overflow-y: auto;
+            padding: 25px;
+            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none; /* Firefox */
+        }
+
+        .flip-card-back::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        #clown-card.active .flip-card-back {
+            background: #0a1a2a;
+            box-shadow: 0 0 30px rgba(0, 150, 255, 0.7), inset 0 0 15px rgba(0, 200, 255, 0.4);
+            border: 2px solid var(--glow-clown);
+        }
+
+        #joker-card.active .flip-card-back {
+            background: #2a0a0a;
+            box-shadow: 0 0 30px rgba(255, 50, 50, 0.7), inset 0 0 15px rgba(255, 100, 100, 0.4);
+            border: 2px solid var(--glow-joker);
+        }
+
+        #jester-card.active .flip-card-back {
+            background: #0a2a0a;
+            box-shadow: 0 0 30px rgba(50, 255, 50, 0.7), inset 0 0 15px rgba(100, 255, 100, 0.4);
+            border: 2px solid var(--glow-jester);
+        }
+
+        .image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .character-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        .character-title {
+            color: #5e35b1;
+            font-weight: bold;
+            margin-bottom: 25px;
+            font-size: 2rem;
+            text-align: center;
+        }
+
+        .flip-card.active .flip-card-back .character-title,
+        .flip-card.active .flip-card-back .aspect-title,
+        .flip-card.active .flip-card-back .aspect-content {
+            color: #ffffff;
+            text-shadow: none;
+        }
+
+        .aspect-item {
+            margin-bottom: 25px;
+            text-align: left;
+            width: 100%;
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: all 0.6s ease;
+            will-change: opacity, transform;
+        }
+        
+        .flip-card.active .aspect-item.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .aspect-title {
+            font-weight: bold;
+            color: #5e35b1;
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .aspect-content {
+            font-size: clamp(1.2rem, 3vw, 1.4rem);
+            line-height: 1.6;
+            color: #222;
+            font-weight: 500;
+        }
+
+        .close-button {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 50%;
+            border: none;
+            font-size: 24px;
+            line-height: 40px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 101;
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.5);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        body.card-active .close-button {
+            opacity: 1;
+            pointer-events: auto;
+            transform: scale(1);
+        }
+
+        @media (max-width: 768px) {
+            .cards-container {
+                flex-direction: column;
+                max-height: none;
+                height: 70vh;
+                gap: 15px;
+            }
+            .flip-card {
+                width: 80%;
+                height: 30%;
+                max-width: 300px;
+            }
+            .flip-card.active {
+                top: 2.5vh;
+                left: 2.5vw;
+                width: 95vw;
+                height: 95vh;
+            }
+            .aspect-title { font-size: 1.4rem; }
+            .aspect-content { font-size: 1.3rem; }
+            .flip-card-back { padding: 20px; }
+        }
+
+    </style>
 </head>
 <body>
-    
+    <div class="stripe-heading-container">
+        <h1 class="stripe-heading-text">Clown Vs Joker Vs Jester</h1>
+    </div>
+
     <div class="cards-container">
-        <div class="flip-card" id="clown-card" onclick="toggleCard(this)">
+        <div class="flip-card" id="clown-card">
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="https://i.postimg.cc/k4nk2r6S/clown.jpg" alt="Clown" class="character-image">
+                        <img src="https://i.ibb.co/6yJqB1V/clown.webp" alt="Clown" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
                     <div class="character-title">､｡ Clown</div>
-                    <div class="aspect-item" data-order="1">
+                    <div class="aspect-item">
                         <div class="aspect-title">Purpose</div>
-                        <div class="aspect-content">
-                            Entertain with slapstick and physical humor
-                        </div>
+                        <div class="aspect-content">Entertain with slapstick and physical humor</div>
                     </div>
-                    <div class="aspect-item" data-order="2">
+                    <div class="aspect-item">
                         <div class="aspect-title">Appearance</div>
-                        <div class="aspect-content">
-                            Colorful costumes, wigs, big shoes, painted face
-                        </div>
+                        <div class="aspect-content">Colorful costumes, wigs, big shoes, painted face</div>
                     </div>
-                    <div class="aspect-item" data-order="3">
+                    <div class="aspect-item">
                         <div class="aspect-title">Symbolism</div>
-                        <div class="aspect-content">
-                            Innocence, humor, or simple foolishness
-                        </div>
+                        <div class="aspect-content">Innocence, humor, or simple foolishness</div>
                     </div>
-                    <div class="aspect-item" data-order="4">
+                    <div class="aspect-item">
                         <div class="aspect-title">Setting</div>
-                        <div class="aspect-content">
-                            Circus, children's parties, comedic shows
-                        </div>
+                        <div class="aspect-content">Circus, children's parties, comedic shows</div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <div class="flip-card" id="joker-card" onclick="toggleCard(this)">
+
+        <div class="flip-card" id="joker-card">
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="https://i.postimg.cc/L6fS4y1r/joker.jpg" alt="Joker" class="character-image">
+                        <img src="https://i.ibb.co/PN4rY1B/joker.webp" alt="Joker" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
                     <div class="character-title">ワ Joker</div>
-                    <div class="aspect-item" data-order="1">
+                    <div class="aspect-item">
                         <div class="aspect-title">Purpose</div>
-                        <div class="aspect-content">
-                            Amuse or provoke using wit, sarcasm, or tricks
-                        </div>
+                        <div class="aspect-content">Amuse or provoke using wit, sarcasm, or tricks</div>
                     </div>
-                    <div class="aspect-item" data-order="2">
+                    <div class="aspect-item">
                         <div class="aspect-title">Appearance</div>
-                        <div class="aspect-content">
-                            Can look clownish or sinister (e.g., Batman's Joker)
-                        </div>
+                        <div class="aspect-content">Can look clownish or sinister (e.g., Batman's Joker)</div>
                     </div>
-                    <div class="aspect-item" data-order="3">
+                    <div class="aspect-item">
                         <div class="aspect-title">Symbolism</div>
-                        <div class="aspect-content">
-                            Chaos, unpredictability, or rebellion
-                        </div>
+                        <div class="aspect-content">Chaos, unpredictability, or rebellion</div>
                     </div>
-                    <div class="aspect-item" data-order="4">
+                    <div class="aspect-item">
                         <div class="aspect-title">Setting</div>
-                        <div class="aspect-content">
-                            Playing cards, pop culture, dark fiction
-                        </div>
+                        <div class="aspect-content">Playing cards, pop culture, dark fiction</div>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <div class="flip-card" id="jester-card" onclick="toggleCard(this)">
+
+        <div class="flip-card" id="jester-card">
             <div class="flip-card-inner">
                 <div class="flip-card-front">
                     <div class="image-container">
-                        <img src="https://i.postimg.cc/NMyyK0S1/jester.jpg" alt="Jester" class="character-image">
+                        <img src="https://i.ibb.co/gDFxP1Q/jester.webp" alt="Jester" class="character-image">
                     </div>
                 </div>
                 <div class="flip-card-back">
                     <div class="character-title">鹿 Jester</div>
-                    <div class="aspect-item" data-order="1">
+                    <div class="aspect-item">
                         <div class="aspect-title">Purpose</div>
-                        <div class="aspect-content">
-                            Entertain royalty with jokes, music, and clever wordplay
-                        </div>
+                        <div class="aspect-content">Entertain royalty with jokes, music, and clever wordplay</div>
                     </div>
-                    <div class="aspect-item" data-order="2">
+                    <div class="aspect-item">
                         <div class="aspect-title">Appearance</div>
-                        <div class="aspect-content">
-                            Traditional medieval outfit with bells, cap, and motley
-                        </div>
+                        <div class="aspect-content">Traditional medieval outfit with bells, cap, and motley</div>
                     </div>
-                    <div class="aspect-item" data-order="3">
+                    <div class="aspect-item">
                         <div class="aspect-title">Symbolism</div>
-                        <div class="aspect-content">
-                            Cleverness disguised as foolishness, truth-telling through humor
-                        </div>
+                        <div class="aspect-content">Cleverness disguised as foolishness, truth-telling through humor</div>
                     </div>
-                    <div class="aspect-item" data-order="4">
+                    <div class="aspect-item">
                         <div class="aspect-title">Setting</div>
-                        <div class="aspect-content">
-                            Medieval courts, noble households, theatrical plays
-                        </div>
+                        <div class="aspect-content">Medieval courts, noble households, theatrical plays</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
+    
+    <button class="close-button" aria-label="Close card">&times;</button>
+    
+    <canvas id="background-glow-canvas"></canvas>
+
     <script>
-        let currentActiveCard = null;
+    document.addEventListener('DOMContentLoaded', () => {
+        const cards = document.querySelectorAll('.flip-card');
+        const body = document.body;
+        const closeButton = document.querySelector('.close-button');
+        let activeCard = null;
         let isAnimating = false;
-        
-        async function toggleCard(card) {
-            if (isAnimating) return;
+
+        const animateCardContent = (card) => {
+            const items = card.querySelectorAll('.aspect-item');
+            items.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('visible');
+                }, 400 + index * 200);
+            });
+        };
+
+        const resetCardContent = (card) => {
+            card.querySelectorAll('.aspect-item').forEach(item => {
+                item.classList.remove('visible');
+            });
+        };
+
+        const deactivateCard = () => {
+            if (!activeCard || isAnimating) return;
             isAnimating = true;
-            
-            if (currentActiveCard === card) {
-                // Deactivating the current card
-                requestAnimationFrame(() => {
-                    card.classList.remove('lifted');
-                    card.classList.remove('active');
-                });
-                resetCardContent(card);
-                currentActiveCard = null;
-            } else {
-                // Deactivating a previously active card (if any)
-                if (currentActiveCard) {
-                    requestAnimationFrame(() => {
-                        currentActiveCard.classList.remove('lifted');
-                        currentActiveCard.classList.remove('active');
-                    });
-                    resetCardContent(currentActiveCard);
-                }
-                
-                // Activating the new card
-                card.classList.add('lifted');
-                await new Promise(resolve => setTimeout(resolve, 100)); // Short delay for lift effect
-                
-                requestAnimationFrame(() => {
-                    card.classList.add('active');
-                });
-                
-                currentActiveCard = card;
-                animateCardContent(card);
-            }
-            
-            // Use a timeout based on CSS transition duration to end the animation lock
+
+            body.classList.remove('card-active');
+            activeCard.classList.remove('active');
+            resetCardContent(activeCard);
+
+            // Allow scroll to reset before re-enabling transition
             setTimeout(() => {
+                if (activeCard) {
+                     activeCard.querySelector('.flip-card-back').scrollTop = 0;
+                }
+                activeCard = null;
                 isAnimating = false;
             }, 600);
-        }
+        };
         
-        // --- MODIFIED --- Performance-optimized content animation
-        function animateCardContent(card) {
-            const aspectItems = card.querySelectorAll('.aspect-item');
-            const aspectContents = card.querySelectorAll('.aspect-content');
-            
-            // Reset visibility immediately
-            aspectItems.forEach(item => item.classList.remove('visible'));
-            aspectContents.forEach(content => content.classList.remove('visible'));
-            
-            // Stagger the appearance using requestAnimationFrame for smoother rendering
-            aspectItems.forEach((item, index) => {
+        cards.forEach(card => {
+            card.addEventListener('click', () => {
+                if (isAnimating || card.classList.contains('active')) return;
+                isAnimating = true;
+
+                if (activeCard) {
+                    deactivateCard();
+                }
+                
+                body.classList.add('card-active');
+                card.classList.add('active');
+                activeCard = card;
+                animateCardContent(card);
+                
                 setTimeout(() => {
-                    requestAnimationFrame(() => {
-                        item.classList.add('visible');
-                        const content = item.querySelector('.aspect-content');
-                        if (content) {
-                            setTimeout(() => {
-                                requestAnimationFrame(() => {
-                                    content.classList.add('visible');
-                                });
-                            }, 300); // Delay for the content to appear after the title
-                        }
-                    });
-                }, index * 400); // Adjusted timing for a better feel
+                    isAnimating = false;
+                }, 600);
             });
-        }
-        
-        function resetCardContent(card) {
-            const aspectItems = card.querySelectorAll('.aspect-item, .aspect-content');
-            aspectItems.forEach(item => item.classList.remove('visible'));
-        }
-        
-        document.body.addEventListener('click', function(e) {
-            if (currentActiveCard && !currentActiveCard.contains(e.target) && !isAnimating) {
-                toggleCard(currentActiveCard); // Use the main toggle function to handle deactivation
-            }
         });
-    </script>
+        
+        closeButton.addEventListener('click', deactivateCard);
 
-<script>
-(function createDynamicBackgroundGlow() {
-    const colors = {
-        default: '#666666',
-        'clown-card': '#00a8ff',
-        'joker-card': '#ff3333',
-        'jester-card': '#00cc66'
-    };
+        // Background Glow Effect
+        const canvas = document.getElementById('background-glow-canvas');
+        const ctx = canvas.getContext('2d');
+        let glowProgress = 0;
+        
+        const glowConfig = {
+            'clown-card': '#00a8ff',
+            'joker-card': '#ff3333',
+            'jester-card': '#00cc66',
+            'default': '#666666'
+        };
 
-    const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    const glowWidth = isMobile ? 4 : 6;
-    const glowBlur = isMobile ? 25 : 40;
-    const glowSpeed = 0.2;
-    const glowLength = isMobile ? 0.2 : 0.25;
-    const frameRate = 60;
-    const frameInterval = 1000 / frameRate;
-
-    let progress = 0;
-    let lastTime = 0;
-    let timeAccumulator = 0;
-
-    const bgCanvas = document.createElement('canvas');
-    const bgCtx = bgCanvas.getContext('2d', { alpha: true });
-    Object.assign(bgCanvas.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100vw',
-        height: '100vh',
-        pointerEvents: 'none',
-        zIndex: '0',
-        willChange: 'transform',
-        backfaceVisibility: 'hidden'
-    });
-    document.body.appendChild(bgCanvas);
-
-    let resizeTimeout;
-    function resizeCanvas() {
-        if (resizeTimeout) clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
+        function resizeCanvas() {
             const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = `${window.innerWidth}px`;
+            canvas.style.height = `${window.innerHeight}px`;
+            ctx.scale(dpr, dpr);
+        }
+
+        function drawGlow() {
             const w = window.innerWidth;
             const h = window.innerHeight;
-            bgCanvas.style.width = `${w}px`;
-            bgCanvas.style.height = `${h}px`;
-            bgCanvas.width = w * dpr;
-            bgCanvas.height = h * dpr;
-            bgCtx.setTransform(1, 0, 0, 1, 0, 0);
-            bgCtx.scale(dpr, dpr);
-            bgCtx.clearRect(0, 0, w, h);
-        }, 100);
-    }
+            const perimeter = 2 * (w + h);
+            const glowLength = perimeter * 0.25;
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            const activeId = activeCard ? activeCard.id : 'default';
+            const color = glowConfig[activeId];
 
-    function getActiveCardColor() {
-        const activeCard = document.querySelector('.flip-card.active');
-        if (!activeCard) return colors.default;
-        return colors[activeCard.id] || colors.default;
-    }
+            ctx.save();
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 40;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
 
-    function drawGlowSegment(progressPoint, color) {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        const perimeter = 2 * (w + h);
-        const center = progressPoint * perimeter;
-        const halfLen = (glowLength * perimeter) / 2;
-        const start = (center - halfLen + perimeter) % perimeter;
-        const end = (center + halfLen) % perimeter;
+            const drawSegment = (startProgress) => {
+                const startPos = (startProgress * perimeter) % perimeter;
+                const endPos = (startPos + glowLength);
+                
+                ctx.beginPath();
 
-        const step = isMobile ? 2 : 1.2;
-        const points = [];
+                let currentPos = startPos;
+                while (currentPos < endPos) {
+                    const pos = currentPos % perimeter;
+                    let x, y;
 
-        const addPoint = (pos) => {
-            if (pos < w) {
-                points.push({ x: pos, y: 0 });
-            } else if (pos < w + h) {
-                points.push({ x: w, y: pos - w });
-            } else if (pos < 2 * w + h) {
-                points.push({ x: w - (pos - w - h), y: h });
-            } else {
-                points.push({ x: 0, y: h - (pos - 2 * w - h) });
-            }
-        };
+                    if (pos < w) { x = pos; y = 0; }
+                    else if (pos < w + h) { x = w; y = pos - w; }
+                    else if (pos < 2 * w + h) { x = w - (pos - (w + h)); y = h; }
+                    else { x = 0; y = h - (pos - (2 * w + h)); }
 
-        const trace = (from, to) => {
-            let pos = from;
-            while (pos < to) {
-                addPoint(pos);
-                pos += step;
-            }
-        };
+                    if (currentPos === startPos) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
 
-        if (start < end) {
-            trace(start, end);
-        } else {
-            trace(start, perimeter);
-            trace(0, end);
-        }
-
-        if (points.length > 1) {
-            bgCtx.beginPath();
-            bgCtx.moveTo(points[0].x, points[0].y);
-
-            if (isMobile) {
-                for (let i = 1; i < points.length; i++) {
-                    bgCtx.lineTo(points[i].x, points[i].y);
+                    currentPos += 10;
                 }
-            } else {
-                for (let i = 1; i < points.length; i++) {
-                    const prev = points[i - 1];
-                    const curr = points[i];
-                    const cx = (prev.x + curr.x) / 2;
-                    const cy = (prev.y + curr.y) / 2;
-                    bgCtx.quadraticCurveTo(prev.x, prev.y, cx, cy);
-                }
-            }
+                ctx.stroke();
+            };
+            
+            drawSegment(glowProgress);
+            drawSegment(glowProgress + 0.5);
 
-            bgCtx.lineWidth = glowWidth;
-            bgCtx.strokeStyle = color;
-            bgCtx.shadowColor = color;
-            bgCtx.shadowBlur = glowBlur;
-            bgCtx.lineCap = 'round';
-            bgCtx.stroke();
+            ctx.restore();
+
+            glowProgress = (glowProgress + 0.002) % 1;
+            requestAnimationFrame(drawGlow);
         }
-    }
-
-    function draw(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const deltaTime = timestamp - lastTime;
-        lastTime = timestamp;
-        timeAccumulator += deltaTime;
-
-        while (timeAccumulator >= frameInterval) {
-            timeAccumulator -= frameInterval;
-
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const color = getActiveCardColor();
-
-            progress = (progress + glowSpeed * (frameInterval / 1000)) % 1;
-
-            bgCtx.clearRect(0, 0, w, h);
-
-            if (document.visibilityState === 'hidden') {
-                requestAnimationFrame(draw);
-                return;
-            }
-
-            drawGlowSegment(progress, color);
-            drawGlowSegment((progress + 0.5) % 1, color);
-        }
-
-        requestAnimationFrame(draw);
-    }
-
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas, { passive: true });
-
-    const observer = new MutationObserver(() => {});
-    document.querySelectorAll('.flip-card').forEach(card => {
-        observer.observe(card, {
-            attributes: true,
-            attributeFilter: ['class'],
-            subtree: false,
-            childList: false,
-            characterData: false
-        });
+        
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        requestAnimationFrame(drawGlow);
     });
-
-    if (document.visibilityState === 'visible') {
-        requestAnimationFrame(draw);
-    } else {
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
-                requestAnimationFrame(draw);
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
-            }
-        };
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-    }
-})();
-</script>
-
-<script>
-(function applyResponsiveStripedHeading() {
-  // Load Google Font (Anton)
-  const fontLink = document.createElement("link");
-  fontLink.rel = "stylesheet";
-  fontLink.href = "https://fonts.googleapis.com/css2?family=Anton&display=swap";
-  document.head.appendChild(fontLink);
-
-  // Inject Styling
-  const style = document.createElement("style");
-  style.textContent = `
-    :root {
-      --stripe-size: 100px;
-      --color1: #c44;
-      --color2: #313131;
-      --duration: 2s;
-    }
-
-    .stripe-heading-container {
-      width: 100%;
-      max-width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 30px;
-      min-height: 120px; /* Reserve space to prevent bounce */
-      position: relative;
-      transition: opacity 0.3s ease, visibility 0.3s ease;
-    }
-
-    .stripe-heading-text {
-      font-size: clamp(3rem, 15vw, 8rem); /* Fluid font size */
-      font-family: 'Anton', sans-serif;
-      text-align: center;
-      color: transparent;
-      background: repeating-linear-gradient(
-        45deg,
-        var(--color1) 25%,
-        var(--color1) 50%,
-        var(--color2) 50%,
-        var(--color2) 75%
-      );
-      background-size: var(--stripe-size) var(--stripe-size);
-      background-clip: text;
-      -webkit-background-clip: text;
-      animation: stripeBackgroundPosition var(--duration) linear infinite;
-      line-height: 1.1;
-    }
-
-    @keyframes stripeBackgroundPosition {
-      0% { background-position: 0 0; }
-      100% { background-position: calc(var(--stripe-size) * -1) 0; }
-    }
-
-    /* Prevent heading from jumping on card flip */
-    .flip-card.active ~ .stripe-heading-container {
-      visibility: hidden;
-      opacity: 0;
-      pointer-events: none;
-      position: absolute;
-    }
-  `;
-  document.head.appendChild(style);
-
-  // Replace original <h1> with styled container
-  const h1 = document.querySelector('h1');
-  if (!h1) return;
-
-  const container = document.createElement('div');
-  container.className = 'stripe-heading-container';
-
-  const styledText = document.createElement('h1');
-  styledText.className = 'stripe-heading-text';
-  styledText.textContent = h1.textContent;
-
-  container.appendChild(styledText);
-  // Only replace if the original h1 exists and hasn't been replaced
-  if (h1 && h1.parentNode) {
-      h1.replaceWith(container);
-  }
-})();
-</script>
-
+    </script>
 </body>
 </html>
